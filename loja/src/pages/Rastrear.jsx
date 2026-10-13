@@ -91,7 +91,7 @@ export default function Rastrear() {
 
         <p className="mt-8 text-center text-sm text-ivory/50">
           Não achou o código?{' '}
-          <a href="mailto:contato@stargeo.com.br" className="text-gold hover:underline">
+          <a href="mailto:contato@stargeo.com" className="text-gold hover:underline">
             Fale com a gente
           </a>{' '}
           e a gente acha para você.

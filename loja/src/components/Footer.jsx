@@ -55,7 +55,7 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="mailto:contato@stargeo.com.br" className="text-ivory/70 transition hover:text-gold">
+                <a href="mailto:contato@stargeo.com" className="text-ivory/70 transition hover:text-gold">
                   Falar com a gente
                 </a>
               </li>
@@ -76,7 +76,7 @@ export default function Footer() {
         <div className="mt-10 flex flex-col gap-3 border-t border-white/8 pt-6 text-xs text-ivory/45 md:flex-row md:items-center md:justify-between">
           <p>© {ANO} StarGeo · Documento simbólico, com dados astronômicos conferidos.</p>
           <p>
-            7 dias para arrependimento · <span className="text-gold/70">contato@stargeo.com.br</span>
+            7 dias para arrependimento · <span className="text-gold/70">contato@stargeo.com</span>
           </p>
         </div>
       </div>

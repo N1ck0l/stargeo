@@ -45,7 +45,7 @@ export class ErroDeTela extends Component {
             gente.
           </p>
 
-          <a href="mailto:contato@stargeo.com.br" className="btn btn-secundario mt-8">
+          <a href="mailto:contato@stargeo.com" className="btn btn-secundario mt-8">
             Falar com a gente
           </a>
           <button type="button" onClick={() => window.location.reload()} className="btn btn-primary mt-3">
