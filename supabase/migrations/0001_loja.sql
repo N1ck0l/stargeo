@@ -75,20 +75,19 @@ create table if not exists public.products (
   -- O que o cliente recebe, em JSONB. Flexível porque muda por produto, e
   -- nunca é consultado por filtro — só lido inteiro.
   features            jsonb       not null default '[]'::jsonb,
-  -- Estrelas que valem para este produto, em ordem de sugestão. FK composta
-  -- garante que cada slug existe em `stars`.
-  star_slugs          text[]      not null default '{}',
+  -- Estrelas que valem para este produto, em ordem de sugestão.
+  --
+  -- A integridade (cada slug existir em `stars`) fica num GATILHO, e não numa
+  -- `foreign key`: o Postgres não aceita chave estrangeira em coluna de array —
+  -- ele compararia o array inteiro contra um escalar, o que nem tem tipo em
+  -- comum. O gatilho logo abaixo faz a checagem elemento a elemento.
+  star_slugs          text[]      not null default '{}'
+                      check (array_position(star_slugs, null) is null),
   -- Onde aparece na vitrine. NULL = escondido.
   sort_order          integer,
   active              boolean     not null default true,
   created_at          timestamptz not null default now(),
-  updated_at          timestamptz not null default now(),
-
-  constraint products_star_slugs_exist
-    foreign key (star_slugs) references public.stars (slug)
-    -- Um array com NULL dentro passa pelo check de FK só se for tratado como
-    -- NULL; esta constraint fecha a porta para slugs vazios.
-    check (array_position(star_slugs, null) is null)
+  updated_at          timestamptz not null default now()
 );
 
 comment on column public.products.price_cents is
@@ -99,6 +98,74 @@ comment on column public.products.star_slugs is
 create index if not exists products_active_sort_idx
   on public.products (sort_order)
   where active;
+
+-- Garante que todo slug em `products.star_slugs` existe em `stars`.
+--
+-- Substitui a `foreign key` impossível (ver o comentário na coluna). É a versão
+-- elemento a elemento: roda ANTES de gravar, então um produto apontando para
+-- estrela inexistente nem chega ao banco. O `errcode` imita o de uma violação
+-- de FK, para que a falha apareça como o erro de integridade que ela é.
+create or replace function public.produtos_estrelas_validas()
+returns trigger
+language plpgsql
+as $$
+declare
+  faltando text;
+begin
+  select s.slug into faltando
+  from unnest(new.star_slugs) as s(slug)
+  where not exists (select 1 from public.stars where stars.slug = s.slug)
+  limit 1;
+
+  if faltando is not null then
+    raise exception 'star_slugs contém estrela inexistente: %', faltando
+      using errcode = 'foreign_key_violation';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists products_star_slugs_validas on public.products;
+create trigger products_star_slugs_validas
+  before insert or update of star_slugs on public.products
+  for each row execute function public.produtos_estrelas_validas();
+
+-- ---------------------------------------------------------------------------
+-- Código público de pedido
+--
+-- Definido ANTES de `orders`: o `default` da coluna é resolvido quando a tabela
+-- é criada, então a função já precisa existir — o contrário dá "function does
+-- not exist" no meio da migration.
+--
+-- Alfanumérico, sem 0/O e 1/I/L: o código é ditado ao telefone com frequência,
+-- e esses caracteres geram confusão. Formato: SG-XXXX-XXXX, em que os quatro
+-- caracteres vêm de um alfabeto sem ambiguidade.
+-- ---------------------------------------------------------------------------
+create or replace function public.gen_order_code()
+returns text
+language plpgsql
+volatile
+security invoker
+set search_path = ''
+as $$
+declare
+  alphabet constant text := 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  code text := 'SG-';
+  i int;
+begin
+  for i in 1..8 loop
+    code := code || substr(alphabet, 1 + floor(random() * length(alphabet))::int, 1);
+    if i = 4 then
+      code := code || '-';
+    end if;
+  end loop;
+  return code;
+end;
+$$;
+
+comment on function public.gen_order_code() is
+  'Código público de rastreio, formato SG-XXXX-XXXX, sem caracteres ambíguos.';
 
 -- ---------------------------------------------------------------------------
 -- Pedidos
@@ -234,38 +301,6 @@ drop trigger if exists orders_touch_updated_at on public.orders;
 create trigger orders_touch_updated_at
   before update on public.orders
   for each row execute function public.touch_updated_at();
-
--- ---------------------------------------------------------------------------
--- Código público de pedido
---
--- Alfanumérico, sem 0/O e 1/I/L: o código é ditado ao telefone com frequência,
--- e esses caracteres geram confusão. Formato: SG-XXXX-XXXX, em que os quatro
--- caracteres vêm de um alfabeto sem ambiguidade.
--- ---------------------------------------------------------------------------
-create or replace function public.gen_order_code()
-returns text
-language plpgsql
-volatile
-security invoker
-set search_path = ''
-as $$
-declare
-  alphabet constant text := 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  code text := 'SG-';
-  i int;
-begin
-  for i in 1..8 loop
-    code := code || substr(alphabet, 1 + floor(random() * length(alphabet))::int, 1);
-    if i = 4 then
-      code := code || '-';
-    end if;
-  end loop;
-  return code;
-end;
-$$;
-
-comment on function public.gen_order_code() is
-  'Código público de rastreio, formato SG-XXXX-XXXX, sem caracteres ambíguos.';
 
 -- ---------------------------------------------------------------------------
 -- RLS

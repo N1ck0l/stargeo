@@ -15,8 +15,15 @@
  * astronômicos "−34° 23′ 04.62″". Um certificado que troca a letra grega por um
  * ponto de interrogação não é um certificado de astronomia.
  */
-import { PDFDocument, rgb } from 'pdf-lib'
-import fontkit from '@pdf-lib/fontkit'
+/*
+ * Pacotes npm com o prefixo `npm:`, que o Deno exige no empacotamento da Edge
+ * Function — um import sem prefixo ("pdf-lib") falha com "not prefixed with /
+ * or ./ or ../". Neste arquivo não há importador de navegador: quem chama é a
+ * função do servidor, e os testes (vitest) mapeiam os `npm:` para os mesmos
+ * pacotes via alias no `vitest.config.js`.
+ */
+import { PDFDocument, rgb } from 'npm:pdf-lib'
+import fontkit from 'npm:@pdf-lib/fontkit'
 import { drawCertificate, definirFabricaDeCor, PAGE } from './certificate.js'
 
 /** Milímetros para pontos: 1 polegada = 25,4 mm e 1 polegada = 72 pt. */
@@ -59,7 +66,9 @@ function carregarTtf(url) {
     // O `arrayBuffer()` de um fetch precisa vir inteiro e destacado; um Buffer
     // que é view de um array maior faz a conversão falhar em silêncio.
     const bruto = new Uint8Array(await (await fetch(url)).arrayBuffer())
-    const { decompress } = await import('wawoff2')
+    // `npm:` também no import dinâmico: o empacotador do Deno analisa imports
+    // literais, mesmo os dinâmicos, e rejeita o bare specifier.
+    const { decompress } = await import('npm:wawoff2')
     /*
      * O retorno do WASM é uma *view* dentro do heap dele, com `byteOffset`
      * grande. O fontkit lê a partir do início do `ArrayBuffer` em vez de

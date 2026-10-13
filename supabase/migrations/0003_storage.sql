@@ -36,4 +36,4 @@ on conflict (id) do nothing;
 -- Sem isto, o padrão do Supabase pode deixar o bucket legível, e valeria
 -- exatamente o vazamento que o bucket privado existe para evitar.
 -- ---------------------------------------------------------------------------
-revoke all on storage.objects for anon, authenticated;
+revoke all on storage.objects from anon, authenticated;
