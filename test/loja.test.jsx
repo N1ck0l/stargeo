@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CertificadoPreview } from '../loja/src/components/CertificadoPreview.jsx'
+import Loja from '../loja/src/App.jsx'
 import Produto from '../loja/src/pages/Produto.jsx'
 import Rastrear from '../loja/src/pages/Rastrear.jsx'
 import { getStar } from '../shared/stars.js'
@@ -182,5 +183,31 @@ describe('rastreamento', () => {
 
     const alerta = await screen.findByRole('alert')
     expect(alerta.textContent).not.toMatch(/e-mail não confere|existe/i)
+  })
+})
+
+describe('casca da loja', () => {
+  // O cabeçalho e o rodapé só existem no App. Renderizar as páginas isoladas
+  // não os alcança — foi assim que um `ANO` solto no rodapé chegou ao ar e
+  // derrubou todas as telas.
+  afterEach(() => {
+    localStorage.clear()
+    window.history.pushState(null, '', '/')
+  })
+
+  it.each(['/', '/rastrear', '/produto/certificado-digital', '/obrigado'])(
+    'monta a rota %s sem cair na tela de erro',
+    (caminho) => {
+      window.history.pushState(null, '', caminho)
+      const { container } = render(<Loja />)
+
+      expect(screen.queryByText('Algo saiu errado por aqui')).toBeNull()
+      expect(container.querySelector('footer')).toBeTruthy()
+    },
+  )
+
+  it('o rodapé mostra o ano corrente, e não uma variável solta', () => {
+    render(<Loja />)
+    expect(screen.getByText(new RegExp(`© ${new Date().getFullYear()} StarGeo`))).toBeTruthy()
   })
 })

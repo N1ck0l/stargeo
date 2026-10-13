@@ -1,5 +1,9 @@
 import { Link } from '../lib/Link.jsx'
 
+// O ano do rodapé é fixo na sessão: nada aqui depende da virada do ano, e um
+// cálculo por render só serviria para gerar um número idêntico.
+const ANO = new Date().getFullYear()
+
 export default function Footer() {
   return (
     <footer className="safe-bottom mt-16 border-t border-white/8">

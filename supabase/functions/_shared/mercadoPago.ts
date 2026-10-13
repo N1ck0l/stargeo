@@ -69,10 +69,14 @@ export async function criarPreferencia(opcoes: {
     // reconhecível, dentro do limite do adquirente.
     statement_descriptor: variavel('MP_STATEMENT_DESCRIPTOR'),
     payment_methods: {
-      // Excluir o mercado pago wallet deixa a tela mais limpa, já que o
-      // checkout é transparente e o cliente não sai do site.
-      excluded_payment_types: [{ id: 'marketplace' }, { id: 'bank_transfer' }],
-      installments: { quantity: 1 },
+      /*
+       * Só o marketplace sai. `bank_transfer` NÃO pode entrar nesta lista:
+       * no Mercado Pago o tipo de pagamento `bank_transfer` É o Pix (documentação
+       * da API: "bank_transfer: Pix, SPEI, PSE e Yape"). Excluí-lo esconderia o
+       * Pix do checkout — no Brasil, o meio preferido de pagamento.
+       */
+      excluded_payment_types: [{ id: 'marketplace' }],
+      installments: 1,
       default_installments: 1,
     },
     // Volta para a página de obrigado da loja depois do pagamento.
@@ -85,7 +89,7 @@ export async function criarPreferencia(opcoes: {
     binary_mode: false,
   }
 
-  const resposta = await fetch(`${BASE}/checkouts/preferences`, {
+  const resposta = await fetch(`${BASE}/checkout/preferences`, {
     method: 'POST',
     headers: headers(),
     body: JSON.stringify(payload),
