@@ -28,12 +28,32 @@ describe('CertificadoPreview', () => {
     expect(texto).toContain('SG-TEST-TEST')
   })
 
-  it('usa a folha A4 em milímetros, para bater com o PDF', () => {
+  it('usa a folha A4 em PAISAGEM, em milímetros, para bater com o PDF', () => {
     const { container } = render(<CertificadoPreview estrela={estrela} honoreeName="Ana" code="X" />)
     const folha = container.querySelector('.certificado')
 
-    expect(folha.style.width).toBe('210mm')
-    expect(folha.style.height).toBe('297mm')
+    expect(folha.style.width).toBe('297mm')
+    expect(folha.style.height).toBe('210mm')
+  })
+
+  it('converte o corpo da fonte por multiplicação — a divisão inflava 8×', () => {
+    render(<CertificadoPreview estrela={estrela} honoreeName="Ana" code="X" />)
+    const titulo = screen.getByText('CERTIFICADO DE DEDICAÇÃO CELESTE')
+
+    // 9 pt × 0,3528 mm/pt = 3,17 mm. Dividindo, saía 25,5 mm: o texto oito
+    // vezes maior que a folha, com blocos estourando para fora do papel.
+    expect(titulo.style.fontSize).toMatch(/mm$/)
+    expect(parseFloat(titulo.style.fontSize)).toBeCloseTo(3.17, 2)
+  })
+
+  it('põe os dados científicos em uma fileira de seis colunas', () => {
+    const { container } = render(<CertificadoPreview estrela={estrela} honoreeName="Ana" code="X" />)
+    const dados = container.querySelector('.grid-cols-6')
+
+    // Em retrato eram duas colunas em três linhas; em paisagem sobra altura
+    // de menos e largura de mais, então a fileira é única.
+    expect(dados).toBeTruthy()
+    expect(dados.children).toHaveLength(6)
   })
 
   it('tem texto de apoio quando o nome está vazio', () => {
@@ -220,6 +240,18 @@ describe('prévia do certificado', () => {
     expect(css).toMatch(/@import\s+["'][^"']*fonts\.css["']/)
   })
 
+  it('mantém .btn e .pilha em @layer components, senão a utility não vence', () => {
+    // CSS fora de camada vence qualquer utility do Tailwind. Sem a camada,
+    // `.btn { display: inline-flex }` engolia o `hidden` do "Comprar
+    // certificado" — que aparecia no celular, por cima do botão "Menu" —, e
+    // `.pilha { max-width: 72rem }` engolia o `max-w-2xl` de Rastrear.
+    const css = readFileSync(join(process.cwd(), 'loja/src/index.css'), 'utf8')
+    const camadas = [...css.matchAll(/@layer components \{[\s\S]*?\n\}/g)].map((m) => m[0])
+
+    expect(camadas.some((bloco) => bloco.includes('.btn {'))).toBe(true)
+    expect(camadas.some((bloco) => bloco.includes('.pilha {'))).toBe(true)
+  })
+
   it('escala por um número medido — um calc devolve comprimento e é descartado', () => {
     // jsdom não mede layout: sem esta largura o fator seria 0 e a folha sairia invisível.
     const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientWidth')
@@ -232,8 +264,13 @@ describe('prévia do certificado', () => {
       )
 
       expect(escalado).toBeTruthy()
-      // 400 px de contêiner sobre 793.7 px de folha = 0.50396...
-      expect(escalado.style.transform).toMatch(/^scale\(0\.50[0-9]+\)$/)
+      // 400 px de contêiner sobre 1122.52 px de folha (297 mm) = 0.35634...
+      expect(escalado.style.transform).toMatch(/^scale\(0\.35[0-9]+\)$/)
+
+      // A caixa mantém a proporção da folha: paisagem, 297 por 210.
+      const caixa = [...document.querySelectorAll('[style*="aspect"]')].find((el) => el.style.aspectRatio)
+      expect(caixa).toBeTruthy()
+      expect(caixa.style.aspectRatio).toBe('297 / 210')
     } finally {
       if (original) Object.defineProperty(HTMLElement.prototype, 'clientWidth', original)
       else delete HTMLElement.prototype.clientWidth

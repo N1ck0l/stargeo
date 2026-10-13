@@ -165,16 +165,27 @@ export async function buildCertificatePdf(data, opts = {}) {
    * `subset: true` embute só os glifos usados. Sem isso, cada certificado
    * carregaria ~120 KB de fonte para 40 glifos — e o e-mail ficaria pesado.
    */
-  const [display, serif, serifItalic] = await Promise.all([
+  const [display, serif, serifItalic, italicoGrego] = await Promise.all([
     carregarTtf(`${base}/fonts/cinzel-400.woff2`),
     carregarTtf(`${base}/fonts/cormorant-garamond-400.woff2`),
     carregarTtf(`${base}/fonts/cormorant-garamond-400i.woff2`),
+    /*
+     * Itálico com alfabeto grego, para a linha "ε Sagittarii".
+     *
+     * Os outros três são subconjuntos só com latim: o "ε" das designações de
+     * Bayer não existe neles, e o pdf-lib não tem o fallback que o navegador
+     * tem — o glifo saía como a caixinha de "não existe". O subset abaixo foi
+     * cortado com as letras gregas inteiras, então serve para qualquer estrela
+     * (α, β, δ…), não só para a Kaus Australis.
+     */
+    carregarTtf(`${base}/fonts/eb-garamond-italic-grego.woff2`),
   ])
 
   const fonts = {
     regular: await pdf.embedFont(serif, { subset: true }),
     italic: await pdf.embedFont(serifItalic, { subset: true }),
     display: await pdf.embedFont(display, { subset: true }),
+    bayer: await pdf.embedFont(italicoGrego, { subset: true }),
   }
 
   const page = pdf.addPage([PAGE.width * MM_TO_PT, PAGE.height * MM_TO_PT])

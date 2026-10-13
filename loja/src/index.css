@@ -11,6 +11,27 @@
 @import "../../src/fonts.css";
 
 /*
+ * Itálico com alfabeto grego — só para a linha "ε Sagittarii · Sagitário".
+ *
+ * As quatro fontes acima são subconjuntos só com latim: o "ε" não está em
+ * nenhuma delas. No navegador isso passa despercebido porque o fallback pega
+ * uma fonte do sistema; no PDF não há fallback, e o glifo saía como a
+ * caixinha de caractere inexistente. Esta é um subset da EB Garamond (parente
+ * do Cormorant, de onde ele veio) cortado com o alfabeto grego inteiro, então
+ * serve para α Centauri, β Orionis ou qualquer outra.
+ *
+ * O PDF usa o MESMO arquivo (embutido pelo `shared/pdf.js`), de modo que a
+ * prévia e o certificado impresso saem com a mesma letra.
+ */
+@font-face {
+  font-family: "EB Garamond";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/eb-garamond-italic-grego.woff2") format("woff2");
+}
+
+/*
  * Identidade da loja — a mesma do site pessoal.
  *
  * As cores e as fontes não foram escolhidas de novo: são as mesmas, para que o
@@ -91,47 +112,63 @@ body {
   border-radius: 4px;
 }
 
-/* Botões ------------------------------------------------------------------- */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border-radius: 999px;
-  padding: 0.85rem 1.75rem;
-  font-size: 0.95rem;
-  font-weight: 500;
-  transition:
-    background-color 200ms ease,
-    color 200ms ease,
-    border-color 200ms ease,
-    box-shadow 200ms ease,
-    transform 200ms ease;
-}
+/*
+ * Botões, campos e utilidades ficam em `@layer components`.
+ *
+ * O `@import "tailwindcss"` põe as utilities na camada `utilities`, que vem
+ * DEPOIS de `components` — e CSS fora de camada nenhuma vence as duas. Sem a
+ * camada, `.btn { display: inline-flex }` passava por cima do `hidden` do
+ * Tailwind: o "Comprar certificado" do topo aparecia no celular, em cima do
+ * botão "Menu". O mesmo valia para `.pilha { max-width: 72rem }` contra o
+ * `max-w-2xl` de Rastrear e o `max-w-xl` de Obrigado — as duas páginas que
+ * queriam coluna estreita saíam com a largura inteira.
+ *
+ * Regra prática: quem define PROPRIEDADES DE COMPONENTE vai na camada;
+ * quem decide SE um componente aparece (utilidade) fica livre para vencer.
+ */
+@layer components {
+  /* Botões --------------------------------------------------------------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 999px;
+    padding: 0.85rem 1.75rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition:
+      background-color 200ms ease,
+      color 200ms ease,
+      border-color 200ms ease,
+      box-shadow 200ms ease,
+      transform 200ms ease;
+  }
 
-.btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
 
-.btn-primary {
-  background: var(--color-gold);
-  color: var(--color-night);
-}
+  .btn-primary {
+    background: var(--color-gold);
+    color: var(--color-night);
+  }
 
-.btn-primary:hover:not(:disabled) {
-  background: var(--color-gold-soft);
-  box-shadow: 0 0 30px rgba(232, 200, 114, 0.35);
-}
+  .btn-primary:hover:not(:disabled) {
+    background: var(--color-gold-soft);
+    box-shadow: 0 0 30px rgba(232, 200, 114, 0.35);
+  }
 
-.btn-secundario {
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: var(--color-ivory);
-}
+  .btn-secundario {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--color-ivory);
+  }
 
-.btn-secundario:hover:not(:disabled) {
-  border-color: var(--color-gold);
-  color: var(--color-gold);
+  .btn-secundario:hover:not(:disabled) {
+    border-color: var(--color-gold);
+    color: var(--color-gold);
+  }
 }
 
 /* Campos ------------------------------------------------------------------- */
@@ -265,15 +302,17 @@ body {
 }
 
 /* Utilidades --------------------------------------------------------------- */
-.espaco-secao {
-  padding-block: clamp(3.5rem, 9vw, 7rem);
-}
+@layer components {
+  .espaco-secao {
+    padding-block: clamp(3.5rem, 9vw, 7rem);
+  }
 
-.pilha {
-  margin-inline: auto;
-  width: 100%;
-  max-width: 72rem;
-  padding-inline: 1.25rem;
+  .pilha {
+    margin-inline: auto;
+    width: 100%;
+    max-width: 72rem;
+    padding-inline: 1.25rem;
+  }
 }
 
 .sr-only {

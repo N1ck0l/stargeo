@@ -36,7 +36,13 @@
     <link rel="preload" href="/fonts/cinzel-400.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/outfit-400.woff2" as="font" type="font/woff2" crossorigin />
 
-    <script src="./meta.js"></script>
+    <!--
+      Caminho a partir da RAIZ, de propósito: `./meta.js` resolve contra a URL
+      atual, e numa rota como `/produto/kaus-australis` viraria
+      `/produto/meta.js` — que não existe. Na Vercel isso ainda devolveria o
+      index (200) no lugar do JS, e a prévia social ficaria sem URL.
+    -->
+    <script src="/meta.js"></script>
   </head>
   <body>
     <div id="root"></div>
@@ -49,12 +55,15 @@
         </p>
       </div>
     </noscript>
-    {/*
+    <!--
       Caminho RELATIVO de propósito. Com `/src/main.jsx`, a barra inicial
       resolveria a partir da raiz do repositório e traria o `main.jsx` do site
       pessoal — que compila sem erro e produz uma loja que não funciona.
       Relativo, o Vite sempre acha o arquivo certo.
-    */}
+
+      (Isto é HTML, não JSX: `{/* ... */}` aqui seria TEXTO na página — e foi.
+      O comentário tem que ser de HTML.)
+    -->
     <script type="module" src="./src/main.jsx"></script>
   </body>
 </html>

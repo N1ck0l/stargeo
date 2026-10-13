@@ -26,8 +26,8 @@ export const PALETTE = {
   goldInk: '#8a6a1c',
 }
 
-/** A4 retrato, em milímetros. */
-export const PAGE = { width: 210, height: 297 }
+/** A4 paisagem, em milímetros. */
+export const PAGE = { width: 297, height: 210 }
 
 /** Pontos por milímetro — usado para converter a medida de texto do pdf-lib. */
 export const MM_PER_PT = 25.4 / 72
@@ -55,6 +55,56 @@ export const VAO_MAX = 6
 
 /** Quanto o bloco pode descer do topo para se centralizar, em milímetros. */
 export const CENTRO_MAX = 22
+
+/**
+ * Distribui os blocos na faixa útil da folha.
+ *
+ * Uma conta só para o PDF e para a prévia: eram duas cópias da mesma matemática
+ * e já divergiram duas vezes — o parágrafo do PDF descia enquanto a tela subia,
+ * e o bloco de dados ficava fora do orçamento. Aqui as duas leem o mesmo número.
+ *
+ * As linhas de base são calculadas numa passada só (calcular durante o desenho
+ * produziu duas sobreposições seguidas). O vão é medido do FUNDO do bloco
+ * anterior até o TOPO do próximo, e como o texto é ancorado pela linha de base:
+ *
+ *     base[i+1] = base[i] - vao - altura[i+1]
+ *
+ * O vão tem TETO (`VAO_MAX`): dividir a sobra igualmente dava ~14 mm de respiro
+ * com pouco conteúdo e o texto boiava. O que sobra desce para o pé da página,
+ * centralizado até `CENTRO_MAX` — centralizar de verdade empurrava o título
+ * 5 cm para baixo.
+ *
+ * O bloco de dados entra na conta: ele é desenhado um vão abaixo do último
+ * bloco, e sem estar no orçamento a sobra era toda gasta no vão e ele invadia
+ * a zona do rodapé.
+ *
+ * @param {Array<[string, number]>} alturas `[chave, altura]` na ordem de desenho.
+ * @param {{ topo: number, base: number, dadosAltura: number }} faixa
+ *   limites verticais em milímetros (topo = topo útil, base = chão acima do rodapé).
+ * @returns {{ vao: number, bases: Record<string, number>, dadosTopo: number }}
+ *   linha de base de cada bloco, o vão usado e o TOPO do bloco de dados.
+ */
+export function distribuirBlocos(alturas, { topo, base, dadosAltura }) {
+  const presentes = alturas.filter(([, altura]) => altura > 0)
+  const alturaConteudo = presentes.reduce((soma, [, altura]) => soma + altura, 0) + dadosAltura
+
+  // O vão só é calculado depois de saber quantos blocos existem de fato
+  // — sem mensagem são 8, com mensagem são 9.
+  const vao = Math.min(VAO_MAX, Math.max(2.5, (topo - base - alturaConteudo) / presentes.length))
+  const sobra = topo - base - (alturaConteudo + vao * presentes.length)
+
+  const bases = {}
+  let y = topo - presentes[0][1] - Math.min(CENTRO_MAX, Math.max(0, sobra / 2))
+
+  for (let i = 0; i < presentes.length; i += 1) {
+    bases[presentes[i][0]] = y
+    const proximo = presentes[i + 1]
+    if (proximo) y -= vao + proximo[1]
+  }
+
+  // `y` parou no último bloco: é daí que o bloco de dados desce um vão.
+  return { vao, bases, dadosTopo: y - vao }
+}
 
 /**
  * @typedef {object} CertificateData
@@ -209,15 +259,26 @@ export function drawCertificate(pdf, page, fonts, data, opts = {}) {
     titulo: alturaDe(9),
     marca: alturaDe(40),
     selo: alturaDe(7),
-    // A estrela é desenhada a partir da linha de base para BAIXO (o eixo Y do
-    // PDF cresce para cima), então o bloco precisa ter o diâmetro inteiro.
+    // A estrela é um círculo de 22 mm, e o bloco dela também: o centro tem de
+    // ficar no MEIO do bloco (`b + 11`), não na linha de base. Centralizada na
+    // base, metade da estrela pendia para baixo — os pontinhos de baixo
+    // encostavam nas maiúsculas de "Kaus Australis".
     estrelaSimbolo: 10 * 2 + 2,
     estrela: alturaDe(22),
     bayer: alturaDe(11),
     dedicatoria: alturaDe(7),
-    nome: nomeLinhas.length * alturaDe(nomeSize) * 1.15,
-    mensagem: mensagemLinhas.length * alturaDe(mensagemSize) * 1.5,
-    dados: 3 * 13,
+    /*
+     * Nome e mensagem são os únicos blocos com VÁRIAS linhas, e a altura deles
+     * não é a das maiúsculas: é o avanço de linha que a prévia usa no CSS
+     * (`line-height` 1,15 no nome e 1,5 na mensagem). Medir com `alturaDe`
+     * (0,72 × corpo) subestimava o bloco — 1,08 em por linha onde a tela
+     * mostrava 1,5 —, e a mensagem longa saía do espaço reservado, descendo
+     * em cima dos dados científicos e do rodapé.
+     */
+    nome: nomeLinhas.length * nomeSize * MM_PER_PT * 1.15,
+    mensagem: mensagemLinhas.length * mensagemSize * MM_PER_PT * 1.5,
+    // Uma linha só: em paisagem a folha tem largura de sobra e altura de menos.
+    dados: 8,
   }
 
   // O rodapé é zona reservada: o conteúdo nunca entra nela.
@@ -225,33 +286,14 @@ export function drawCertificate(pdf, page, fonts, data, opts = {}) {
   const base = MARGIN + 26
 
   /*
-   * O vão entre blocos tem TETO, não é a sobra dividida por 9.
-   *
-   * Dividir a sobra igualmente dava ~14 mm de respiro com pouco conteúdo, e o
-   * certificado saía com o texto boiando no meio da folha. Com o teto, sobra
-   * espaço — e aí o bloco inteiro é centralizado, que é como documento nenhum
-   * fica com o texto grudado em cima.
-   */
-
-  /*
-   * Cada bloco declara sua ALTURA e como se desenha; as linhas de base são
-   * calculadas depois, numa passada só.
-   *
-   * Calcular durante o desenho é o que produziu duas sobreposições seguidas.
-   * O erro era de geometria, não de arithmetic: o vão tem de ser medido do
-   * FUNDO do bloco anterior até o TOPO do próximo. Como os textos são
-   * desenhados pela linha de base e os glifos sobem a partir dela, a linha de
-   * base de um bloco tem de ficar `vao + altura` ABAIXO da linha de base do
-   * bloco anterior:
-   *
-   *     base[i+1] = base[i] - vao - altura[i+1]
-   *
-   * Desce pela altura do bloco que acabou de desenhar e o "StarGeo" — que tem
-   * 10 mm de altura contra os 2 mm do título — sobe por cima dele, porque o
-   * espaço disponível não comportava os dois.
+   * Cada bloco declara sua ALTURA e como se desenha; as linhas de base vêm
+   * depois, numa passada só — calcular durante o desenho foi o que produziu
+   * duas sobreposições seguidas. A conta inteira mora em `distribuirBlocos`,
+   * que a prévia usa também: duas cópias da mesma matemática já divergiram.
    */
   const blocos = [
     {
+      chave: 'titulo',
       altura: altura.titulo,
       desenhar: (b) =>
         textCentered(page, 'CERTIFICADO DE DEDICAÇÃO CELESTE', fonts.display, b, {
@@ -261,10 +303,12 @@ export function drawCertificate(pdf, page, fonts, data, opts = {}) {
         }),
     },
     {
+      chave: 'marca',
       altura: altura.marca,
       desenhar: (b) => textCentered(page, 'StarGeo', fonts.display, b, { size: 40, color: C(c.text) }),
     },
     {
+      chave: 'selo',
       altura: altura.selo,
       desenhar: (b) =>
         textCentered(page, 'ATRAVÉS DE', fonts.regular, b, { size: 7, color: C(c.muted), charSpace: 2 }),
@@ -278,88 +322,82 @@ export function drawCertificate(pdf, page, fonts, data, opts = {}) {
        * raio de 10 mm ela invadia o nome. Bloco próprio, altura medida pelo
        * próprio raio, e cada elemento fica onde deveria.
        */
+      chave: 'estrelaSimbolo',
       altura: altura.estrelaSimbolo,
-      desenhar: (b) => drawStar(page, width / 2, b, 10, 4.2, 5, C(c.accent), page.escala(1)),
+      desenhar: (b) =>
+        drawStar(page, width / 2, b + altura.estrelaSimbolo / 2, 10, 4.2, 5, C(c.accent), page.escala(1)),
     },
     {
+      chave: 'estrela',
       altura: altura.estrela,
       desenhar: (b) => textCentered(page, data.starName, fonts.regular, b, { size: 22, color: C(c.accent) }),
     },
     {
+      chave: 'bayer',
       altura: altura.bayer,
       desenhar: (b) =>
-        textCentered(page, `${data.bayer} · ${data.constellation}`, fonts.italic, b, {
+        textCentered(page, `${data.bayer} · ${data.constellation}`, fonts.bayer, b, {
           size: 11,
           color: C(c.muted),
         }),
     },
     {
+      chave: 'dedicatoria',
       altura: altura.dedicatoria,
       desenhar: (b) =>
         textCentered(page, 'DEDICADA A', fonts.regular, b, { size: 7, color: C(c.muted), charSpace: 2 }),
     },
     {
+      chave: 'nome',
       altura: altura.nome,
       desenhar: (b) =>
         paragraph(page, nomeLinhas, fonts.regular, nomeSize, width / 2, b, {
-          size: nomeSize,
           color: C(c.text),
           align: 'center',
-          leading: nomeSize * MM_PER_PT * 0.28,
+          lineHeight: 1.15,
         }),
     },
   ]
 
   if (mensagemLinhas.length > 0) {
     blocos.push({
+      chave: 'mensagem',
       altura: altura.mensagem,
       desenhar: (b) =>
         paragraph(page, mensagemLinhas, fonts.italic, mensagemSize, width / 2, b, {
-          size: mensagemSize,
           color: C(c.muted),
           align: 'center',
-          leading: mensagemSize * MM_PER_PT * 0.45,
+          lineHeight: 1.5,
         }),
     })
   }
 
-  const presentes = blocos.filter((b) => b.altura > 0)
-  const alturaConteudo = presentes.reduce((soma, b) => soma + b.altura, 0)
+  const { bases, dadosTopo } = distribuirBlocos(
+    blocos.map((b) => [b.chave, b.altura]),
+    { topo, base, dadosAltura: altura.dados },
+  )
 
-  // O vão só pode ser calculado depois de saber quantos blocos existem de fato
-  // — sem mensagem são 7, com mensagem são 8.
-  const vao = Math.min(VAO_MAX, Math.max(2.5, (topo - base - alturaConteudo) / presentes.length))
-
-  /*
-   * A primeira linha de base fica no topo do conteúdo, deslocada para baixo
-   * pela altura do PRIMEIRO bloco — é ele que ocupa esse espaço, senão o
-   * título encosta na borda da moldura.
-   *
-   * O deslocamento para centralizar é LIMITADO: com pouco conteúdo, centralizar
-   * de verdade empurrava o título 5 cm para baixo e deixava um vazio enorme em
-   * cima. O que sobra vai para o pé da página, onde o olho não espera nada.
-   */
-  const primeiro = presentes[0]
-  const sobra = topo - base - (alturaConteudo + vao * presentes.length)
-  let baseY = topo - primeiro.altura - Math.min(CENTRO_MAX, Math.max(0, sobra / 2))
-
-  for (let i = 0; i < presentes.length; i += 1) {
-    presentes[i].desenhar(baseY)
-    const proximo = presentes[i + 1]
-    if (proximo) baseY -= vao + proximo.altura
+  for (const bloco of blocos) {
+    const b = bases[bloco.chave]
+    if (b !== undefined) bloco.desenhar(b)
   }
 
-  // Dados científicos, em duas colunas e três linhas.
-  const colWidth = (larguraUtil - 16) / 2
+  /*
+   * Dados científicos: UMA linha de seis colunas.
+   *
+   * Em retrato eram duas colunas em três linhas — 39 mm de altura, que em
+   * paisagem não cabem: a folha perdeu 87 mm de altura e ganhou 87 de
+   * largura. A largura paga a conta inteira.
+   */
+  const gapColunas = 4
+  const colWidth = (width - (MARGIN + 8) * 2 - gapColunas * (campos.length - 1)) / campos.length
   const leftX = MARGIN + 8
-  const rightX = leftX + colWidth + 16
 
   // Mesmo vão dos demais, medido até o TOPO do bloco de dados.
-  let linhaY = baseY - vao
+  const linhaY = dadosTopo
   for (let i = 0; i < campos.length; i += 1) {
     const [label, value] = campos[i]
-    const x = i % 2 === 0 ? leftX : rightX
-    if (i % 2 === 0 && i > 0) linhaY -= 13
+    const x = leftX + i * (colWidth + gapColunas)
 
     page.drawText(label.toUpperCase(), { x, y: linhaY, size: 6, font: fonts.regular, color: C(c.label) })
     page.drawText(String(value), {
@@ -462,14 +500,26 @@ function wrap(content, font, size, maxWidth) {
   return linhas
 }
 
-/** Desenha um bloco de linhas, centralizado, e devolve o Y final. */
-function paragraph(page, linhas, font, size, centerX, y, { color, align = 'left', leading = 5 }) {
-  let atualY = y
+/**
+ * Desenha um bloco de linhas centralizado, de BAIXO para CIMA.
+ *
+ * `y` é a linha de base da ÚLTIMA linha — a mesma âncora dos blocos de linha
+ * única e a mesma da prévia, onde o `bottom` do div segura a última linha e o
+ * parágrafo cresce para cima. Desenhando para baixo, como fazia antes, a
+ * mensagem longa descia em cima dos dados científicos e do rodapé.
+ *
+ * `lineHeight` é o mesmo número do `line-height` da prévia (1,15 no nome,
+ * 1,5 na mensagem): é ele que define o avanço entre linhas dos dois lados.
+ */
+function paragraph(page, linhas, font, size, centerX, y, { color, align = 'left', lineHeight = 1.5 }) {
+  const passo = size * MM_PER_PT * lineHeight
+  let atualY = y + (linhas.length - 1) * passo
+
   for (const linha of linhas) {
     const w = larguraEmMm(font, linha, size)
     const x = align === 'center' ? centerX - w / 2 : centerX
     page.drawText(linha, { x, y: atualY, size, font, color })
-    atualY -= leading + size * MM_PER_PT
+    atualY -= passo
   }
   return atualY
 }

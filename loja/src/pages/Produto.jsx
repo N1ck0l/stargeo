@@ -182,7 +182,14 @@ export default function Produto({ slug }) {
           <span className="text-ivory/80">{produto.nome}</span>
         </nav>
 
-        <div className="grid gap-10 lg:grid-cols-[1fr_480px]">
+        {/*
+          Prévia em A4 PAISAGEM: 297 mm ≈ 1122 px de folha, então a coluna dela
+          precisa de boa parte da largura da tela. O teto de 700 px evita que a
+          folha domine a página e a coluna do formulário encolha demais — em
+          1024 px de viewport, onde o grid ainda está ligado, `60%` deixa o
+          formulário com ~350 px, que é o mínimo confortável.
+        */}
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_min(700px,60%)]">
           {/* --- Formulário -------------------------------------------------- */}
           <div className="order-2 space-y-8 lg:order-1">
             <Secao numero="1" titulo="Para quem é o certificado?">
@@ -372,10 +379,10 @@ export default function Produto({ slug }) {
 }
 
 /**
- * Escala a folha A4 para caber na largura disponível.
+ * Escala a folha A4 em PAISAGEM para caber na largura disponível.
  *
- * A folha é desenhada em milímetros, e `210 mm` valem `793.7 px` a 96 dpi — é
- * por isso que o fator é `largura / 793.7`. O que muda em relação à versão
+ * A folha é desenhada em milímetros, e `297 mm` valem `1122.52 px` a 96 dpi —
+ * é por isso que o fator é `largura / 1122.52`. O que muda em relação à versão
  * anterior é QUEM faz a conta: era CSS puro, `scale(calc(100cqw / 793.7))`,
  * e isso não funciona — o calc devolve um COMPRIMENTO, e `scale()` exige um
  * número. O navegador descartava a declaração, a folha ficava em tamanho
@@ -386,7 +393,7 @@ export default function Produto({ slug }) {
  * precisa de throttle e não gera render extra: ele só dispara quando a largura
  * realmente muda.
  */
-const LARGURA_FOLHA_PX = 793.7
+const LARGURA_FOLHA_PX = 1122.52
 
 function Escala({ children }) {
   const caixa = useRef(null)
@@ -407,7 +414,7 @@ function Escala({ children }) {
 
   return (
     <div ref={caixa} style={{ width: '100%' }}>
-      <div style={{ width: '100%', aspectRatio: '210 / 297', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ width: '100%', aspectRatio: '297 / 210', position: 'relative', overflow: 'hidden' }}>
         <div
           style={{
             position: 'absolute',
