@@ -25,8 +25,12 @@ Add custom domain**. O certificado HTTPS vem automático.
 
 Para atualizar o site depois, é só arrastar a `dist/` nova de novo.
 
-O arquivo `netlify.toml` já deixa o build, o cache e os cabeçalhos de
-segurança prontos quando você conectar o repositório em vez de arrastar a pasta.
+> **Cuidado com o `netlify.toml`.** Ele está na raiz do repositório, mas
+> constrói a **loja** (`dist-loja`), não o site pessoal. Conectar o repositório
+> ao Netlify publica a loja — não este presente. Os cabeçalhos de segurança e
+> o cache valem para qualquer um, mas não são aplicados enquanto nada do
+> repositório estiver conectado: só o Drop lê a pasta `dist/`, que não
+> contém o arquivo.
 
 ## Opção 2 — Vercel
 

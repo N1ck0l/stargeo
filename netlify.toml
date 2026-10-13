@@ -1,19 +1,32 @@
 # Configuração da Netlify.
 #
-# Publicar: arraste a pasta `dist` para https://app.netlify.com/drop
-# ou conecte o repositório — a Netlify lê este arquivo sozinha.
+# Atenção a quem lê isto: existem DOIS sites com formas de publicar diferentes.
+#
+#  1. O SITE PESSOAL (o presente): é publicado arrastando a pasta `dist/` no
+#     Netlify Drop (ver DEPLOY.md). O Drop não lê este arquivo — ele só existe
+#     na raiz do repositório, que não está conectado a esse site. Por isso nada
+#     daqui afeta o presente.
+#
+#  2. A LOJA: este arquivo é dela. Conecte o repositório ao Netlify (Import an
+#     existing project → GitHub → N1ck0l/stargeo) e o build sai daqui.
+#
+# As regras de segurança e cache valem para qualquer um dos dois; só o
+# comando de build é específico da loja.
 
 [build]
-  command = "npm run build"
-  publish = "dist"
+  command = "npm run build:loja"
+  publish = "dist-loja"
 
 [build.environment]
-  NODE_VERSION = "20"
+  # Vite 8 exige Node 20.19+ ou 22.12+; 20 genérico poderia pegar uma versão
+  # velha demais e falhar no build.
+  NODE_VERSION = "22"
 
-# O site usa âncoras (#ceu, #estrela), não rotas de caminho, então não é
-# preciso rewrite de SPA. Esta regra existe apenas para que qualquer caminho
-# desconhecido devolva o index.html em vez de um 404.
-
+# A loja usa rotas de caminho (/produto/..., /rastrear, /obrigado), que não
+# existem como arquivo — a regra devolve o index.html para qualquer caminho
+# inexistente. O mesmo resultado já está no `_redirects` da pasta public da
+# loja (que vai para dist-loja/); manter os dois é inofensivo e cobre quem
+# copiar só um.
 [[redirects]]
   from = "/*"
   to = "/index.html"
@@ -37,15 +50,8 @@
   [headers.values]
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    # A Mira celeste usa getUserMedia e sensores; a câmera não é afetada por
-    # esta política, que controla apenas o que o documento pode incorporar.
     X-Frame-Options = "SAMEORIGIN"
-    # Só a própria origem pode usar câmera, microfone, localização e sensores de
-    # orientação. O site não tem incorporador de terceiros nemJanela aninhada,
-    # ou acelerômetro. O site não tem incorporador de terceiros, então
-    # restringi-los não tira nada — e evita que a página seja usada como
-    # trampolim para pedir permissões em nome de outro site.
+    # Só a própria origem pode usar câmera, microfone, localização e sensores
+    # de orientação — a loja não usa nenhum, mas restringir custa nada.
     Permissions-Policy = "camera=(self), microphone=(), geolocation=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self), ambient-light-sensor=()"
-    # Ao abrir o site, o navegador deve falar só com a origem; sete dias, com
-    # subdomínios incluídos.
     Strict-Transport-Security = "max-age=604800; includeSubDomains"
