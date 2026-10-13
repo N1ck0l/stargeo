@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CertificadoPreview } from '../loja/src/components/CertificadoPreview.jsx'
@@ -209,5 +211,32 @@ describe('casca da loja', () => {
   it('o rodapé mostra o ano corrente, e não uma variável solta', () => {
     render(<Loja />)
     expect(screen.getByText(new RegExp(`© ${new Date().getFullYear()} StarGeo`))).toBeTruthy()
+  })
+})
+
+describe('prévia do certificado', () => {
+  it('importa as fontes que o PDF usa, senão a folha sai em Georgia', () => {
+    const css = readFileSync(join(process.cwd(), 'loja/src/index.css'), 'utf8')
+    expect(css).toMatch(/@import\s+["'][^"']*fonts\.css["']/)
+  })
+
+  it('escala por um número medido — um calc devolve comprimento e é descartado', () => {
+    // jsdom não mede layout: sem esta largura o fator seria 0 e a folha sairia invisível.
+    const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientWidth')
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, value: 400 })
+
+    try {
+      render(<Produto slug="certificado-digital" />)
+      const escalado = [...document.querySelectorAll('[style*="scale"]')].find(
+        (el) => el.style.transform.includes('scale('),
+      )
+
+      expect(escalado).toBeTruthy()
+      // 400 px de contêiner sobre 793.7 px de folha = 0.50396...
+      expect(escalado.style.transform).toMatch(/^scale\(0\.50[0-9]+\)$/)
+    } finally {
+      if (original) Object.defineProperty(HTMLElement.prototype, 'clientWidth', original)
+      else delete HTMLElement.prototype.clientWidth
+    }
   })
 })

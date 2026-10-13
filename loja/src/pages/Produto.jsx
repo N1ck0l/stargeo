@@ -1,5 +1,5 @@
 
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { STARS, getStar } from '../../../shared/stars.js'
 import { validarPedido, explicarErros } from '../../../shared/moderation.js'
 import { CertificadoPreview } from '../components/CertificadoPreview.jsx'
@@ -374,19 +374,39 @@ export default function Produto({ slug }) {
 /**
  * Escala a folha A4 para caber na largura disponível.
  *
- * O truque é manter o desenho em milímetros e deixar o CSS resolver: o
- * contêiner usa `container-type: inline-size` e a folha é redimensionada por
- * porcentagem da largura do contêiner. Sem JS medindo a janela, e sem
- * listener de resize.
+ * A folha é desenhada em milímetros, e `210 mm` valem `793.7 px` a 96 dpi — é
+ * por isso que o fator é `largura / 793.7`. O que muda em relação à versão
+ * anterior é QUEM faz a conta: era CSS puro, `scale(calc(100cqw / 793.7))`,
+ * e isso não funciona — o calc devolve um COMPRIMENTO, e `scale()` exige um
+ * número. O navegador descartava a declaração, a folha ficava em tamanho
+ * natural e o `overflow: hidden` cortava a prévia.
+ *
+ * Não existe como transformar a largura do contêiner em número sem medir, então
+ * a medida é JS. O `ResizeObserver` observa o contêiner (e não a janela), não
+ * precisa de throttle e não gera render extra: ele só dispara quando a largura
+ * realmente muda.
  */
+const LARGURA_FOLHA_PX = 793.7
+
 function Escala({ children }) {
+  const caixa = useRef(null)
+  const [fator, setFator] = useState(1)
+
+  useLayoutEffect(() => {
+    const elemento = caixa.current
+    if (!elemento) return undefined
+
+    const medir = () => setFator(elemento.clientWidth / LARGURA_FOLHA_PX)
+    // Mede antes de o navegador pintar: começa escalado, sem pulso de folha gigante.
+    medir()
+
+    const observador = new ResizeObserver(medir)
+    observador.observe(elemento)
+    return () => observador.disconnect()
+  }, [])
+
   return (
-    <div
-      style={{
-        containerType: 'inline-size',
-        width: '100%',
-      }}
-    >
+    <div ref={caixa} style={{ width: '100%' }}>
       <div style={{ width: '100%', aspectRatio: '210 / 297', position: 'relative', overflow: 'hidden' }}>
         <div
           style={{
@@ -394,7 +414,7 @@ function Escala({ children }) {
             top: 0,
             left: 0,
             transformOrigin: 'top left',
-            transform: 'scale(calc(100cqw / 793.7))',
+            transform: `scale(${fator})`,
           }}
         >
           {children}

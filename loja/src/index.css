@@ -1,6 +1,16 @@
 @import "tailwindcss";
 
 /*
+ * As mesmas fontes do site pessoal e do PDF.
+ *
+ * Sem este import a loja não tem um único `@font-face`: os woff2 ficavam em
+ * /fonts e eram pré-carregados pelo HTML, mas nada os declarava, e o navegador
+ * caía em Georgia — que tem métricas diferentes, o que vaza texto da prévia e
+ * faz a folha divergir do certificado que sai no e-mail.
+ */
+@import "../../src/fonts.css";
+
+/*
  * Identidade da loja — a mesma do site pessoal.
  *
  * As cores e as fontes não foram escolhidas de novo: são as mesmas, para que o
@@ -276,6 +286,12 @@ body {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+/* A folha é o bloco posicionado dos filhos absolutos da prévia: sem isto eles
+   se apontam contra o contêiner de escala, que só por acaso tem o mesmo tamanho. */
+.certificado {
+  position: relative;
 }
 
 /* Impressão da página de produto: só o certificado, sem a loja em volta. */
