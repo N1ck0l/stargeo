@@ -82,7 +82,8 @@ supabase secrets set \
   RESEND_API_KEY=... \
   EMAIL_FROM="StarGeo <certificado@seudominio.com.br>" \
   PUBLIC_SITE_URL=https://seudominio.com.br \
-  FONTS_BASE_URL=https://seudominio.com.br
+  FONTS_BASE_URL=https://seudominio.com.br \
+  ORIGENS_PERMITIDAS=https://seudominio.com.br
 ```
 
 ### Ordem de testes
@@ -104,8 +105,9 @@ com o **ambiente de teste** do Mercado Pago:
 
 - **Domínio** troque `PUBLIC_SITE_URL` e `FONTS_BASE_URL` em todos os lugares
 - **Preços** em `migrations/0002_seed.sql` — os valores atuais são de exemplo
-- **CORS** em `functions/_shared/http.ts` — `ORIGENS_PERMITIDAS` só tem
-  `localhost` e o domínio de exemplo
+- **CORS** defina `ORIGENS_PERMITIDAS` com o domínio da loja (segredo do
+  Supabase). Sem ela, só `localhost` passa e o navegador bloqueia tudo em
+  produção
 - **Termos bloqueados** em `shared/moderation.js` — a lista é curta de
   propósito; ajuste ao seu contexto antes de abrir para o público
 - **Compra de teste ponta a ponta**: confirmar que o e-mail chega, que o link
@@ -119,12 +121,24 @@ npm run verificar   # lint + tipos das Edge Functions + todos os testes
 
 Os testes cobrem a projeção celeste, a posição no céu, a moderação (23 casos,
 incluindo bypass por acento e caixa), os componentes do site pessoal e os da
-loja (prévia do certificado, validação do configurador, rastreio). São 56
-casos ao todo.
+loja (prévia do certificado, validação do configurador, rastreio) mais o
+e-mail de entrega. São 61 casos ao todo.
 
-O build da loja é separado, porque o `root` do Vite precisa ser a raiz do
-repositório para resolver `shared/`:
+## Publicar a loja
+
+O build é separado do site pessoal, porque o `root` do Vite precisa ser a raiz
+do repositório para resolver `shared/`. O comando já existe:
 
 ```bash
-node_modules\.bin\vite build --config loja\vite.config.js   # gera dist-loja/
+npm run build:loja   # gera dist-loja/
 ```
+
+No host (Netlify), configure **publish** `dist-loja` e **build**
+`npm run build:loja`, e defina as variáveis `VITE_*` do `.env.example` em
+*Environment variables* — elas entram no bundle em tempo de build.
+
+O `loja/public/_redirects` (copiado para `dist-loja/` no build) faz o rewrite
+de SPA: sem ele, abrir um link direto de `/rastrear` ou `/produto/...` devolve
+404, porque essas rotas só existem no JavaScript. O site pessoal não precisa
+disso — ele usa âncoras.
+

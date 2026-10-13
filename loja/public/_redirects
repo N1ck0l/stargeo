@@ -1,0 +1,13 @@
+# Rewrite de SPA da loja.
+#
+# A loja usa rotas de caminho (/produto/kaus-australis, /rastrear, /obrigado).
+# Sem esta regra, quem abre um link direto para /rastrear recebe 404 do host,
+# porque não existe arquivo nesse caminho — a rota é resolvida pelo JavaScript
+# já carregado. O 200 no fim diz "serve o index e mantém a URL".
+#
+# O site pessoal NÃO precisa disto: ele usa âncoras (#ceu, #estrela), não rotas.
+#
+# Netlify e Cloudflare Pages leem este arquivo. Na Vercel, o equivalente é um
+# rewrite em vercel.json:
+#   { "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }
+/*    /index.html   200

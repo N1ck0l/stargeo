@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:loja": "vite build --config loja/vite.config.js",
+    "dev:loja": "vite --config loja/vite.config.js",
     "lint": "oxlint",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.functions.json",

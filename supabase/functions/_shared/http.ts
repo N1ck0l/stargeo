@@ -8,12 +8,26 @@
  * ver o detalhe no log.
  */
 
-/** Domínios que podem chamar a loja. Ajuste ao domínio real antes de publicar. */
-const ORIGENS_PERMITIDAS = [
-  'http://localhost:5173',
-  'http://localhost:4173',
-  'https://stargeo.netlify.app',
-]
+/**
+ * Origens sempre liberadas, para o desenvolvimento local.
+ *
+ * 5173 é o site pessoal (porta padrão do Vite) e 4173 é o `vite preview`.
+ */
+const ORIGENS_DEV = ['http://localhost:5173', 'http://localhost:4173']
+
+/**
+ * Lê os domínios extras da variável de ambiente `ORIGENS_PERMITIDAS`.
+ *
+ * A lista de produção vem do ambiente (`supabase secrets set`) e não do
+ * código: o domínio muda entre teste e produção, e editar código para publicar
+ * é um convite a esquecer. Sem a variável, só o desenvolvimento local passa —
+ * o padrão seguro.
+ */
+function origensPermitidas(): string[] {
+  const extra = Deno.env.get('ORIGENS_PERMITIDAS')
+  if (!extra) return ORIGENS_DEV
+  return [...ORIGENS_DEV, ...extra.split(',').map((o) => o.trim()).filter(Boolean)]
+}
 
 /**
  * Headers de CORS, com a origem ecoada apenas se estiver na lista.
@@ -23,10 +37,10 @@ const ORIGENS_PERMITIDAS = [
  */
 export function corsHeaders(request: Request): Record<string, string> {
   const origem = request.headers.get('origin')
-  const permitida = origem && ORIGENS_PERMITIDAS.includes(origem)
+  const permitida = origem && origensPermitidas().includes(origem)
 
   return {
-    'Access-Control-Allow-Origin': permitida ? origem : ORIGENS_PERMITIDAS[0],
+    'Access-Control-Allow-Origin': permitida ? origem : ORIGENS_DEV[0],
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Max-Age': '86400',
