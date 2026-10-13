@@ -1,0 +1,286 @@
+@import "tailwindcss";
+
+/*
+ * Identidade da loja — a mesma do site pessoal.
+ *
+ * As cores e as fontes não foram escolhidas de novo: são as mesmas, para que o
+ * presente e a loja venham da mesma casa. O que muda aqui é o peso tipográfico,
+ * porque a tela tem que fazer efeito de loja, não de carta.
+ */
+
+@theme {
+  --font-display: "Cinzel", serif;
+  --font-serif: "Cormorant Garamond", serif;
+  --font-sans: "Outfit", sans-serif;
+
+  --color-night: #07061a;
+  --color-deep: #100b2e;
+  --color-violet: #3b1d6e;
+  --color-gold: #e8c872;
+  --color-gold-soft: #f3e6b8;
+  --color-ivory: #f7f1e1;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #07061a;
+  color: #f7f1e1;
+  font-family: "Outfit", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Respeita a área segura do iPhone. */
+@supports (padding: max(0px)) {
+  .safe-top {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Fundo da página
+   --------------------------------------------------------------------------
+   Um degradê radial fixo em vez de imagem: pesa zero, não pisca ao rolar e
+   respeita `prefers-reduced-motion` sem nenhum trabalho extra. O site pessoal
+   usa canvas porque precisa de estrelas animadas; aqui elas não pagam o custo.
+   -------------------------------------------------------------------------- */
+.star-bg {
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(59, 29, 110, 0.55), transparent 60%),
+    radial-gradient(80% 60% at 10% 10%, rgba(232, 200, 114, 0.08), transparent 55%),
+    #07061a;
+}
+
+/* Gradiente dourado para texto e borda de destaque. */
+.gold-line {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-gold), transparent);
+}
+
+.gold-text {
+  background: linear-gradient(120deg, #f3e6b8, #e8c872 55%, #b8912f);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Anel de foco visível em tudo, num dourado que passa no contraste. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Botões ------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  padding: 0.85rem 1.75rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease,
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    transform 200ms ease;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--color-gold);
+  color: var(--color-night);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-gold-soft);
+  box-shadow: 0 0 30px rgba(232, 200, 114, 0.35);
+}
+
+.btn-secundario {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--color-ivory);
+}
+
+.btn-secundario:hover:not(:disabled) {
+  border-color: var(--color-gold);
+  color: var(--color-gold);
+}
+
+/* Campos ------------------------------------------------------------------- */
+.campo {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  color: var(--color-ivory);
+  transition: border-color 200ms ease, background-color 200ms ease;
+}
+
+.campo::placeholder {
+  color: rgba(247, 241, 225, 0.38);
+}
+
+.campo:hover {
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.campo:focus {
+  outline: none;
+  border-color: var(--color-gold);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Estado inválido: a cor sozinha não basta para quem não distingue vermelho. */
+.campo[aria-invalid="true"] {
+  border-color: #f87171;
+}
+
+.campo[aria-invalid="true"]:focus {
+  border-color: #f87171;
+}
+
+.rotulo {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(232, 200, 114, 0.85);
+}
+
+/* Cartões ------------------------------------------------------------------ */
+.cartao {
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 1.25rem;
+}
+
+/* Animações ---------------------------------------------------------------- */
+@keyframes surgir {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pulsar-suave {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes astromover {
+  from {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animar-surgir {
+  animation: surgir 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animar-pulsar {
+  animation: pulsar-suave 3s ease-in-out infinite;
+}
+
+.animar-girar {
+  animation: girar 40s linear infinite;
+}
+
+.animar-flutuar {
+  animation: astromover 6s ease-in-out infinite;
+}
+
+/*
+ * Movimento reduzido.
+ *
+ * O site pessoal tem uma máquina inteira para isso porque tem canvas e laços de
+ * animação. Aqui basta zerar as animações: a transição é o único movimento, e
+ * desligá-la deixa a página utilizável por igual — nada some, nada fica
+ * invisível.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Utilidades --------------------------------------------------------------- */
+.espaco-secao {
+  padding-block: clamp(3.5rem, 9vw, 7rem);
+}
+
+.pilha {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 72rem;
+  padding-inline: 1.25rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Impressão da página de produto: só o certificado, sem a loja em volta. */
+@media print {
+  .nao-imprimir {
+    display: none !important;
+  }
+}

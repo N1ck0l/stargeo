@@ -1,0 +1,51 @@
+# Configuração da Netlify.
+#
+# Publicar: arraste a pasta `dist` para https://app.netlify.com/drop
+# ou conecte o repositório — a Netlify lê este arquivo sozinha.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# O site usa âncoras (#ceu, #estrela), não rotas de caminho, então não é
+# preciso rewrite de SPA. Esta regra existe apenas para que qualquer caminho
+# desconhecido devolva o index.html em vez de um 404.
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Cabeçalhos de segurança e cache.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# As fontes não levam hash no nome (ficam em /fonts), então valem um prazo
+# menor, mas ainda bem maior que o padrão.
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # A Mira celeste usa getUserMedia e sensores; a câmera não é afetada por
+    # esta política, que controla apenas o que o documento pode incorporar.
+    X-Frame-Options = "SAMEORIGIN"
+    # Só a própria origem pode usar câmera, microfone, localização e sensores de
+    # orientação. O site não tem incorporador de terceiros nemJanela aninhada,
+    # ou acelerômetro. O site não tem incorporador de terceiros, então
+    # restringi-los não tira nada — e evita que a página seja usada como
+    # trampolim para pedir permissões em nome de outro site.
+    Permissions-Policy = "camera=(self), microphone=(), geolocation=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self), ambient-light-sensor=()"
+    # Ao abrir o site, o navegador deve falar só com a origem; sete dias, com
+    # subdomínios incluídos.
+    Strict-Transport-Security = "max-age=604800; includeSubDomains"

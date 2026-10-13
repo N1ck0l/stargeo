@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+# O painel de edição não é conteúdo para indexar.
+Disallow: /admin
+Disallow: /admin/

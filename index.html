@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta
+      name="description"
+      content="Uma estrela em Sagitário dedicada a Geovanna Beatriz Santos Trindade: Kaus Australis (ε Sagittarii)."
+    />
+    <title>Kaus Australis · Geovanna Beatriz Santos Trindade</title>
+
+    <!--
+      Aplicativo instalável. O ícone maskable é o que o Android usa quando ela
+      escolhe "Adicionar à tela de início".
+    -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#07061a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="StarGeo" />
+
+    <!--
+      Prévia ao mandar o link no WhatsApp, Instagram etc.
+
+      O Open Graph exige URL ABSOLUTA: com caminho relativo, cada rede resolve
+      de um jeito (o Twitter recusa outright), e a prévia não aparece. A URL
+      precisa ser trocada quando o domínio mudar — está anotado em PENDENCIAS.md.
+    -->
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:site_name" content="StarGeo" />
+    <meta property="og:url" content="https://papaya-dieffenbachia-483678.netlify.app/" />
+    <meta property="og:title" content="Para Geovanna, a luz mais brilhante de Sagitário" />
+    <meta
+      property="og:description"
+      content="Uma estrela real de Sagitário, com o seu nome escrito no céu. Mapa do céu, certificado e mira celeste."
+    />
+    <meta
+      property="og:image"
+      content="https://papaya-dieffenbachia-483678.netlify.app/og-image.png"
+    />
+    <meta property="og:image:alt" content="Cartão do site com o céu de Sagitário e o nome de Geovanna" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Para Geovanna, a luz mais brilhante de Sagitário" />
+    <meta name="twitter:description" content="Uma estrela real de Sagitário, com o seu nome escrito no céu." />
+    <meta
+      name="twitter:image"
+      content="https://papaya-dieffenbachia-483678.netlify.app/og-image.png"
+    />
+    <link rel="canonical" href="https://papaya-dieffenbachia-483678.netlify.app/" />
+    <!--
+      Sem link para o Google Fonts: as fontes ficam no próprio projeto
+      (public/fonts). Sem internet, ou com o Google bloqueado, o desenho
+      continua idêntico — e nada é carregado de um servidor terceiro.
+    -->
+    <link
+      rel="preload"
+      href="/fonts/cormorant-garamond-400i.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/outfit-400.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <!--
+        As animações de entrada partem de `opacity: 0` e só aparecem quando o
+        JavaScript as revela. Sem JS, isso deixaria a página visualmente vazia
+        em vez de apenas sem movimento. Aqui o conteúdo volta a ser visível.
+      -->
+      <style>
+        .reveal {
+          opacity: 1 !important;
+          transform: none !important;
+          filter: none !important;
+        }
+      </style>
+      <div style="max-width: 42rem; margin: 4rem auto; padding: 0 1.5rem; font-family: Georgia, serif; line-height: 1.7; color: #f3efe6">
+        <h1 style="font-size: 2rem">Kaus Australis · Geovanna Beatriz Santos Trindade</h1>
+        <p style="margin-top: 1rem">
+          Uma estrela em Sagitário dedicada a você. Kaus Australis (ε Sagittarii) é a estrela
+          mais brilhante da constelação, visível a olho nu no hemisfério sul.
+        </p>
+        <p style="margin-top: 1rem">
+          Este site usa JavaScript para o mapa do céu animado, o certificado e a mira celeste com a
+          câmera. Ative o JavaScript para ver a versão completa.
+        </p>
+      </div>
+    </noscript>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

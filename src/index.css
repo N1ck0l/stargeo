@@ -1,0 +1,535 @@
+@import "tailwindcss";
+@import "./fonts.css";
+
+@theme {
+  --font-display: "Cinzel", serif;
+  --font-serif: "Cormorant Garamond", serif;
+  --font-sans: "Outfit", sans-serif;
+  --color-night: #07061a;
+  --color-deep: #100b2e;
+  --color-violet: #3b1d6e;
+  --color-gold: #e8c872;
+  --color-gold-soft: #f3e6b8;
+  --color-ivory: #f7f1e1;
+}
+
+html {
+  scroll-behavior: smooth;
+  /*
+   * O Safari do iOS infla o texto ao girar o aparelho e a performance de
+   * animação piora quando o Safari ajusta o tamanho da fonte. Fixar em 100%
+   * preserva o desenho como foi feito.
+   */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Respeita a área segura do iPhone (entalhe e barra de gesto). */
+@supports (padding: max(0px)) {
+  .safe-top {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #07061a;
+  color: #f7f1e1;
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: #e8c872;
+  color: #07061a;
+}
+
+/*
+ * Foco visível para navegação por teclado.
+ *
+ * `:where()` mantém a especificidade em zero, então qualquer classe utilitária
+ * de um componente continua prevalecendo. O anel é desenhado com dourado, a
+ * cor de maior contraste disponível sobre o fundo da aplicação.
+ */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 3px;
+}
+
+/*
+ * O canvas do mapa preenche o cartão por completo, e o cartão usa
+ * `overflow-hidden` — um contorno externo seria cortado. Deslocar o anel para
+ * dentro o mantém visível mesmo assim.
+ */
+canvas:focus-visible {
+  outline-offset: -4px;
+}
+
+/*
+ * Alto contraste (Windows): o modo força as cores do CSS, mas o conteúdo de um
+ * canvas é bitmap e não é repintado. Sem esta regra as estrelas claras ficariam
+ * sobre o fundo branco do sistema e sumiriam. Optar o mapa para fora do
+ * forçamento devolve o fundo escuro e o contraste original.
+ */
+.sky-canvas {
+  forced-color-adjust: none;
+  background-color: #07061a;
+}
+
+.star-bg {
+  background:
+    radial-gradient(1200px 600px at 20% -10%, rgba(91, 54, 168, 0.35), transparent 55%),
+    radial-gradient(900px 500px at 90% 10%, rgba(232, 200, 114, 0.08), transparent 50%),
+    radial-gradient(800px 700px at 50% 100%, rgba(36, 20, 90, 0.55), transparent 60%),
+    #07061a;
+}
+
+.gold-line {
+  background: linear-gradient(90deg, transparent, #e8c872, transparent);
+  height: 1px;
+}
+
+/*
+ * O certificado é escrito em variáveis semânticas, e não com cores fixas.
+ * Assim a versão clara e a escura são exatamente o mesmo documento: trocar de
+ * tema é só trocar o valor das variáveis, e nada pode ficar divergente.
+ */
+.certificate-paper {
+  --cert-bg: linear-gradient(180deg, #16112e 0%, #0c0820 100%);
+  --cert-wash: radial-gradient(circle at 50% 0%, rgba(232, 200, 114, 0.12), transparent 45%);
+  --cert-text: #f7f1e1;
+  --cert-muted: rgba(247, 241, 225, 0.82);
+  --cert-accent: #e8c872;
+  --cert-label: rgba(232, 200, 114, 0.85);
+  --cert-border: #e8c872;
+  --cert-frame: rgba(232, 200, 114, 0.4);
+  --cert-frame-soft: rgba(232, 200, 114, 0.2);
+  background: var(--cert-wash), var(--cert-bg);
+  color: var(--cert-text);
+}
+
+/*
+ * Versão para papel. Fundo marfim e texto escuro: o mesmo certificado que,
+ * impresso, não enche a folha de toner — e funciona também em impressora que
+ * não imprime fundos escuros. O dourado é escurecido para manter contraste.
+ */
+.certificate-light {
+  --cert-bg: linear-gradient(180deg, #fffdf7 0%, #f2eada 100%);
+  --cert-wash: radial-gradient(circle at 50% 0%, rgba(184, 145, 47, 0.12), transparent 45%);
+  --cert-text: #2b2342;
+  --cert-muted: rgba(43, 35, 66, 0.85);
+  --cert-accent: #8a6a1c;
+  --cert-label: #8a6a1c;
+  --cert-border: #b8912f;
+  --cert-frame: rgba(138, 106, 28, 0.45);
+  --cert-frame-soft: rgba(138, 106, 28, 0.22);
+}
+
+.cert-kicker {
+  color: var(--cert-accent);
+}
+
+.cert-title {
+  color: var(--cert-text);
+}
+
+.cert-body {
+  color: var(--cert-muted);
+}
+
+.cert-name {
+  color: var(--cert-accent);
+}
+
+.cert-label {
+  color: var(--cert-label);
+}
+
+.cert-seal {
+  color: var(--cert-accent);
+}
+
+.cert-rule {
+  background: linear-gradient(90deg, transparent, var(--cert-accent), transparent);
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(232, 200, 114, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 16px rgba(232, 200, 114, 0);
+  }
+}
+
+.animate-twinkle {
+  animation: twinkle 3.4s ease-in-out infinite;
+}
+
+.animate-floaty {
+  animation: floaty 7s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2.4s ease-out infinite;
+}
+
+/* ==========================================================================
+   Animações
+   ========================================================================== */
+
+/*
+ * Revelação por rolagem. O `transform` usa translate3d para ficar na GPU,
+ * e a transição só dispara uma vez — depois disso o custo é zero.
+ */
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, var(--reveal-distance, 28px), 0);
+  filter: blur(8px);
+  transition:
+    opacity var(--reveal-duration, 800ms) cubic-bezier(0.22, 0.7, 0.24, 1),
+    transform var(--reveal-duration, 800ms) cubic-bezier(0.22, 0.7, 0.24, 1),
+    filter var(--reveal-duration, 800ms) ease-out;
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  filter: blur(0);
+  will-change: auto;
+}
+
+/* Sem animação, o conteúdo precisa ficar visível. */
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition: none;
+  }
+}
+
+/* Cursor de máquina de escrever. */
+.type-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  translate: 0 0.15em;
+  background: var(--color-gold);
+  animation: caret 1s steps(2, start) infinite;
+}
+
+@keyframes caret {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Brilho que percorre a estrela do topo. */
+.animate-shimmer {
+  animation: shimmer 3.6s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px rgba(232, 200, 114, 0.35));
+  }
+  50% {
+    filter: drop-shadow(0 0 18px rgba(232, 200, 114, 0.85));
+  }
+}
+
+.animate-spin-slow {
+  animation: spin 26s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Deriva lenta das nebulosas do fundo. */
+.animate-drift {
+  animation: drift 38s ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(3%, -4%, 0) scale(1.12);
+  }
+}
+
+/* Selo de ouro que "carimba" no certificado. */
+.animate-seal {
+  animation: seal 900ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+
+@keyframes seal {
+  from {
+    opacity: 0;
+    transform: scale(2.4) rotate(-28deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(-8deg);
+  }
+}
+
+/* Entrada do diálogo e do fundo. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 26px, 0) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 220ms ease-out both;
+}
+
+.animate-dialog-in {
+  animation: dialog-in 420ms cubic-bezier(0.22, 0.9, 0.26, 1) both;
+}
+
+/* Realce dourado percorrendo bordas de cartões. */
+.shimmer-border {
+  position: relative;
+}
+
+.shimmer-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    115deg,
+    transparent 32%,
+    rgba(232, 200, 114, 0.55) 48%,
+    rgba(243, 230, 184, 0.9) 52%,
+    transparent 68%
+  );
+  background-size: 260% 100%;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: border-sheen 7s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes border-sheen {
+  from {
+    background-position: 160% 0;
+  }
+  to {
+    background-position: -60% 0;
+  }
+}
+
+/* Sublinhado deslizante dos links do menu. */
+.nav-link {
+  position: relative;
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -5px;
+  height: 1px;
+  width: 100%;
+  background: var(--color-gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 320ms cubic-bezier(0.22, 0.8, 0.3, 1);
+}
+
+.nav-link:hover::after,
+.nav-link:focus-visible::after,
+.nav-link.is-active::after {
+  transform: scaleX(1);
+}
+
+.nav-link.is-active {
+  color: var(--color-gold);
+}
+
+/* Cartão que inclina levemente na direção do ponteiro. */
+.tilt {
+  transition: transform 400ms cubic-bezier(0.2, 0.8, 0.3, 1);
+  transform-style: preserve-3d;
+}
+
+.tilt:hover {
+  transform: perspective(900px) rotateX(4deg) rotateY(-4deg) translateY(-3px);
+}
+
+/* Luz que segue o ponteiro. */
+.spotlight {
+  position: relative;
+}
+
+.spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    260px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(232, 200, 114, 0.13),
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 300ms ease;
+  pointer-events: none;
+}
+
+.spotlight:hover::before {
+  opacity: 1;
+}
+
+/* Mais estrelas caem por trás do conteúdo fixo. */
+.scroll-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer-border::before {
+    animation: none;
+    background-position: 50% 0;
+  }
+}
+
+/* Respeita a preferência de movimento reduzido do sistema. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .animate-twinkle,
+  .animate-floaty,
+  .animate-pulse-glow,
+  .animate-spin-slow,
+  .animate-shimmer,
+  .animate-drift,
+  .animate-seal,
+  /* O cursor da máquina de escrever é uma animação infinita: quem pediu menos
+     movimento recebia um cursor piscando sem parar. Ele some junto. */
+  .type-cursor {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  /*
+   * O certificado é escuro. Sem `print-color-adjust`, os navegadores descartam
+   * fundos ao imprimir e o texto marfim ficaria praticamente invisível sobre o
+   * papel branco — então é preciso forçar a impressão das cores.
+   *
+   * O fundo NÃO vai no `body`: o fundo do `body` se propaga para a página
+   * inteira, e com `print-color-adjust: exact` ele forçaria a folha inteira a
+   * sair azul-escuro — inclusive quando a pessoa escolheu "Imprimir claro",
+   * que é justamente a versão feita para gastar menos tinta. A cor vai no
+   * próprio certificado, que é o único elemento visível na impressão.
+   */
+  html,
+  body {
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  #certificate-print,
+  #certificate-print * {
+    visibility: visible;
+  }
+
+  #certificate-print {
+    position: absolute;
+    inset: 0 0 auto 0;
+    width: 100%;
+    /* Sem teto de largura o certificado esticaria de ponta a ponta da folha. */
+    max-width: 820px;
+    margin-inline: auto;
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    /* A borda dourada é desenhada por ::before, fora da regra do elemento. */
+    border-color: var(--cert-border, #e8c872) !important;
+  }
+
+  #certificate-print::before {
+    background: none;
+    -webkit-mask: none;
+    mask: none;
+    border: 1px solid var(--cert-frame, rgba(232, 200, 114, 0.4));
+  }
+}
+
+@page {
+  margin: 12mm;
+}

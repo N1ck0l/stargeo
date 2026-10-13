@@ -1,0 +1,36 @@
+{
+  "//": "Configuração de tipo das Edge Functions. O runtime é o Deno, então os tipos do Deno e do Supabase vêm de CDN.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": false,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowJs": true,
+    /*
+     * `types: []` desliga a descoberta automática de `@types/*`. Sem isso o
+     * compilador arrasta os tipos de `chai` (do Vitest), que dependem de
+     * `moduleResolution` estilo Node — e polui o resultado com dezenas de
+     * erros que não têm nada a ver com as Edge Functions.
+     */
+    "types": [],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    /*
+     * O runtime é o Deno, onde o import é `npm:@supabase/supabase-js@2`. O
+     * compilador do editor não entende o prefixo `npm:`, então o caminho é
+     * mapeado para o pacote real do node_modules — só para conferir tipos.
+     * Em tempo de execução o `npm:` é o que vale.
+     */
+    "paths": {
+      "npm:@supabase/supabase-js@2": ["./node_modules/@supabase/supabase-js/dist/index.d.cts"]
+    }
+  },
+  "include": ["supabase/functions/**/*.ts", "supabase/functions/**/*.d.ts", "shared/**/*.js"],
+  "exclude": ["node_modules", "dist", "test", "src"]
+}

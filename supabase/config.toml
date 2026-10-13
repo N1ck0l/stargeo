@@ -1,0 +1,51 @@
+# Configuração local do Supabase.
+#
+# Gerada para o CLI. Só o que importa para este projeto está aqui; o resto usa
+# o padrão.
+
+project_id = "stargeo"
+
+[api]
+enabled = true
+# Schemas expostos pelo Data API. `orders` NÃO entra aqui de propósito: ele é
+# lido só pelas Edge Functions, com a service_role.
+schemas = ["public", "storage_graphql"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+# `citext` é usado na coluna de e-mail dos pedidos, para que o rastreio
+# funcione com "Ana@exemplo.com" e "ana@exemplo.com".
+major_version = 17
+
+[db.migrations]
+schema_paths = []
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+# ---------------------------------------------------------------------------
+# Edge Functions
+# ---------------------------------------------------------------------------
+[functions.create-checkout]
+# Chamada pelo navegador durante o checkout. Precisa do JWT desligado porque
+# o visitante não está autenticado — é o preço no servidor que protege a
+# operação, não a autenticação.
+verify_jwt = false
+
+[functions.track-order]
+# Idem: o rastreamento é público por definição, protegido por código + e-mail.
+verify_jwt = false
+
+[functions.mp-webhook]
+# O Mercado Pago não tem token da nossa conta: ele manda uma assinatura HMAC no
+# header `x-signature`, e é ela que é conferida no código. Com o JWT ligado, o
+# Mercado Pago receberia 401 e nenhum webhook jamais chegaria.
+verify_jwt = false
+
+[functions.resend-certificate]
+# Esta EXIGE autenticação: dispara e-mail para o cliente e lê pedido. Nunca
+# chamar do navegador.
+verify_jwt = true

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta
+      name="description"
+      content="Compre um certificado de estrela dedicado a quem você ama. Coordenadas reais conferidas com o SIMBAD, entregue por e-mail em minutos."
+    />
+    <title>StarGeo · Compre uma estrela no céu do Brasil</title>
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#07061a" />
+
+    <!--
+      A prévia ao compartilhar depende do domínio real, então estas URLs são
+      trocadas por um script em tempo de build. Ver `loja/public/meta.js`.
+    -->
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:site_name" content="StarGeo" />
+    <meta property="og:title" content="Compre uma estrela no céu do Brasil" />
+    <meta
+      property="og:description"
+      content="Certificado de estrela dedicado a quem você ama. Entregue por e-mail em minutos."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!--
+      Fonte pré-carregada: é a do título, e aparece no primeiro paint. Sem
+      isso o texto renderiza na fonte de sistema e depois troca — o "flash"
+      que mais aparece numa loja.
+    -->
+    <link rel="preload" href="/fonts/cinzel-400.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/outfit-400.woff2" as="font" type="font/woff2" crossorigin />
+
+    <script src="./meta.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <div style="max-width: 42rem; margin: 4rem auto; padding: 0 1.5rem; font-family: Georgia, serif; line-height: 1.7">
+        <h1 style="font-size: 2rem">StarGeo</h1>
+        <p style="margin-top: 1rem">
+          Esta loja usa JavaScript para mostrar a prévia do certificado antes da compra. Ative o
+          JavaScript, ou fale com a gente pelo e-mail e a gente monta o certificado à mão.
+        </p>
+      </div>
+    </noscript>
+    {/*
+      Caminho RELATIVO de propósito. Com `/src/main.jsx`, a barra inicial
+      resolveria a partir da raiz do repositório e traria o `main.jsx` do site
+      pessoal — que compila sem erro e produz uma loja que não funciona.
+      Relativo, o Vite sempre acha o arquivo certo.
+    */}
+    <script type="module" src="./src/main.jsx"></script>
+  </body>
+</html>
