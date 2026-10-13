@@ -54,7 +54,12 @@ export default function Obrigado() {
 
   return (
     <div className="espaco-secao">
-      <div className="pilha max-w-xl">
+      {/*
+        A chave por estado faz a tela nova nascer junto com a animação: sem
+        ela, o React reaproveita a árvore e o `fade-in` não dispara na troca
+        de "confirmando" para "aprovado".
+      */}
+      <div key={estado} className="animate-fade-in pilha max-w-xl">
         {estado === 'consultando' && <Consultando />}
         {estado === 'aprovado' && <Aprovado />}
         {estado === 'processando' && <Processando />}
@@ -204,7 +209,9 @@ function Icone({ tipo }) {
     info: 'text-gold',
   }
   return (
-    <span className={`mx-auto flex size-16 items-center justify-center rounded-full border border-current/25 bg-white/5 ${cores[tipo]}`}>
+    <span
+      className={`animate-seal mx-auto flex size-16 items-center justify-center rounded-full border border-current/25 bg-white/5 ${cores[tipo]}`}
+    >
       <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true">
         {caminhos[tipo]}
       </svg>

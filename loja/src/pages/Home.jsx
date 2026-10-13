@@ -1,6 +1,8 @@
 import { STARS } from '../../../shared/stars.js'
 import { Link } from '../lib/Link.jsx'
 import { useState } from 'react'
+import { Reveal } from '../components/Reveal.jsx'
+import { useScroll, useTypewriter } from '../lib/useReveal.js'
 
 /**
  * Home da loja.
@@ -9,6 +11,9 @@ import { useState } from 'react'
  * presenteando, a dúvida real não é "quanto custa", é "isso é sério?".
  * A vitrine inteira responde a isso — coordenadas conferidas com o SIMBAD,
  * entrega imediata, e a prévia do certificado antes de pagar.
+ *
+ * As animações são as MESMAS do site pessoal: céu por trás, revelação por
+ * rolagem, parallax do herói, máquina de escrever e brilho nas bordas.
  */
 
 /** Preços de exibição. O valor autoritativo está no banco. */
@@ -100,6 +105,19 @@ const FAQ = [
   },
 ]
 
+/**
+ * Faz a luz do `.spotlight` seguir o ponteiro dentro do cartão.
+ *
+ * Só mexe em custom properties — quem anima é o CSS, e o navegador não
+ * precisa reavaliar a árvore a cada movimento.
+ */
+function seguirPonteiro(evento) {
+  const alvo = evento.currentTarget
+  const caixa = alvo.getBoundingClientRect()
+  alvo.style.setProperty('--mx', `${evento.clientX - caixa.left}px`)
+  alvo.style.setProperty('--my', `${evento.clientY - caixa.top}px`)
+}
+
 export default function Home() {
   return (
     <>
@@ -115,49 +133,84 @@ export default function Home() {
 }
 
 function Hero() {
+  const scrollY = useScroll()
+  const { output: titulo, done: tituloPronto } = useTypewriter('Presente com coordenada')
+
+  /*
+   * Parallax: cada camada se move a uma velocidade um pouco diferente, o que
+   * dá a sensação de profundidade sem custo de GPU — e some junto com o
+   * `fade`, que apaga o herói conforme a pessoa rola para baixo.
+   */
+  const estrelaShift = scrollY * 0.28
+  const tituloShift = scrollY * 0.14
+  const fade = Math.max(0, 1 - scrollY / 520)
+
   return (
     <section className="espaco-secao relative overflow-hidden">
       <div className="pilha grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
-        <div>
-          <p className="font-display text-xs tracking-[0.3em] text-gold uppercase">
-            Presente com coordenada
-          </p>
+        <div
+          style={{ transform: `translate3d(0, ${tituloShift * 0.3}px, 0)`, opacity: fade }}
+        >
+          {/*
+            A linha é digitada caractere a caractere. Anunciar isso a cada tecla
+            seria um spam para quem usa leitor de tela, então a região fica
+            oculta do announce e o texto completo é exposto uma vez, quando
+            termina. A altura fica reservada para o resto não pular.
+          */}
+          <Reveal
+            as="p"
+            delay={80}
+            className="min-h-[1.1em] font-display text-xs tracking-[0.3em] text-gold uppercase"
+          >
+            <span aria-hidden={!tituloPronto}>{titulo}</span>
+            {!tituloPronto && <span className="type-cursor" aria-hidden="true" />}
+            <span className="sr-only">{tituloPronto ? titulo : ''}</span>
+          </Reveal>
 
-          <h1 className="font-display mt-5 text-4xl leading-[1.1] text-ivory sm:text-5xl lg:text-6xl">
+          <Reveal
+            as="h1"
+            delay={220}
+            className="font-display mt-5 text-4xl leading-[1.1] text-ivory sm:text-5xl lg:text-6xl"
+          >
             Dê a alguém
             <br />
             <span className="gold-text">uma estrela com nome</span>
-          </h1>
+          </Reveal>
 
-          <p className="mt-6 max-w-lg text-lg leading-relaxed text-ivory/75">
+          <Reveal as="p" delay={360} className="mt-6 max-w-lg text-lg leading-relaxed text-ivory/75">
             Escolha uma estrela do céu do Brasil, escreva o nome de quem recebe e receba o
             certificado por e-mail em minutos. As coordenadas são reais, conferidas com o SIMBAD.
-          </p>
+          </Reveal>
 
-          <div className="mt-9 flex flex-wrap gap-4">
-            <Link para="/produto/certificado-digital" className="btn btn-primary">
+          <Reveal delay={500} className="mt-9 flex flex-wrap gap-4">
+            <Link para="/produto/certificado-digital" className="btn btn-primary animate-pulse-glow">
               Ver o certificado
             </Link>
             <a href="#como-funciona" className="btn btn-secundario">
               Como funciona
             </a>
-          </div>
+          </Reveal>
 
-          <dl className="mt-12 grid max-w-lg grid-cols-3 gap-6">
-            {[
-              ['12', 'estrelas no catálogo'],
-              ['3–143', 'anos-luz de distância'],
-              ['~1 min', 'para receber por Pix'],
-            ].map(([valor, rotulo]) => (
-              <div key={rotulo}>
-                <dt className="font-display text-2xl text-gold">{valor}</dt>
-                <dd className="mt-1 text-xs text-ivory/60">{rotulo}</dd>
-              </div>
-            ))}
-          </dl>
+          <Reveal delay={640}>
+            <dl className="mt-12 grid max-w-lg grid-cols-3 gap-6">
+              {[
+                ['12', 'estrelas no catálogo'],
+                ['3–143', 'anos-luz de distância'],
+                ['~1 min', 'para receber por Pix'],
+              ].map(([valor, rotulo]) => (
+                <div key={rotulo}>
+                  <dt className="font-display text-2xl text-gold">{valor}</dt>
+                  <dd className="mt-1 text-xs text-ivory/60">{rotulo}</dd>
+                </div>
+              ))}
+            </dl>
+          </Reveal>
         </div>
 
-        <div className="relative">
+        <div
+          className="relative"
+          style={{ transform: `translate3d(0, ${-estrelaShift * 0.25}px, 0)` }}
+        >
           <div
             className="animar-flutuar pointer-events-none absolute -inset-8 rounded-full opacity-40 blur-3xl"
             style={{ background: 'radial-gradient(circle, rgba(232,200,114,0.25), transparent 70%)' }}
@@ -166,14 +219,55 @@ function Hero() {
           <EstrelaGrande />
         </div>
       </div>
+
+      {/* Chamada para rolar, que desaparece assim que a pessoa rola. */}
+      <a
+        href="#certificados"
+        aria-hidden="true"
+        tabIndex={-1}
+        className="absolute bottom-5 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 text-ivory/60 transition-opacity duration-500 lg:flex"
+        style={{ opacity: fade * 0.9 }}
+      >
+        <span className="text-[10px] tracking-[0.3em] uppercase">Rolar</span>
+        <span className="block h-8 w-px bg-gradient-to-b from-gold to-transparent" />
+      </a>
     </section>
   )
 }
 
-/** Estrela decorativa grande, girando devagar. */
+/** Estrela decorativa grande, girando devagar, com anéis e cintilações. */
 function EstrelaGrande() {
+  // Posições fixas: são seis pontos de luz, não um campo — aleatoriedade aqui
+  // só faria a cena mudar a cada render.
+  const fagulhas = [
+    { topo: '8%', esquerda: '22%', atraso: '0s' },
+    { topo: '18%', esquerda: '78%', atraso: '0.9s' },
+    { topo: '46%', esquerda: '6%', atraso: '1.8s' },
+    { topo: '72%', esquerda: '88%', atraso: '2.5s' },
+    { topo: '86%', esquerda: '34%', atraso: '1.2s' },
+    { topo: '34%', esquerda: '92%', atraso: '3.1s' },
+  ]
+
   return (
-    <div className="mx-auto flex aspect-square w-full max-w-sm items-center justify-center">
+    <div className="relative mx-auto flex aspect-square w-full max-w-sm items-center justify-center">
+      <span
+        className="animate-spin-slow absolute inset-0 rounded-full border border-gold/20"
+        aria-hidden="true"
+      />
+      <span
+        className="animate-spin-slow absolute inset-6 rounded-full border border-dashed border-gold/15 [animation-direction:reverse] [animation-duration:34s]"
+        aria-hidden="true"
+      />
+
+      {fagulhas.map((f) => (
+        <span
+          key={`${f.topo}-${f.esquerda}`}
+          className="animate-twinkle absolute size-1.5 rounded-full bg-gold-soft"
+          style={{ top: f.topo, left: f.esquerda, animationDelay: f.atraso }}
+          aria-hidden="true"
+        />
+      ))}
+
       <svg viewBox="0 0 200 200" className="animar-girar w-full" aria-hidden="true">
         <defs>
           <radialGradient id="brilho">
@@ -201,6 +295,7 @@ function EstrelaGrande() {
           )
         })}
         <path
+          className="animate-shimmer"
           d="M100 58 L104 96 L140 100 L104 104 L100 142 L96 104 L60 100 L96 96 Z"
           fill="#e8c872"
         />
@@ -213,8 +308,8 @@ function Confianca() {
   return (
     <section className="border-y border-white/8 bg-white/[0.02]">
       <div className="pilha grid gap-6 py-8 sm:grid-cols-2 lg:grid-cols-4">
-        {CONFianca.map((item) => (
-          <div key={item.titulo} className="flex items-start gap-3">
+        {CONFianca.map((item, i) => (
+          <Reveal key={item.titulo} delay={i * 90} className="flex items-start gap-3">
             <svg width="20" height="20" viewBox="0 0 24 24" className="mt-0.5 shrink-0 text-gold" aria-hidden="true">
               <path
                 d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.3 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"
@@ -225,7 +320,7 @@ function Confianca() {
               <h2 className="text-sm font-medium text-ivory">{item.titulo}</h2>
               <p className="mt-1 text-xs leading-relaxed text-ivory/55">{item.texto}</p>
             </div>
-          </div>
+          </Reveal>
         ))}
       </div>
     </section>
@@ -236,23 +331,27 @@ function Produtos() {
   return (
     <section id="certificados" className="espaco-secao">
       <div className="pilha">
-        <div className="mx-auto max-w-2xl text-center">
+        <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="font-display text-3xl text-ivory sm:text-4xl">Três formas de presente</h2>
           <p className="mt-4 leading-relaxed text-ivory/70">
             Todos têm o certificado com coordenadas reais. O que muda é o que vem junto — e a
             prévia é a mesma nos três.
           </p>
-        </div>
+        </Reveal>
 
         <div className="mt-14 grid items-start gap-6 lg:grid-cols-3">
-          {PRODUTOS.map((produto) => (
-            <CartaoProduto key={produto.slug} produto={produto} />
+          {PRODUTOS.map((produto, i) => (
+            <Reveal key={produto.slug} delay={i * 130} className="h-full">
+              <CartaoProduto produto={produto} />
+            </Reveal>
           ))}
         </div>
 
-        <p className="mt-8 text-center text-xs text-ivory/50">
-          Preços em reais, por e-mail, cartão ou Pix. Emissão de nota fiscal para pessoa jurídica.
-        </p>
+        <Reveal delay={200}>
+          <p className="mt-8 text-center text-xs text-ivory/50">
+            Preços em reais, por e-mail, cartão ou Pix. Emissão de nota fiscal para pessoa jurídica.
+          </p>
+        </Reveal>
       </div>
     </section>
   )
@@ -261,11 +360,12 @@ function Produtos() {
 function CartaoProduto({ produto }) {
   return (
     <article
-      className={`relative flex h-full flex-col rounded-3xl border p-7 transition ${
+      className={`tilt spotlight relative flex h-full flex-col rounded-3xl border p-7 ${
         produto.destaque
-          ? 'border-gold/60 bg-gold/[0.06] shadow-[0_0_50px_rgba(232,200,114,0.12)]'
+          ? 'shimmer-border border-gold/60 bg-gold/[0.06] shadow-[0_0_50px_rgba(232,200,114,0.12)]'
           : 'border-white/10 bg-white/[0.03] hover:border-white/20'
       }`}
+      onPointerMove={seguirPonteiro}
     >
       {produto.destaque && (
         <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gold px-4 py-1 text-xs font-medium text-night">
@@ -309,16 +409,16 @@ function Estrelas() {
   return (
     <section id="estrelas" className="espaco-secao border-t border-white/8">
       <div className="pilha">
-        <div className="mx-auto max-w-2xl text-center">
+        <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="font-display text-3xl text-ivory sm:text-4xl">As 12 estrelas</h2>
           <p className="mt-4 leading-relaxed text-ivory/70">
             Todas visíveis a olho nu do Brasil, todas com posição conferida com o SIMBAD. Clique
             para ver a história de cada uma.
           </p>
-        </div>
+        </Reveal>
 
         <div className="mt-12 grid gap-8 lg:grid-cols-[1fr_320px]">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <Reveal className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {STARS.map((estrela) => {
               const ativa = estrela.slug === selecionada.slug
               return (
@@ -329,7 +429,7 @@ function Estrelas() {
                   aria-pressed={ativa}
                   className={`rounded-2xl border p-4 text-left transition ${
                     ativa
-                      ? 'border-gold/70 bg-gold/10'
+                      ? 'border-gold/70 bg-gold/10 shadow-[0_0_24px_rgba(232,200,114,0.15)]'
                       : 'border-white/10 bg-white/[0.03] hover:border-white/25'
                   }`}
                 >
@@ -341,9 +441,9 @@ function Estrelas() {
                 </button>
               )
             })}
-          </div>
+          </Reveal>
 
-          <aside className="cartao h-fit lg:sticky lg:top-24">
+          <Reveal delay={160} className="cartao h-fit lg:sticky lg:top-24">
             <h3 className="font-serif text-2xl text-ivory">{selecionada.name}</h3>
             <p className="mt-1 text-sm text-gold/80">
               {selecionada.bayer} · {selecionada.constellation}
@@ -366,7 +466,7 @@ function Estrelas() {
             <Link para={`/produto/certificado-mapa-impresso?estrela=${selecionada.slug}`} className="btn btn-primary mt-7 w-full">
               Dedicá-la a alguém
             </Link>
-          </aside>
+          </Reveal>
         </div>
       </div>
     </section>
@@ -396,17 +496,19 @@ function ComoFunciona() {
   return (
     <section id="como-funciona" className="espaco-secao border-t border-white/8">
       <div className="pilha">
-        <h2 className="font-display text-center text-3xl text-ivory sm:text-4xl">Como funciona</h2>
+        <Reveal>
+          <h2 className="font-display text-center text-3xl text-ivory sm:text-4xl">Como funciona</h2>
+        </Reveal>
 
         <ol className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {passos.map((passo, i) => (
-            <li key={passo.titulo} className="relative">
+            <Reveal as="li" key={passo.titulo} delay={i * 110} className="relative">
               <span className="font-display flex size-10 items-center justify-center rounded-full border border-gold/50 text-lg text-gold">
                 {i + 1}
               </span>
               <h3 className="mt-5 text-lg text-ivory">{passo.titulo}</h3>
               <p className="mt-2 text-sm leading-relaxed text-ivory/65">{passo.texto}</p>
-            </li>
+            </Reveal>
           ))}
         </ol>
       </div>
@@ -420,9 +522,13 @@ function Faq() {
   return (
     <section id="faq" className="espaco-secao border-t border-white/8">
       <div className="pilha max-w-3xl">
-        <h2 className="font-display text-center text-3xl text-ivory sm:text-4xl">Perguntas frequentes</h2>
+        <Reveal>
+          <h2 className="font-display text-center text-3xl text-ivory sm:text-4xl">
+            Perguntas frequentes
+          </h2>
+        </Reveal>
 
-        <div className="mt-10 divide-y divide-white/10">
+        <Reveal delay={120} className="mt-10 divide-y divide-white/10">
           {FAQ.map((item, i) => {
             const abertaAqui = aberta === i
             return (
@@ -447,12 +553,12 @@ function Faq() {
                   </button>
                 </h3>
                 {abertaAqui && (
-                  <p className="pb-5 leading-relaxed text-ivory/65">{item.resposta}</p>
+                  <p className="animate-fade-in pb-5 leading-relaxed text-ivory/65">{item.resposta}</p>
                 )}
               </div>
             )
           })}
-        </div>
+        </Reveal>
       </div>
     </section>
   )
@@ -462,16 +568,18 @@ function ChamadaFinal() {
   return (
     <section className="espaco-secao">
       <div className="pilha">
-        <div className="rounded-3xl border border-gold/30 bg-gold/[0.06] px-8 py-14 text-center">
-          <h2 className="font-display text-3xl text-ivory">Comece pelo nome de quem recebe</h2>
-          <p className="mx-auto mt-4 max-w-lg leading-relaxed text-ivory/70">
-            Leva menos de dois minutos, e você vê o certificado pronto antes de pagar qualquer
-            coisa.
-          </p>
-          <Link para="/produto/certificado-mapa-impresso" className="btn btn-primary mt-8">
-            Montar o meu certificado
-          </Link>
-        </div>
+        <Reveal>
+          <div className="shimmer-border rounded-3xl border border-gold/30 bg-gold/[0.06] px-8 py-14 text-center">
+            <h2 className="font-display text-3xl text-ivory">Comece pelo nome de quem recebe</h2>
+            <p className="mx-auto mt-4 max-w-lg leading-relaxed text-ivory/70">
+              Leva menos de dois minutos, e você vê o certificado pronto antes de pagar qualquer
+              coisa.
+            </p>
+            <Link para="/produto/certificado-mapa-impresso" className="btn btn-primary animate-pulse-glow mt-8">
+              Montar o meu certificado
+            </Link>
+          </div>
+        </Reveal>
       </div>
     </section>
   )

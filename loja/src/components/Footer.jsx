@@ -6,7 +6,7 @@ const ANO = new Date().getFullYear()
 
 export default function Footer() {
   return (
-    <footer className="safe-bottom mt-16 border-t border-white/8">
+    <footer className="safe-bottom relative z-10 mt-16 border-t border-white/8">
       <div className="pilha py-12">
         <div className="grid gap-10 md:grid-cols-4">
           <div className="md:col-span-2">

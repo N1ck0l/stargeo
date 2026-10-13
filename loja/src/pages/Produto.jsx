@@ -3,6 +3,7 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { STARS, getStar } from '../../../shared/stars.js'
 import { validarPedido, explicarErros } from '../../../shared/moderation.js'
 import { CertificadoPreview } from '../components/CertificadoPreview.jsx'
+import { Reveal } from '../components/Reveal.jsx'
 import { criarCheckout, ErroApi, irParaPagamento } from '../lib/api.js'
 import { Link } from '../lib/Link.jsx'
 
@@ -302,13 +303,16 @@ export default function Produto({ slug }) {
             </Secao>
 
             {erro && (
-              <p role="alert" className="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+              <p
+                role="alert"
+                className="animate-fade-in rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+              >
                 {erro}
               </p>
             )}
 
             <div className="flex flex-wrap items-center gap-4">
-              <button type="submit" className="btn btn-primary" disabled={enviando}>
+              <button type="submit" className="btn btn-primary animate-pulse-glow" disabled={enviando}>
                 {enviando ? 'Abrindo o pagamento…' : `Finalizar · R$ ${produto.preco}`}
               </button>
               <p className="text-xs text-ivory/45">
@@ -352,7 +356,7 @@ export default function Produto({ slug }) {
                 certificado ficar ilegível no celular e gigante na tela grande —
                 o `transform` mantém a proporção em qualquer largura.
               */}
-              <div className="overflow-hidden rounded-2xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
+              <div className="shimmer-border overflow-hidden rounded-2xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
                 <Escala>
                   <CertificadoPreview
                     estrela={estrela}
@@ -433,7 +437,9 @@ function Escala({ children }) {
 
 function Secao({ numero, titulo, children }) {
   return (
-    <section>
+    // A revelação envolve a seção inteira: o número, o título e o campo entram
+    // juntos, como no site pessoal — e com movimento reduzido já nascem visíveis.
+    <Reveal as="section">
       <h2 className="flex items-center gap-3 font-display text-lg text-ivory">
         <span className="flex size-7 items-center justify-center rounded-full border border-gold/50 text-xs text-gold">
           {numero}
@@ -441,7 +447,7 @@ function Secao({ numero, titulo, children }) {
         {titulo}
       </h2>
       <div className="mt-5">{children}</div>
-    </section>
+    </Reveal>
   )
 }
 

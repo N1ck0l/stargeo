@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { rastrear, ErroApi } from '../lib/api.js'
 import { Link } from '../lib/Link.jsx'
+import { Reveal } from '../components/Reveal.jsx'
 
 /**
  * Rastreamento por código + e-mail.
@@ -36,56 +37,63 @@ export default function Rastrear() {
   return (
     <div className="espaco-secao">
       <div className="pilha max-w-2xl">
-        <h1 className="font-display text-center text-3xl text-ivory sm:text-4xl">Rastrear pedido</h1>
-        <p className="mt-4 text-center leading-relaxed text-ivory/70">
-          O código veio no e-mail da compra. Sem ele, não conseguimos encontrar o pedido.
-        </p>
+        <Reveal>
+          <h1 className="font-display text-center text-3xl text-ivory sm:text-4xl">Rastrear pedido</h1>
+          <p className="mt-4 text-center leading-relaxed text-ivory/70">
+            O código veio no e-mail da compra. Sem ele, não conseguimos encontrar o pedido.
+          </p>
+        </Reveal>
 
-        <form onSubmit={consultar} className="cartao mt-10">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="codigo" className="rotulo">
-                Código do pedido
-              </label>
-              <input
-                id="codigo"
-                className="campo font-mono uppercase"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="SG-XXXX-XXXX"
-                autoComplete="off"
-                spellCheck={false}
-                required
-              />
+        <Reveal delay={140}>
+          <form onSubmit={consultar} className="cartao mt-10">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="codigo" className="rotulo">
+                  Código do pedido
+                </label>
+                <input
+                  id="codigo"
+                  className="campo font-mono uppercase"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="SG-XXXX-XXXX"
+                  autoComplete="off"
+                  spellCheck={false}
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="email-rastreio" className="rotulo">
+                  E-mail da compra
+                </label>
+                <input
+                  id="email-rastreio"
+                  type="email"
+                  className="campo"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="o e-mail que você usou"
+                  autoComplete="email"
+                  required
+                />
+              </div>
             </div>
 
-            <div>
-              <label htmlFor="email-rastreio" className="rotulo">
-                E-mail da compra
-              </label>
-              <input
-                id="email-rastreio"
-                type="email"
-                className="campo"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="o e-mail que você usou"
-                autoComplete="email"
-                required
-              />
-            </div>
-          </div>
+            {erro && (
+              <p
+                role="alert"
+                className="animate-fade-in mt-4 rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+              >
+                {erro}
+              </p>
+            )}
 
-          {erro && (
-            <p role="alert" className="mt-4 rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-              {erro}
-            </p>
-          )}
-
-          <button type="submit" className="btn btn-primary mt-6 w-full" disabled={buscando}>
-            {buscando ? 'Consultando…' : 'Consultar pedido'}
-          </button>
-        </form>
+            <button type="submit" className="btn btn-primary mt-6 w-full" disabled={buscando}>
+              {buscando ? 'Consultando…' : 'Consultar pedido'}
+            </button>
+          </form>
+        </Reveal>
 
         {pedido && <Resultado pedido={pedido} />}
 
@@ -105,7 +113,7 @@ function Resultado({ pedido }) {
   const pendente = pedido.status !== 'approved' && pedido.status !== 'in_process'
 
   return (
-    <section aria-live="polite" className="cartao mt-8">
+    <section aria-live="polite" className="cartao animate-fade-in mt-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="font-display text-xs tracking-[0.2em] text-gold uppercase">Pedido</p>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRota } from './lib/rota.js'
 import { Link } from './lib/Link.jsx'
 import Home from './pages/Home.jsx'
@@ -6,6 +6,8 @@ import Produto from './pages/Produto.jsx'
 import Rastrear from './pages/Rastrear.jsx'
 import Obrigado from './pages/Obrigado.jsx'
 import Footer from './components/Footer.jsx'
+import { ScrollProgress } from './components/ScrollProgress.jsx'
+import { Starfield } from './components/Starfield.jsx'
 
 /**
  * Escolhe a tela pelo caminho.
@@ -37,7 +39,16 @@ export default function App() {
   const caminho = useRota()
 
   return (
-    <div className="star-bg flex min-h-dvh flex-col">
+    <div className="star-bg relative flex min-h-dvh flex-col overflow-x-clip">
+      {/*
+        O céu animado fica POR TRÁS de tudo: é um canvas fixo com z-0, e o
+        conteúdo precisa de z-10 para não ser pintado por baixo das estrelas.
+        `overflow-x-clip` (e não `hidden`) — `hidden` cria uma âncora de
+        rolagem e mata o `position: sticky` do cabeçalho.
+      */}
+      <Starfield />
+      <ScrollProgress />
+
       <a
         href="#conteudo"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-gold focus:px-4 focus:py-2 focus:text-night"
@@ -47,8 +58,15 @@ export default function App() {
 
       <Cabecalho caminho={caminho} />
 
-      <main id="conteudo" className="flex-1">
-        {telaPara(caminho)}
+      <main id="conteudo" className="relative z-10 flex-1">
+        {/*
+          A troca de tela entra com um fade curto. A chave garante que o
+          componente novo nasça junto com a animação — sem ela, o React
+          reaproveitaria a árvore e o `animation` não dispararia.
+        */}
+        <div key={caminho} className="animate-fade-in">
+          {telaPara(caminho)}
+        </div>
       </main>
 
       <Footer />
@@ -69,6 +87,7 @@ export default function App() {
 function Cabecalho({ caminho }) {
   const [menuAberto, setMenuAberto] = useState(false)
   const [caminhoAnterior, setCaminhoAnterior] = useState(caminho)
+  const [condensado, setCondensado] = useState(false)
 
   // Ajustar estado durante o render é o padrão do React para "derivar de uma
   // mudança de prop": o React descarta o render e refaz com o valor novo, sem
@@ -78,11 +97,29 @@ function Cabecalho({ caminho }) {
     setMenuAberto(false)
   }
 
+  /*
+   * A barra ganha sombra assim que a pessoa começa a rolar — o mesmo "encolhe"
+   * do site pessoal. Aqui a ALTURA não muda: o cabeçalho é `sticky`, então
+   * encolher empurraria a página inteira para cima no meio da leitura.
+   */
+  useEffect(() => {
+    const aoRolar = () => setCondensado(window.scrollY > 40)
+    aoRolar()
+    window.addEventListener('scroll', aoRolar, { passive: true })
+    return () => window.removeEventListener('scroll', aoRolar)
+  }, [])
+
+  const limpo = caminho.replace(/\/+$/, '') || '/'
+
   return (
-    <header className="safe-top sticky top-0 z-40 border-b border-white/8 bg-night/85 backdrop-blur">
+    <header
+      className={`safe-top sticky top-0 z-40 border-b bg-night/85 backdrop-blur transition-all duration-300 ${
+        condensado ? 'border-white/12 shadow-[0_8px_30px_rgba(0,0,0,0.45)]' : 'border-white/8'
+      }`}
+    >
       <div className="pilha flex h-16 items-center justify-between gap-4">
         <Link para="/" className="flex items-center gap-2.5" aria-label="StarGeo, página inicial">
-          <svg width="28" height="28" viewBox="0 0 72 72" aria-hidden="true" className="text-gold">
+          <svg width="28" height="28" viewBox="0 0 72 72" aria-hidden="true" className="animate-shimmer text-gold">
             <path
               d="M36 4 L41.8 26.2 L65 29 L47 43.8 L52.5 66 L36 53.4 L19.5 66 L25 43.8 L7 29 L30.2 26.2 Z"
               fill="currentColor"
@@ -92,13 +129,19 @@ function Cabecalho({ caminho }) {
         </Link>
 
         <nav className="hidden items-center gap-7 md:flex" aria-label="Principal">
-          <Link para="/" className="text-sm text-ivory/80 transition hover:text-gold">
+          <Link
+            para="/"
+            className={`nav-link text-sm text-ivory/80 transition hover:text-gold ${limpo === '/' ? 'is-active' : ''}`}
+          >
             Certificates
           </Link>
-          <Link para="/#estrelas" className="text-sm text-ivory/80 transition hover:text-gold">
+          <Link para="/#estrelas" className="nav-link text-sm text-ivory/80 transition hover:text-gold">
             Estrelas
           </Link>
-          <Link para="/rastrear" className="text-sm text-ivory/80 transition hover:text-gold">
+          <Link
+            para="/rastrear"
+            className={`nav-link text-sm text-ivory/80 transition hover:text-gold ${limpo === '/rastrear' ? 'is-active' : ''}`}
+          >
             Rastrear pedido
           </Link>
         </nav>
@@ -121,7 +164,17 @@ function Cabecalho({ caminho }) {
       </div>
 
       {menuAberto && (
-        <nav id="menu-mobile" className="pilha flex flex-col gap-3 border-t border-white/8 py-4 md:hidden">
+        <nav
+          id="menu-mobile"
+          className="animate-dialog-in pilha flex flex-col gap-3 border-t border-white/8 py-4 md:hidden"
+        >
+          <Link
+            para="/produto/certificado-digital"
+            onClick={() => setMenuAberto(false)}
+            className="btn btn-primary w-full text-sm"
+          >
+            Comprar certificado
+          </Link>
           <Link para="/" onClick={() => setMenuAberto(false)} className="text-sm text-ivory/85">
             Certificados
           </Link>

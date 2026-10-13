@@ -279,6 +279,308 @@ body {
   animation: astromover 6s ease-in-out infinite;
 }
 
+/* ==========================================================================
+   Animações herdadas do site pessoal
+   ==========================================================================
+   São as mesmas regras de `src/index.css`, para a loja respirar igual à página
+   da qual nasceu: céu animado, revelação por rolagem, brilho percorrendo
+   bordas, sublinhado do menu. Ficam FORA de camada de propósito — `.reveal`
+   e `.tilt` trabalham em `opacity`/`transform`, e uma utility do Tailwind no
+   mesmo elemento acabaria com o efeito antes de começar.
+   ========================================================================== */
+
+/*
+ * Revelação por rolagem. O `transform` usa translate3d para ficar na GPU,
+ * e a transição só dispara uma vez — depois disso o custo é zero.
+ */
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, var(--reveal-distance, 28px), 0);
+  filter: blur(8px);
+  transition:
+    opacity var(--reveal-duration, 800ms) cubic-bezier(0.22, 0.7, 0.24, 1),
+    transform var(--reveal-duration, 800ms) cubic-bezier(0.22, 0.7, 0.24, 1),
+    filter var(--reveal-duration, 800ms) ease-out;
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  filter: blur(0);
+  will-change: auto;
+}
+
+/* Cursor de máquina de escrever. */
+.type-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  translate: 0 0.15em;
+  background: var(--color-gold);
+  animation: caret 1s steps(2, start) infinite;
+}
+
+@keyframes caret {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(232, 200, 114, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 16px rgba(232, 200, 114, 0);
+  }
+}
+
+.animate-twinkle {
+  animation: twinkle 3.4s ease-in-out infinite;
+}
+
+.animate-floaty {
+  animation: floaty 7s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2.4s ease-out infinite;
+}
+
+/* Brilho que percorre a estrela do topo. */
+.animate-shimmer {
+  animation: shimmer 3.6s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px rgba(232, 200, 114, 0.35));
+  }
+  50% {
+    filter: drop-shadow(0 0 18px rgba(232, 200, 114, 0.85));
+  }
+}
+
+.animate-spin-slow {
+  animation: spin 26s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Deriva lenta das nebulosas do fundo. */
+.animate-drift {
+  animation: drift 38s ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(3%, -4%, 0) scale(1.12);
+  }
+}
+
+/* Selo de ouro que "carimba" — usado no ícone de pagamento aprovado. */
+.animate-seal {
+  animation: seal 900ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+
+@keyframes seal {
+  from {
+    opacity: 0;
+    transform: scale(2.4) rotate(-28deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(-8deg);
+  }
+}
+
+/* Entrada de painéis e trocas de tela. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 26px, 0) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 220ms ease-out both;
+}
+
+.animate-dialog-in {
+  animation: dialog-in 420ms cubic-bezier(0.22, 0.9, 0.26, 1) both;
+}
+
+/* Realce dourado percorrendo bordas de cartões.
+   Usa `::after` (o site pessoal usa `::before`) porque na loja o mesmo cartão
+   pode carregar também o `.spotlight`, que ocupa o `::before` — os dois no
+   mesmo pseudo-elemento se apagariam. */
+.shimmer-border {
+  position: relative;
+}
+
+.shimmer-border::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    115deg,
+    transparent 32%,
+    rgba(232, 200, 114, 0.55) 48%,
+    rgba(243, 230, 184, 0.9) 52%,
+    transparent 68%
+  );
+  background-size: 260% 100%;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: border-sheen 7s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes border-sheen {
+  from {
+    background-position: 160% 0;
+  }
+  to {
+    background-position: -60% 0;
+  }
+}
+
+/* Sublinhado deslizante dos links do menu. */
+.nav-link {
+  position: relative;
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -5px;
+  height: 1px;
+  width: 100%;
+  background: var(--color-gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 320ms cubic-bezier(0.22, 0.8, 0.3, 1);
+}
+
+.nav-link:hover::after,
+.nav-link:focus-visible::after,
+.nav-link.is-active::after {
+  transform: scaleX(1);
+}
+
+.nav-link.is-active {
+  color: var(--color-gold);
+}
+
+/* Cartão que inclina levemente na direção do ponteiro. */
+.tilt {
+  transition:
+    transform 400ms cubic-bezier(0.2, 0.8, 0.3, 1),
+    border-color 250ms ease,
+    background-color 250ms ease,
+    box-shadow 250ms ease;
+  transform-style: preserve-3d;
+}
+
+/*
+ * Só em ponteiro de verdade. No celular, o toque deixa o `:hover` preso e o
+ * cartão ficaria torto depois do primeiro toque.
+ */
+@media (hover: hover) and (pointer: fine) {
+  .tilt:hover {
+    transform: perspective(900px) rotateX(4deg) rotateY(-4deg) translateY(-3px);
+  }
+}
+
+/* Luz que segue o ponteiro. */
+.spotlight {
+  position: relative;
+}
+
+.spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    260px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(232, 200, 114, 0.13),
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 300ms ease;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .spotlight:hover::before {
+    opacity: 1;
+  }
+}
+
+/* Mais estrelas caem por trás do conteúdo fixo. */
+.scroll-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
 /*
  * Movimento reduzido.
  *
@@ -286,10 +588,21 @@ body {
  * animação. Aqui basta zerar as animações: a transição é o único movimento, e
  * desligá-la deixa a página utilizável por igual — nada some, nada fica
  * invisível.
+ *
+ * A exceção é `.reveal`: ele NASCE invisível e só aparece com a classe
+ * `is-visible`. Sem esta regra, quem pediu menos movimento ficaria com a
+ * página vazia se o observador não rodasse.
  */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition: none;
   }
 
   *,
