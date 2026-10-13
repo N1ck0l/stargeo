@@ -77,7 +77,7 @@ describe('distribuirBlocos (matemática compartilhada PDF ↔ prévia)', () => {
     for (const [nome, nNome, nMensagem] of casos) {
       const { vao } = distribuirBlocos(blocos(nNome, nMensagem), { topo, base, dadosAltura })
       expect(vao, nome).toBeGreaterThanOrEqual(2.5)
-      expect(vao, nome).toBeLessThanOrEqual(6)
+      expect(vao, nome).toBeLessThanOrEqual(9)
     }
   })
 })

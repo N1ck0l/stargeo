@@ -268,10 +268,33 @@ export function CertificadoPreview({ estrela, honoreeName, message, fromName, de
         }}
       />
 
+      {/* Colchetes nos quatro cantos, como no PDF: inset MARGIN + 5, 8 mm. */}
+      {[
+        { v: 'top', h: 'left' },
+        { v: 'top', h: 'right' },
+        { v: 'bottom', h: 'left' },
+        { v: 'bottom', h: 'right' },
+      ].flatMap(({ v, h }) => [
+        <div
+          key={`${v}${h}-h`}
+          className="absolute"
+          style={{ [v]: `${MARGIN + 5}mm`, [h]: `${MARGIN + 5}mm`, width: '8mm', height: '0.45mm', background: cores.moldura }}
+        />,
+        <div
+          key={`${v}${h}-v`}
+          className="absolute"
+          style={{ [v]: `${MARGIN + 5}mm`, [h]: `${MARGIN + 5}mm`, width: '0.45mm', height: '8mm', background: cores.moldura }}
+        />,
+      ])}
+
       {/* Cada bloco é posicionado pela LINHA DE BASE, como no PDF.
           O `bottom` em mm a partir do rodapé equivale ao Y do PDF. */}
       <Bloco baseY={posicoes.titulo} style={{ fontSize: corpo(9), letterSpacing: '0.6mm', color: cores.rotulo, fontFamily: '"Cinzel", serif' }}>
-        CERTIFICADO DE DEDICAÇÃO CELESTE
+        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5mm' }}>
+          <span style={{ width: '22mm', height: '0.35mm', background: cores.moldura }} />
+          <span>CERTIFICADO DE DEDICAÇÃO CELESTE</span>
+          <span style={{ width: '22mm', height: '0.35mm', background: cores.moldura }} />
+        </span>
       </Bloco>
 
       <Bloco baseY={posicoes.marca} style={{ fontSize: corpo(40), color: cores.texto, fontFamily: '"Cinzel", serif' }}>
@@ -314,7 +337,11 @@ export function CertificadoPreview({ estrela, honoreeName, message, fromName, de
       </Bloco>
 
       <Bloco baseY={posicoes.dedicatoria} style={{ fontSize: corpo(7), letterSpacing: '0.5mm', color: cores.suave }}>
-        DEDICADA A
+        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5mm' }}>
+          <span style={{ width: '22mm', height: '0.35mm', background: cores.moldura }} />
+          <span>DEDICADA A</span>
+          <span style={{ width: '22mm', height: '0.35mm', background: cores.moldura, opacity: 0.75 }} />
+        </span>
       </Bloco>
 
       <Bloco baseY={posicoes.nome} style={{ fontSize: corpo(nomeSize), color: cores.texto, lineHeight: 1.15 }}>
@@ -342,11 +369,11 @@ export function CertificadoPreview({ estrela, honoreeName, message, fromName, de
         }}
       >
         {estrelas.map(([rotulo, valor]) => (
-          <div key={rotulo}>
+          <div key={rotulo} style={{ textAlign: 'center' }}>
             <div style={{ fontSize: corpo(6), color: cores.rotulo, letterSpacing: '0.3mm', fontFamily: '"Outfit", sans-serif' }}>
               {rotulo.toUpperCase()}
             </div>
-            <div style={{ fontSize: corpo(10), color: cores.texto, marginTop: '0.4mm' }}>{valor}</div>
+            <div style={{ fontSize: corpo(11), color: cores.texto, marginTop: '0.4mm' }}>{valor}</div>
           </div>
         ))}
       </div>

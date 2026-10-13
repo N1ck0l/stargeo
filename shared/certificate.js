@@ -51,7 +51,7 @@ export const MARGIN = 14
 export const alturaDe = (size) => size * MM_PER_PT * 0.72
 
 /** Vão máximo entre blocos. Acima disso o texto boia no meio da folha. */
-export const VAO_MAX = 6
+export const VAO_MAX = 9
 
 /** Quanto o bloco pode descer do topo para se centralizar, em milímetros. */
 export const CENTRO_MAX = 22
@@ -207,6 +207,42 @@ export function drawCertificate(pdf, page, fonts, data, opts = {}) {
   })
 
   /*
+   * Colchetes nos quatro cantos, um pouco para dentro da moldura.
+   *
+   * É o sinal clássico de certificado: duas barras curtas formando um "L" em
+   * cada canto. Custa oito retângulos e dá à folha o acabamento de um
+   * documento impresso, em vez de um retângulo simples.
+   *
+   * O comprimento (8 mm) é curto de propósito: um colchete longo passaria por
+   * baixo do "REGISTRO" e da data, que moram a 22 mm da borda.
+   */
+  const orn = { inset: MARGIN + 5, L: 8, T: 0.45 }
+  const cantos = [
+    { x: orn.inset, y: height - orn.inset, dirX: 1, dirY: -1 },
+    { x: width - orn.inset, y: height - orn.inset, dirX: -1, dirY: -1 },
+    { x: orn.inset, y: orn.inset, dirX: 1, dirY: 1 },
+    { x: width - orn.inset, y: orn.inset, dirX: -1, dirY: 1 },
+  ]
+  for (const canto of cantos) {
+    // Barra horizontal: sai do canto na direção de `dirX`, logo abaixo/acima.
+    page.drawRectangle({
+      x: canto.dirX > 0 ? canto.x : canto.x - orn.L,
+      y: canto.dirY > 0 ? canto.y : canto.y - orn.T,
+      width: orn.L,
+      height: orn.T,
+      color: C(c.frame),
+    })
+    // Barra vertical: sai na direção de `dirY`, ao lado do canto.
+    page.drawRectangle({
+      x: canto.dirX > 0 ? canto.x : canto.x - orn.T,
+      y: canto.dirY > 0 ? canto.y : canto.y - orn.L,
+      width: orn.T,
+      height: orn.L,
+      color: C(c.frame),
+    })
+  }
+
+  /*
    * Layout em blocos, não em deslocamentos fixos.
    *
    * A primeira versão empilhava `y -= 12` um atrás do outro, sem medir
@@ -296,10 +332,11 @@ export function drawCertificate(pdf, page, fonts, data, opts = {}) {
       chave: 'titulo',
       altura: altura.titulo,
       desenhar: (b) =>
-        textCentered(page, 'CERTIFICADO DE DEDICAÇÃO CELESTE', fonts.display, b, {
+        comFiletes(page, 'CERTIFICADO DE DEDICAÇÃO CELESTE', fonts.display, b, {
           size: 9,
           color: C(c.label),
           charSpace: 3,
+          filete: C(c.frame),
         }),
     },
     {
@@ -345,7 +382,12 @@ export function drawCertificate(pdf, page, fonts, data, opts = {}) {
       chave: 'dedicatoria',
       altura: altura.dedicatoria,
       desenhar: (b) =>
-        textCentered(page, 'DEDICADA A', fonts.regular, b, { size: 7, color: C(c.muted), charSpace: 2 }),
+        comFiletes(page, 'DEDICADA A', fonts.regular, b, {
+          size: 7,
+          color: C(c.muted),
+          charSpace: 2,
+          filete: C(c.frame),
+        }),
     },
     {
       chave: 'nome',
@@ -388,6 +430,10 @@ export function drawCertificate(pdf, page, fonts, data, opts = {}) {
    * Em retrato eram duas colunas em três linhas — 39 mm de altura, que em
    * paisagem não cabem: a folha perdeu 87 mm de altura e ganhou 87 de
    * largura. A largura paga a conta inteira.
+   *
+   * As colunas são CENTRADAS em si mesmas, como o resto da folha: alinhadas à
+   * esquerda elas pareciam uma tabela de planilha colada no certificado, e a
+   * fileira inteira ficava visualmente pendendo para a esquerda.
    */
   const gapColunas = 4
   const colWidth = (width - (MARGIN + 8) * 2 - gapColunas * (campos.length - 1)) / campos.length
@@ -397,13 +443,25 @@ export function drawCertificate(pdf, page, fonts, data, opts = {}) {
   const linhaY = dadosTopo
   for (let i = 0; i < campos.length; i += 1) {
     const [label, value] = campos[i]
-    const x = leftX + i * (colWidth + gapColunas)
+    const centroX = leftX + colWidth / 2 + i * (colWidth + gapColunas)
 
-    page.drawText(label.toUpperCase(), { x, y: linhaY, size: 6, font: fonts.regular, color: C(c.label) })
+    const rotulo = label.toUpperCase()
+    // 0,9 pt de espaçamento = 0,32 mm, o mesmo `letter-spacing` da prévia.
+    const larguraRotulo = larguraEmMm(fonts.regular, rotulo, 6) + rotulo.length * 0.9 * MM_PER_PT
+    page.drawText(rotulo, {
+      x: centroX - larguraRotulo / 2,
+      y: linhaY,
+      size: 6,
+      font: fonts.regular,
+      color: C(c.label),
+      characterSpacing: 0.9,
+    })
+
+    const larguraValor = larguraEmMm(fonts.regular, String(value), 11)
     page.drawText(String(value), {
-      x,
-      y: linhaY - 6 * MM_PER_PT - 0.5,
-      size: 10,
+      x: centroX - larguraValor / 2,
+      y: linhaY - 6 * MM_PER_PT - 1,
+      size: 11,
       font: fonts.regular,
       color: C(c.text),
     })
@@ -421,7 +479,7 @@ export function drawCertificate(pdf, page, fonts, data, opts = {}) {
   if (data.dedicationDate) {
     page.drawText(data.dedicationDate, {
       x: MARGIN + 8,
-      y: MARGIN + 8,
+      y: MARGIN + 12,
       size: 7,
       font: fonts.italic,
       color: C(c.muted),
@@ -461,6 +519,49 @@ function textCentered(page, content, font, y, { size, color, charSpace = 0 }) {
   const largura = larguraEmMm(font, content, size) + (charSpace ? content.length * charSpace * MM_PER_PT : 0)
   const x = (PAGE.width - MARGIN * 2) / 2 + MARGIN - largura / 2
   page.drawText(content, { x, y, size, font, color, characterSpacing: charSpace || undefined })
+  return y - size - 3
+}
+
+/**
+ * Texto centralizado com um filete curto de cada lado.
+ *
+ * Os dois rótulos de seção ("CERTIFICADO DE DEDICAÇÃO CELESTE" e "DEDICADA A")
+ * são miúdos e com muito espaçamento: sozinhos, flutuavam no meio do papel. O
+ * filete dá peso visual sem competir com o título de verdade, que é o nome de
+ * quem recebe.
+ *
+ * A altura do filete é a metade da altura das maiúsculas (`0,36 × corpo`), que
+ * é onde o olho espera uma linha divisória — na base do texto ela passaria
+ * raspando pelo que vem embaixo.
+ *
+ * @param {number} [larguraFilete] mm de cada filete
+ * @param {number} [folga] mm entre o texto e o filete
+ */
+function comFiletes(page, content, font, y, { size, color, charSpace = 0, filete, larguraFilete = 22, folga = 5 }) {
+  const largura = larguraEmMm(font, content, size) + (charSpace ? content.length * charSpace * MM_PER_PT : 0)
+  const centro = (PAGE.width - MARGIN * 2) / 2 + MARGIN
+  const meia = largura / 2
+  const alturaFilete = 0.35
+  const baseFilete = y + size * MM_PER_PT * 0.36
+
+  for (const dir of [-1, 1]) {
+    page.drawRectangle({
+      x: dir < 0 ? centro - meia - folga - larguraFilete : centro + meia + folga,
+      y: baseFilete,
+      width: larguraFilete,
+      height: alturaFilete,
+      color: filete,
+    })
+  }
+
+  page.drawText(content, {
+    x: centro - meia,
+    y,
+    size,
+    font,
+    color,
+    characterSpacing: charSpace || undefined,
+  })
   return y - size - 3
 }
 

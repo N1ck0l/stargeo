@@ -42,8 +42,12 @@ describe('CertificadoPreview', () => {
 
     // 9 pt × 0,3528 mm/pt = 3,17 mm. Dividindo, saía 25,5 mm: o texto oito
     // vezes maior que a folha, com blocos estourando para fora do papel.
-    expect(titulo.style.fontSize).toMatch(/mm$/)
-    expect(parseFloat(titulo.style.fontSize)).toBeCloseTo(3.17, 2)
+    // O título tem filetes dos dois lados, então o texto mora num span interno
+    // e o corpo fica no bloco que envolve tudo.
+    const bloco = titulo.closest('[style*="font-size"]')
+    expect(bloco).toBeTruthy()
+    expect(bloco.style.fontSize).toMatch(/mm$/)
+    expect(parseFloat(bloco.style.fontSize)).toBeCloseTo(3.17, 2)
   })
 
   it('põe os dados científicos em uma fileira de seis colunas', () => {
