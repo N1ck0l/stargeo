@@ -57,7 +57,9 @@ export async function criarPreferencia(opcoes: {
       description: item.descricao,
       quantity: item.quantidade,
       currency_id: 'BRL',
-      unit_price: item.precoUnitario,
+      // `precoUnitario` chega em CENTAVOS; a API do Mercado Pago espera
+      // reais. Sem a divisão, R$ 49,00 viraria R$ 4.900,00 na fatura.
+      unit_price: Math.round(item.precoUnitario) / 100,
     })),
     payer: {
       email: opcoes.payerEmail,
