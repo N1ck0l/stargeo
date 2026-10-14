@@ -14,10 +14,15 @@
  *   ...-mono-noite.svg              uma cor só, para papel claro (impressão)
  *   index.html                      prancha para conferir tudo lado a lado
  *
+ * E também, fora de `marca/`: `loja/public/favicon.svg`, os PNGs da loja
+ * (favicon-32, apple-touch-icon, icon-192/512, icon-maskable-512, og-image)
+ * e `loja/src/components/simboloGeometria.js` (o símbolo do cabeçalho).
+ *
  * Mudou a geometria ou a cor? Rode de novo; não edite os SVGs à mão.
  */
 import fontkit from '@pdf-lib/fontkit'
 import { decompress } from 'wawoff2'
+import { Resvg } from '@resvg/resvg-js'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
@@ -340,6 +345,78 @@ writeFileSync(join(raiz, 'loja/src/components/simboloGeometria.js'),
   `// GERADO por scripts/gerar-marca.mjs (npm run marca) — não edite à mão.\n` +
   `// Versão reduzida do símbolo oficial: ver o comentário de REDUZIDA no gerador.\n` +
   `export const SIMBOLO = ${JSON.stringify(reduzida, null, 2)}\n`)
+
+// ---------------------------------------------------------------------------
+// PNGs da loja (`loja/public/`) — ícones do app, favicon e prévia social
+// ---------------------------------------------------------------------------
+/*
+ * Rasterizados aqui mesmo (resvg), a partir dos mesmos desenhos: mudou a
+ * marca, `npm run marca` refaz tudo. Os nomes e tamanhos são os que o
+ * `loja/index.html` e o `manifest.webmanifest` já apontam.
+ */
+function png(svgTexto, largura) {
+  return new Resvg(svgTexto, { fitTo: { mode: 'width', value: largura } }).render().asPng()
+}
+
+/** Ícone quadrado: símbolo reduzido sobre o azul-noite. `ocupa` = fração do lado. */
+function icone(ocupa, cantos) {
+  const lado = 512
+  const escala = (lado * ocupa) / reduzida.lado
+  const deslocamento = (lado - reduzida.lado * escala) / 2
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${lado} ${lado}">` +
+    `<rect width="${lado}" height="${lado}" rx="${cantos}" fill="${COR.noite}"/>` +
+    `<g transform="translate(${n(deslocamento)} ${n(deslocamento)}) scale(${n(escala * 1000) / 1000})">${desenhoReduzido(COR.dourado)}</g></svg>`
+}
+
+const publico = join(raiz, 'loja/public')
+// `any`: cantos arredondados próprios. Apple e maskable: quadrado cheio — o
+// sistema recorta, e o maskable precisa do símbolo dentro da zona segura
+// (círculo de 80% do lado), por isso ocupa menos.
+writeFileSync(join(publico, 'favicon-32.png'), png(readFileSync(join(publico, 'favicon.svg'), 'utf8'), 32))
+writeFileSync(join(publico, 'icon-192.png'), png(icone(0.78, 112), 192))
+writeFileSync(join(publico, 'icon-512.png'), png(icone(0.78, 112), 512))
+writeFileSync(join(publico, 'apple-touch-icon.png'), png(icone(0.72, 0), 180))
+writeFileSync(join(publico, 'icon-maskable-512.png'), png(icone(0.56, 0), 512))
+
+/** Prévia social 1200×630: céu, moldura dupla, símbolo, nome e chamada. */
+function ogImage() {
+  const L = 1200
+  const A = 630
+  // Estrelas com sorteio FIXO (mulberry32): a imagem não muda a cada geração.
+  let semente = 20261014
+  const sorteio = () => {
+    semente |= 0
+    semente = (semente + 0x6d2b79f5) | 0
+    let t = Math.imul(semente ^ (semente >>> 15), 1 | semente)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+  let ceu = ''
+  for (let i = 0; i < 170; i += 1) {
+    const r = sorteio() < 0.9 ? 0.6 + sorteio() * 0.6 : 1.2 + sorteio() * 0.8
+    ceu += `<circle cx="${n(sorteio() * L)}" cy="${n(sorteio() * A)}" r="${n(r)}" fill="${COR.marfim}" opacity="${n(0.15 + sorteio() * 0.55)}"/>`
+  }
+
+  const c = caixaSimbolo()
+  const escala = 150 / c.altura
+  const nome = textoEmCurvas(playfair, NOME, 74, 0.17)
+  const chamada = textoEmCurvas(montserrat, 'DEDIQUE UMA ESTRELA NO CÉU DO BRASIL', 17, 0.34)
+  const ySimbolo = 92
+  const yNome = ySimbolo + 150 + 62 + 74
+  const yFio = yNome + 40
+  const yChamada = yFio + 38 + 17
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${L} ${A}">` +
+    `<rect width="${L}" height="${A}" fill="${COR.noite}"/>${ceu}` +
+    `<rect x="34" y="34" width="${L - 68}" height="${A - 68}" rx="18" fill="none" stroke="${COR.dourado}" stroke-opacity="0.55" stroke-width="2"/>` +
+    `<rect x="46" y="46" width="${L - 92}" height="${A - 92}" rx="12" fill="none" stroke="${COR.marfim}" stroke-opacity="0.12" stroke-width="1"/>` +
+    `<g transform="translate(${n(L / 2 - (c.minX + c.largura / 2) * escala)} ${n(ySimbolo - c.minY * escala)}) scale(${n(escala * 1000) / 1000})">${simbolo('og', null)}</g>` +
+    `<path d="${nome.d}" fill="${COR.dourado}" transform="translate(${n(L / 2 - nome.caixa.largura / 2 - nome.caixa.minX)} ${yNome})"/>` +
+    `<path d="M${L / 2 - 150} ${yFio}H${L / 2 + 150}" stroke="${COR.dourado}" stroke-opacity="0.5" stroke-width="1"/>` +
+    `<path d="${chamada.d}" fill="${COR.marfim}" fill-opacity="0.85" transform="translate(${n(L / 2 - chamada.caixa.largura / 2 - chamada.caixa.minX)} ${yChamada})"/>` +
+    `</svg>`
+}
+writeFileSync(join(publico, 'og-image.png'), png(ogImage(), 1200))
 
 // Prancha de conferência: cada arquivo sobre o fundo para o qual foi feito.
 writeFileSync(join(saida, 'index.html'), `<!doctype html>

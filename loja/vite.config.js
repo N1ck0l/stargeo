@@ -75,7 +75,7 @@ function metaSocial() {
       return [
         meta('property', 'og:url', `${site}/`),
         meta('property', 'og:image', imagem),
-        meta('property', 'og:image:alt', 'Cartão da Stellara com o céu de Sagitário'),
+        meta('property', 'og:image:alt', 'Logo da Stellara sobre o céu noturno: dedique uma estrela no céu do Brasil'),
         meta('property', 'og:image:width', '1200'),
         meta('property', 'og:image:height', '630'),
         meta('name', 'twitter:image', imagem),
