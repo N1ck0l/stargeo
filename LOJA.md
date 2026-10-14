@@ -44,6 +44,24 @@ uma lista de itens em milímetros — e dois tradutores a desenham: SVG na loja
 As duas medem o texto com a mesma tabela de larguras, então a quebra de linha
 é idêntica. Sai em duas versões: escura (original) e clara (papel).
 
+**Catálogo: ~118 mil estrelas, exclusivas.** A tabela `stars` tem o
+Hipparcos inteiro. Cada estrela passa por `disponivel → reservada → dedicada`
+(funções atômicas da migration 0010): o checkout reserva por 40 min (o
+pagamento expira em 30, e por isso o boleto saiu), o webhook dedica no
+aprovado e libera no recusado. O preço é o da FAIXA da estrela (tabela
+`faixas`, editável sem deploy): lendária, nomeada, brilhante, visível e
+profunda. A loja busca pelo Data API (`buscar_estrelas`, `estrela_aleatoria`).
+
+Para refazer o catálogo (dados novos, regra de faixa diferente):
+
+```bash
+# dados: d3-celestial (npm pack d3-celestial@0.7.35, pasta package/data),
+# Hipparcos via VizieR (I/239/hip_main: HIP, Vmag, Plx, e_Plx, SpType, HD)
+# e os limites das constelações (cdsarc.cds.unistra.fr/ftp/VI/42/data.dat)
+node scripts/gerar-catalogo.mjs <pasta-de-dados> <saida>   # + shared/ceu.js
+node scripts/carregar-catalogo.mjs <saida>/catalogo.ndjson  # nunca mexe em quem já é dono
+```
+
 **Entrega sem depender do e-mail.** A página dedicada tem "Baixar PDF": o
 mesmo `shared/pdf.js`, rodando no navegador (fontes em TTF, pdf-lib carregado
 só no clique). O "obrigado" consulta o pedido até a página existir e leva até

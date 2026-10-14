@@ -284,7 +284,7 @@ export async function enviarEmail(
     </p>` : ''}`
 
   const rodape = `
-    Documento simbólico de afeto. As coordenadas foram conferidas com o SIMBAD.<br>
+    Homenagem simbólica: a estrela é real (coordenadas do catálogo Hipparcos, da ESA); o nome não é um registro oficial da astronomia.<br>
     Precisa de ajuda? Responda este e-mail informando o registro <strong style="color:${EMAIL.marfim}">${escapeHtml(codigo)}</strong>.`
 
   await enviarPorResend({ para: email, assunto, html: moldura(conteudo, rodape), referencia: codigo })

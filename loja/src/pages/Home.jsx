@@ -1,5 +1,6 @@
-import { STARS } from '../../../shared/stars.js'
+import { STARS, getStar } from '../../../shared/stars.js'
 import { Folha } from '../components/Folha.jsx'
+import { TabelaDeFaixas } from '../components/TabelaDeFaixas.jsx'
 import { SimboloOficial } from '../components/SimboloOficial.jsx'
 import { Link } from '../lib/Link.jsx'
 import { reais, useFaixas } from '../lib/catalogo.js'
@@ -58,6 +59,7 @@ const PRODUTO = {
 const CONFianca = [
   { titulo: 'Entrega em minutos', texto: 'O certificado sai por e-mail assim que o pagamento cai.' },
   { titulo: 'Estrela exclusiva', texto: 'Cada estrela vai para uma pessoa só — depois, sai do catálogo.' },
+  { titulo: 'Homenagem simbólica', texto: 'Estrela real, nome simbólico — e isso vem escrito no próprio certificado.' },
   { titulo: '7 dias para desistir', texto: 'Não gostou? Devolvemos, sem pergunta.' },
   { titulo: 'Suporte de verdade', texto: 'Uma pessoa responde, em português, no mesmo dia.' },
 ]
@@ -66,7 +68,7 @@ const FAQ = [
   {
     pergunta: 'Isso é uma estrela de verdade?',
     resposta:
-      'A estrela é real e a posição é exata — conferida com o catálogo SIMBAD, o mesmo dos astrônomos. O que não existe é a posse: ninguém compra uma estrela. O que você compra é um documento que registra um nome dedicado a um ponto fixo e verificável no céu.',
+      'A estrela é real, e a posição vem do catálogo Hipparcos, da Agência Espacial Europeia — uma das medições mais precisas já feitas do céu. O nome é simbólico: ninguém é dono de uma estrela, e nenhuma empresa dá nome oficial a elas (isso cabe à União Astronômica Internacional). O que você recebe é uma homenagem: o certificado e a página que dedicam aquela estrela, no catálogo da Stellara, a quem você escolheu.',
   },
   {
     pergunta: 'Consigo ver a estrela no Brasil?',
@@ -131,11 +133,15 @@ function seguirPonteiro(evento) {
 export default function Home() {
   return (
     <>
+      {/* A ordem é a da decisão de compra: a promessa, o OBJETO (a folha),
+          a escolha da estrela com os preços, o processo, e só então a pausa
+          emocional e a confiança. Ver a folha antes de tudo é o que liga a
+          emoção do herói ao produto. */}
       <Hero />
-      <Manifesto />
-      <Estrelas />
       <Certificado />
+      <Estrelas />
       <ComoFunciona />
+      <Manifesto />
       <Confianca />
       <Faq />
       <ChamadaFinal />
@@ -198,8 +204,8 @@ function Hero() {
           </Reveal>
 
           <Reveal as="p" delay={360} className="mt-6 max-w-lg text-lg leading-relaxed text-ivory/75">
-            Nomeie uma estrela e eternize o que realmente importa. Coordenadas reais, conferidas
-            com o SIMBAD — o certificado chega por e-mail em minutos.
+            Dedique uma estrela real a quem você ama. As coordenadas vêm do catálogo Hipparcos, da
+            Agência Espacial Europeia — e o certificado fica pronto em minutos.
           </Reveal>
 
           <Reveal delay={500} className="mt-9 flex flex-wrap gap-4">
@@ -353,9 +359,9 @@ function Manifesto() {
 
         <Reveal delay={140}>
           <p className="mx-auto mt-7 max-w-2xl leading-relaxed text-ivory/70">
-            Escolhemos doze estrelas que se enxergam daqui, conferimos cada coordenada no catálogo
-            SIMBAD — o mesmo dos astrônomos — e desenhamos o céu onde elas aparecem. O que fica é um
-            ponto fixo no mapa do universo, com um nome escrito do lado.
+            São mais de 118 mil estrelas reais, com a posição medida pelo satélite Hipparcos, e o
+            céu desenhado onde cada uma aparece. O que fica é um ponto fixo no mapa do universo,
+            com um nome escrito do lado — e mais ninguém com aquela estrela.
           </p>
         </Reveal>
       </div>
@@ -371,7 +377,7 @@ function Manifesto() {
 function Confianca() {
   return (
     <section className="border-t border-white/8 bg-white/[0.02]">
-      <div className="pilha grid gap-6 py-8 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="pilha grid gap-6 py-8 sm:grid-cols-2 lg:grid-cols-5">
         {CONFianca.map((item, i) => (
           <Reveal key={item.titulo} delay={i * 90} className="flex items-start gap-3">
             <svg width="20" height="20" viewBox="0 0 24 24" className="mt-0.5 shrink-0 text-gold" aria-hidden="true">
@@ -417,8 +423,8 @@ function Certificado() {
             Um ponto fixo no céu, com o nome de quem você ama
           </h2>
           <p className="mt-4 leading-relaxed text-ivory/70">
-            {PRODUTO.resumo}: folha A4 em alta resolução, coordenadas conferidas com o SIMBAD e
-            código de registro único. Chega por e-mail em minutos.
+            {PRODUTO.resumo}: folha A4 em alta resolução, com as coordenadas reais da estrela, o
+            mapa do céu em volta dela e um código de registro único. Pronto em minutos.
           </p>
         </Reveal>
 
@@ -470,7 +476,7 @@ function Certificado() {
             />
 
             <div className="shimmer-border mx-auto mt-4 max-w-[26rem] overflow-hidden rounded-2xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
-              <Folha estrela={STARS[0]} honoreeName={nome} code="SG-XXXX-XXXX" />
+              <Folha estrela={getStar('antares')} honoreeName={nome} code="SG-XXXX-XXXX" />
             </div>
 
             <p className="mt-3 text-xs leading-relaxed text-ivory/45">
@@ -509,6 +515,11 @@ function Estrelas() {
           <Link para="/estrelas" className="btn btn-secundario mt-6">
             Explorar o catálogo completo
           </Link>
+        </Reveal>
+
+        {/* A oferta clara antes do checkout: o preço depende da estrela. */}
+        <Reveal delay={100} className="mt-12">
+          <TabelaDeFaixas />
         </Reveal>
 
         <div className="mt-12 grid gap-8 lg:grid-cols-[1fr_320px]">

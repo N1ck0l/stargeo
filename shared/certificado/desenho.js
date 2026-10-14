@@ -476,7 +476,7 @@ function rodape(add, texto, dados, p) {
   }
 
   // Nota honesta: certificado de afeto, não registro astronômico oficial.
-  texto('Documento simbólico. Coordenadas conferidas com o SIMBAD.', {
+  texto('Homenagem simbólica · coordenadas do catálogo Hipparcos (ESA)', {
     y: 281.6, fonte: 'sansItalico', pt: 5.2, cor: p.suave, opacidade: p.suaveOpacidade * 0.8,
   })
 }

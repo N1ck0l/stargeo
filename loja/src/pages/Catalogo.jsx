@@ -1,6 +1,6 @@
 import { ExploradorDeEstrelas } from '../components/ExploradorDeEstrelas.jsx'
 import { Reveal } from '../components/Reveal.jsx'
-import { reais, useFaixas } from '../lib/catalogo.js'
+import { TabelaDeFaixas } from '../components/TabelaDeFaixas.jsx'
 import { navegar } from '../lib/rota.js'
 
 /**
@@ -12,8 +12,6 @@ import { navegar } from '../lib/rota.js'
  * pergunta de quem vê preços diferentes.
  */
 export default function Catalogo() {
-  const faixas = useFaixas()
-
   return (
     <div className="espaco-secao">
       <div className="pilha">
@@ -26,16 +24,8 @@ export default function Catalogo() {
           </p>
         </Reveal>
 
-        <Reveal delay={100}>
-          <ul className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            {faixas.map((f) => (
-              <li key={f.slug} className="cartao">
-                <p className="font-serif text-lg text-ivory">{f.nome}</p>
-                <p className="mt-1 text-sm text-gold">{reais(f.precoCentavos)}</p>
-                <p className="mt-2 text-xs leading-relaxed text-ivory/55">{f.descricao}</p>
-              </li>
-            ))}
-          </ul>
+        <Reveal delay={100} className="mt-10">
+          <TabelaDeFaixas />
         </Reveal>
 
         <Reveal delay={160} className="mt-10">

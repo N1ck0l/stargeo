@@ -104,7 +104,7 @@ describe('CertificadoPreview', () => {
     // Só espaço em branco não é mensagem: o bloco não nasce, e nada de
     // imprimir "undefined" no lugar do texto ausente.
     render(<CertificadoPreview estrela={estrela} honoreeName="Ana" message="   " code="X" />)
-    expect(screen.queryByText('Documento simbólico. Coordenadas conferidas com o SIMBAD.')).toBeTruthy()
+    expect(screen.queryByText('Homenagem simbólica · coordenadas do catálogo Hipparcos (ESA)')).toBeTruthy()
     expect(document.body.textContent).not.toContain('undefined')
   })
 

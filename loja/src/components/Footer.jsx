@@ -30,8 +30,13 @@ export default function Footer() {
             </div>
             <p className="mt-1 text-[11px] tracking-[0.28em] text-gold/70 uppercase">A star of your own</p>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-ivory/60">
-              Certificados de estrela com coordenadas reais, conferidas com o SIMBAD. Ninguém é dono
-              de uma estrela — mas todo mundo pode ter uma dedicada com nome.
+              Certificados de estrela com coordenadas reais do catálogo Hipparcos (ESA). Ninguém é
+              dono de uma estrela, e o nome é simbólico — mas todo mundo pode ter uma dedicada a
+              alguém, só sua no catálogo da Stellara.
+            </p>
+            <p className="mt-3 max-w-sm text-[11px] leading-relaxed text-ivory/40">
+              Dados astronômicos: catálogo Hipparcos (ESA, 1997) via CDS/VizieR; nomes e linhas das
+              constelações: d3-celestial (Olaf Frohn); limites das constelações: IAU.
             </p>
           </div>
 

@@ -101,6 +101,20 @@ bloqueante antes, sem nenhuma violação.
 
 ---
 
+### 1.8 Revisar as decisões do catálogo completo
+
+- **Preços das faixas** (tabela `faixas`, mude a linha e pronto): lendária
+  R$ 249 (23 estrelas), nomeada R$ 149 (577), brilhante R$ 99 (215), visível
+  R$ 69 (8.150), profunda R$ 49 (109 mil). São um ponto de partida.
+- **Sem boleto**: a estrela fica reservada só durante o prazo de pagamento
+  (30 min), e boleto leva dias. Pix e cartão em até 12x continuam.
+- **Promessas da home que só você pode garantir**: "7 dias para desistir"
+  (é direito do consumidor em compra on-line) e "uma pessoa responde no mesmo
+  dia". Se alguma não valer, tire ou ajuste em `loja/src/pages/Home.jsx`.
+- **Celular**: a ordem nova da home (herói → certificado → estrelas e preços →
+  como funciona → confiança) não pôde ser conferida visualmente no aparelho
+  nesta rodada — vale abrir no telefone.
+
 ## 2. Melhorias que dá para fazer
 
 Nada de bloqueante. Só polimento:
