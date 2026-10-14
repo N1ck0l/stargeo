@@ -25,8 +25,13 @@
     <meta name="theme-color" content="#090b20" />
 
     <!--
-      A prévia ao compartilhar depende do domínio real, então estas URLs são
-      trocadas por um script em tempo de build. Ver `loja/public/meta.js`.
+      A prévia ao compartilhar exige URL ABSOLUTA na imagem e no canonical, e o
+      domínio só é conhecido na hora de publicar: `og:url`, `og:image` e
+      `canonical` são escritos aqui pelo build (plugin `metaSocial` em
+      `loja/vite.config.js`). Tem de ser no HTML servido — o WhatsApp e o
+      Facebook não executam JavaScript para montar a prévia. Em `/p/CODE` o
+      título e a descrição ainda são trocados pela edge function
+      `netlify/edge-functions/pagina-og.ts`.
     -->
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="pt_BR" />
@@ -47,13 +52,6 @@
     <link rel="preload" href="/fonts/playfair-display-400-700.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/montserrat-400-600.woff2" as="font" type="font/woff2" crossorigin />
 
-    <!--
-      Caminho a partir da RAIZ, de propósito: `./meta.js` resolve contra a URL
-      atual, e numa rota como `/produto/kaus-australis` viraria
-      `/produto/meta.js` — que não existe. Na Vercel isso ainda devolveria o
-      index (200) no lugar do JS, e a prévia social ficaria sem URL.
-    -->
-    <script src="/meta.js"></script>
   </head>
   <body>
     <div id="root"></div>

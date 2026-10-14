@@ -1,5 +1,5 @@
-import { Reveal } from './Reveal'
-import { useContent } from '../lib/contentContext'
+import { Reveal } from '../../components/Reveal'
+import { useContent } from '../../lib/contentContext'
 
 /**
  * Mensagem pessoal — o espaço para escrever com as suas palavras.

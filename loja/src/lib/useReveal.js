@@ -9,9 +9,8 @@
  * - `useScroll` — offset vertical da rolagem (parallax do `Home`);
  * - `useTypewriter` — escreve um texto letra a letra (título da home).
  *
- * Quem importa: `pages/Home.jsx` e `components/Reveal.jsx` desta SPA. (O site
- * pessoal tem o seu OWN `src/lib/useReveal.js` — são arquivos irmãos, não
- * compartilhados, porque a loja publica separado.)
+ * Quem importa: `pages/Home.jsx`, `components/Reveal.jsx` e as seções da
+ * página dedicada (`pagina/secoes/Hero.jsx`).
  *
  * Invariante: `prefers-reduced-motion` é consultado ANTES de criar observer
  * ou timer. Quem pediu menos movimento recebe o conteúdo inteiro e imediato —

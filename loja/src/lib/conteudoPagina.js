@@ -6,7 +6,7 @@
  * objeto vem da API, e dois campos extras entram no pacote:
  *
  * - `estrela` — a estrela no formato que os componentes usam (`kausAustralis`
- *   em `src/data/star.js`). É o que faz os componentes deixarem de importar a
+ *   em `loja/src/data/star.js`). É o que faz os componentes deixarem de importar a
  *   Kaus fixa: `content.estrela ?? kausAustralis`.
  *
  * - `sky` / `skyFigura` — o céu desenhado. São dois porque o mapa e a mira
@@ -19,8 +19,8 @@
  * Sem estrela remota (site pessoal) nada disso existe, e os componentes
  * continuam no import de sempre.
  */
-import { constellationLines, sagittariusStars } from '../../../src/data/star.js'
-import { brightStars } from '../../../src/data/brightStars.js'
+import { constellationLines, sagittariusStars } from '../data/star.js'
+import { brightStars } from '../data/brightStars.js'
 
 /**
  * Estrela da página no formato do site pessoal → folha do certificado.

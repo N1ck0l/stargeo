@@ -146,3 +146,25 @@ export async function lerJson(request: Request, limiteBytes = 16 * 1024): Promis
 export function idRequisicao() {
   return crypto.randomUUID().slice(0, 8)
 }
+
+/** Comparação que não retorna cedo — o tempo não pode depender do conteúdo. */
+export function compararSeguro(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i += 1) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  }
+  return diff === 0
+}
+
+/**
+ * IP de quem chamou, para o limite de requisições.
+ *
+ * O gateway do Supabase põe o cliente no primeiro item do `x-forwarded-for`.
+ * Sem o header (chamada local), todo mundo cai na mesma chave — o limite fica
+ * mais apertado, nunca mais frouxo.
+ */
+export function ipDe(request: Request): string {
+  const encaminhado = request.headers.get('x-forwarded-for') ?? ''
+  return encaminhado.split(',')[0].trim() || request.headers.get('x-real-ip') || 'sem-ip'
+}

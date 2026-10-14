@@ -13,6 +13,15 @@
  * 2. `Authorization: Bearer <token>` — quem já logou recarrega a edição sem
  *    digitar e-mail de novo. Mesma resposta, sem emitir token novo.
  *
+ * Modo LINK POR E-MAIL (`EDICAO_POR_EMAIL=1` nos secrets): o login deixa de
+ * devolver o token e passa a mandá-lo, num link, para o e-mail do pedido. É o
+ * modo certo assim que o e-mail entregar de verdade (domínio verificado no
+ * Resend): o código da página é público — está na URL do presente — e quem
+ * recebeu o presente muitas vezes sabe o e-mail de quem deu. Com o link, saber
+ * o e-mail não basta; é preciso LER a caixa dele. Nesse modo a resposta é
+ * `{ enviado: true }` sempre, exista a página ou não, para não confirmar a
+ * ninguém que o par bate.
+ *
  * O bruto do token só existe na resposta: o banco guarda SHA-256
  * (`page_edit_tokens`), e o token expira em 30 dias mesmo sem uso.
  *
@@ -24,8 +33,10 @@
  * vencidos daquela página no mesmo passo (a tabela não acumula histórico de
  * quem já não edita).
  */
-import { comHandler, ErroApp, json, lerJson } from '../_shared/http.ts'
+import { comHandler, ErroApp, ipDe, json, lerJson } from '../_shared/http.ts'
 import { admin } from '../_shared/supabase.ts'
+import { enviarLinkDeEdicao } from '../_shared/certificado.ts'
+import { limitar } from '../_shared/limite.ts'
 import { lerToken, sessaoDe, VALIDADE_DIAS, gerarToken, sha256Hex } from '../_shared/token.ts'
 import {
   conteudoDaLinha,
@@ -73,6 +84,11 @@ Deno.serve(
       throw new ErroApp('email_invalido', 'Endereço de e-mail inválido.', 422)
     }
 
+    // Só o caminho de login conta: quem já tem token não está adivinhando nada.
+    // O código da página é público (está na URL do presente), então o e-mail é
+    // o segredo — o limite por código é o que impede testar e-mails em massa.
+    await limitar(db, 'edicao', [`ip:${ipDe(request)}`, `codigo:${codigo}`], { maximo: 10, janelaSegundos: 900 })
+
     const { data, error } = await db
       .from('pages')
       .select(SELECAO_PAGINA)
@@ -85,6 +101,11 @@ Deno.serve(
     }
 
     const linha = data as unknown as LinhaPagina | null
+    const porEmail = Deno.env.get('EDICAO_POR_EMAIL') === '1'
+
+    if (!linha && porEmail) {
+      return json(request, { enviado: true })
+    }
 
     if (!linha) {
       /*
@@ -121,6 +142,11 @@ Deno.serve(
 
     if (erroToken) {
       throw new ErroApp('token_falhou', 'Não foi possível iniciar a edição.', 500, erroToken.message)
+    }
+
+    if (porEmail) {
+      await enviarLinkDeEdicao({ para: endereco, codigo, token: bruto, validadeDias: VALIDADE_DIAS })
+      return json(request, { enviado: true })
     }
 
     return json(request, { token: bruto, expiraEm, ...(await montar(linha)) })

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CertificadoPreview } from '../components/CertificadoPreview.jsx'
 import { Escala } from '../components/Escala.jsx'
-import { useContent } from '../../../src/lib/contentContext.js'
+import { useContent } from '../lib/contentContext.js'
 import { estrelaDaFolha } from '../lib/conteudoPagina.js'
 
 /**

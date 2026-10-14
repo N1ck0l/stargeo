@@ -7,9 +7,12 @@ import { Escala } from '../components/Escala.jsx'
 import { Reveal } from '../components/Reveal.jsx'
 import { criarCheckout, ErroApi, irParaPagamento } from '../lib/api.js'
 import { Link } from '../lib/Link.jsx'
+import { usePreco } from '../lib/preco.js'
 
 /**
- * Preços de exibição. O valor autoritativo é sempre lido do banco.
+ * Produtos que têm página. `preco` é só a RESERVA enquanto o banco não
+ * responde: o botão mostra o `price_cents` de `products` (via `usePreco`), o
+ * mesmo valor que o `create-checkout` cobra.
  *
  * Por enquanto só existe UM produto de verdade (o digital): slug fora desta
  * lista cai na tela "Certificado não encontrado" abaixo. Os outros níveis
@@ -73,6 +76,7 @@ function dataEmPortugues(iso) {
  */
 export default function Produto({ slug }) {
   const produto = PRODUTOS[slug]
+  const { preco } = usePreco(slug, { preco: produto?.preco ?? '' })
 
   // A estrela pode vir pela URL: `/produto/...?estrela=sirius`, que é como a
   // home leva alguém direto ao produto com a estrela já escolhida.
@@ -358,7 +362,7 @@ export default function Produto({ slug }) {
 
             <div className="flex flex-wrap items-center gap-4">
               <button type="submit" className="btn btn-primary animate-pulse-glow" disabled={enviando}>
-                {enviando ? 'Abrindo o pagamento…' : `Finalizar · R$ ${produto.preco}`}
+                {enviando ? 'Abrindo o pagamento…' : `Finalizar · R$ ${preco}`}
               </button>
               <p className="text-xs text-ivory/45">
                 Você paga no Mercado Pago, por Pix, cartão ou boleto.

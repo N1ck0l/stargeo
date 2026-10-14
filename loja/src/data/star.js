@@ -29,7 +29,7 @@ export const honoree = {
  *
  * - `ra`/`dec` "quebrados" (graus, minutos, segundos) são o que a pessoa lê;
  * - `hoursDecimal`/`decimal` são o que a matemática usa (`equatorialToHorizontal`,
- *   `project`) — conferidos um contra o outro nos testes de `src/lib/sky.test.mjs`;
+ *   `project`) — conferidos um contra o outro nos testes de `shared/sky.test.mjs`;
  * - `formatted` é a string já pronta para a tela, com os símbolos tipográficos
  *   (−, ′, ″). Não monte a formatação no componente: use estes campos.
  *

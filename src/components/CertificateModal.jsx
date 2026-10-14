@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { kausAustralis } from '../data/star'
-import { useContent } from '../lib/contentContext'
+import { kausAustralis } from '../../loja/src/data/star'
+import { useContent } from '../../loja/src/lib/contentContext'
 
 /** Elementos que recebem foco dentro do diálogo. */
 const FOCUSABLE =

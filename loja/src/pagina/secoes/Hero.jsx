@@ -1,7 +1,7 @@
-import { Reveal } from './Reveal'
-import { kausAustralis } from '../data/star'
-import { useContent } from '../lib/contentContext'
-import { useScroll, useTypewriter } from '../lib/useReveal'
+import { Reveal } from '../../components/Reveal'
+import { kausAustralis } from '../../data/star'
+import { useContent } from '../../lib/contentContext'
+import { useScroll, useTypewriter } from '../../lib/useReveal'
 
 /**
  * Abertura do presente: estrela com anéis, título, frase digitada e botões.

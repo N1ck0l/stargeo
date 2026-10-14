@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { DEFAULTS } from '../data/defaults'
-import { useContent } from '../lib/contentContext'
+import { DEFAULTS } from '../../loja/src/data/defaults'
+import { useContent } from '../../loja/src/lib/contentContext'
 
 /**
  * Painel de edição.

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { StarTrails } from './StarTrails'
-import { brightStars } from '../data/brightStars'
-import { kausAustralis, sagittariusStars } from '../data/star'
-import { useContent } from '../lib/contentContext'
+import { brightStars } from '../../data/brightStars'
+import { kausAustralis, sagittariusStars } from '../../data/star'
+import { useContent } from '../../lib/contentContext'
 import {
   devicePointing,
   equatorialToHorizontal,
@@ -11,7 +11,7 @@ import {
   visibility,
   visibilityMessage,
   wrap180,
-} from '../lib/sky'
+} from '../../../../shared/sky.js'
 
 /**
  * Campo de visão horizontal da câmera traseira, em graus.
@@ -48,8 +48,7 @@ const FOCUSABLE =
  *
  * Papel na arquitetura: diálogo em tela cheia (portal no fim do `body`) que
  * combina três fontes de verdade — câmera (vídeo ao fundo), sensores de
- * orientação (bússola) e matemática de `src/lib/sky.js` (reexport de
- * `shared/sky.js`) — para apontar onde Kaus Australis está AGORA, a partir do
+ * orientação (bússola) e matemática de `shared/sky.js` — para apontar onde Kaus Australis está AGORA, a partir do
  * lugar onde a pessoa está.
  *
  * Importado por: `App.jsx`, mas só via `lazy()` depois do clique no botão.

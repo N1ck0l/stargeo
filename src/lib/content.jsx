@@ -12,8 +12,8 @@
  * `public/` e publicar de novo. Sem servidor, sem banco.
  */
 import { useEffect, useState } from 'react'
-import { DEFAULTS } from '../data/defaults'
-import { ContentContext } from './contentContext.js'
+import { DEFAULTS } from '../../loja/src/data/defaults'
+import { ContentContext } from '../../loja/src/lib/contentContext.js'
 
 /**
  * Carrega o conteúdo e o oferece para a aplicação.

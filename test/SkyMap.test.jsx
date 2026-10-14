@@ -6,7 +6,7 @@
  */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
-import { SkyMap } from '../src/components/SkyMap'
+import { SkyMap } from '../loja/src/pagina/secoes/SkyMap'
 
 /*
  * O ambiente de teste reporta `prefers-reduced-motion: reduce` (ver setup.js),

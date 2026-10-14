@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useContent } from '../lib/contentContext'
+import { useContent } from '../../loja/src/lib/contentContext'
 
 /** Seções fixas. A de mensagem é acrescentada só quando existe. */
 const LINKS_BASE = [

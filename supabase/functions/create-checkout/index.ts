@@ -26,6 +26,7 @@
  */
 import { comHandler, ErroApp, idRequisicao, json, lerJson } from '../_shared/http.ts'
 import { admin } from '../_shared/supabase.ts'
+import { limitarPorIp } from '../_shared/limite.ts'
 import { criarPreferencia } from '../_shared/mercadoPago.ts'
 import { explicarErros, limpar, validarPedido } from '../../../shared/moderation.js'
 
@@ -44,6 +45,12 @@ interface Entrada {
 Deno.serve(
   comHandler(async (request) => {
     const id = idRequisicao()
+    const db = admin()
+
+    // 10 pedidos a cada 10 minutos por IP: folga para quem erra e refaz,
+    // aperto para quem cria pedido em laço.
+    await limitarPorIp(db, request, 'checkout', { maximo: 10, janelaSegundos: 600 })
+
     const corpo = (await lerJson(request)) as Entrada
 
     // --- 1. Campos obrigatórios ---------------------------------------
@@ -69,8 +76,6 @@ Deno.serve(
     }
 
     // --- 3. Produto e preço, lidos do banco ----------------------------
-    const db = admin()
-
     const { data: produto, error: erroProduto } = await db
       .from('products')
       .select('id, slug, name, price_cents, compare_at_cents, active, star_slugs, features')

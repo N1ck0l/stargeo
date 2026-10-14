@@ -160,59 +160,60 @@ async function verificarAdmin(db: ReturnType<typeof admin>, request: Request): P
 /**
  * Aba "visão geral": agregados que o painel desenha em cima.
  *
- * Só leitura, com teto de 500 linhas por lista: os números são calculados em
- * memória aqui, e trazer `orders` inteira para contar é o caminho mais rápido
- * para uma função serverless estourar o tempo de execução.
+ * Os números vêm do banco (`resumo_pedidos()`, migration 0009, e `count` das
+ * páginas), e não de somar linhas aqui: antes o total e a receita eram
+ * calculados sobre as 500 linhas mais recentes, e passavam a mentir a partir
+ * do pedido 501. As listas "recentes" continuam curtas — são só as 8 últimas.
  */
 async function visaoGeral(db: ReturnType<typeof admin>) {
-  const [pedidos, paginas] = await Promise.all([
+  const contarPaginas = (status?: string) => {
+    const q = db.from('pages').select('id', { count: 'exact', head: true })
+    return status ? q.eq('status', status) : q
+  }
+
+  const [resumo, recentes, paginas, publicadas, rascunhos, paginasRecentes] = await Promise.all([
+    db.rpc('resumo_pedidos'),
     db
       .from('orders')
       .select('code, status, amount_cents, product_name, honoree_name, created_at, email_error')
       .order('created_at', { ascending: false })
-      .limit(500),
+      .limit(8),
+    contarPaginas(),
+    contarPaginas('published'),
+    contarPaginas('draft'),
     db
       .from('pages')
       .select('code, status, honoree_name, star_slug, created_at')
       .order('created_at', { ascending: false })
-      .limit(500),
+      .limit(8),
   ])
 
-  if (pedidos.error) throw new ErroApp('consulta_falhou', 'Falha ao montar o painel.', 500, pedidos.error.message)
-  if (paginas.error) throw new ErroApp('consulta_falhou', 'Falha ao montar o painel.', 500, paginas.error.message)
-
-  const linhas = (pedidos.data ?? []) as Array<Record<string, unknown>>
-  const seteDias = Date.now() - 7 * 86_400_000
-
-  const porStatus: Record<string, number> = {}
-  let receitaCentavos = 0
-  let comErroDeEmail = 0
-  let naSemana = 0
-
-  for (const pedido of linhas) {
-    const status = String(pedido.status)
-    porStatus[status] = (porStatus[status] ?? 0) + 1
-    if (status === 'approved') receitaCentavos += Number(pedido.amount_cents ?? 0)
-    if (pedido.email_error) comErroDeEmail += 1
-    if (new Date(String(pedido.created_at)).getTime() >= seteDias) naSemana += 1
+  for (const r of [resumo, recentes, paginas, publicadas, rascunhos, paginasRecentes]) {
+    if (r.error) throw new ErroApp('consulta_falhou', 'Falha ao montar o painel.', 500, r.error.message)
   }
 
-  const paginaLinhas = (paginas.data ?? []) as Array<Record<string, unknown>>
+  const numeros = (resumo.data ?? {}) as {
+    total?: number
+    porStatus?: Record<string, number>
+    receitaCentavos?: number
+    comErroDeEmail?: number
+    naSemana?: number
+  }
 
   return {
     pedidos: {
-      total: linhas.length,
-      porStatus,
-      receitaCentavos,
-      comErroDeEmail,
-      naSemana,
-      recentes: linhas.slice(0, 8),
+      total: numeros.total ?? 0,
+      porStatus: numeros.porStatus ?? {},
+      receitaCentavos: numeros.receitaCentavos ?? 0,
+      comErroDeEmail: numeros.comErroDeEmail ?? 0,
+      naSemana: numeros.naSemana ?? 0,
+      recentes: recentes.data ?? [],
     },
     paginas: {
-      total: paginaLinhas.length,
-      publicadas: paginaLinhas.filter((p) => p.status === 'published').length,
-      rascunhos: paginaLinhas.filter((p) => p.status === 'draft').length,
-      recentes: paginaLinhas.slice(0, 8),
+      total: paginas.count ?? 0,
+      publicadas: publicadas.count ?? 0,
+      rascunhos: rascunhos.count ?? 0,
+      recentes: paginasRecentes.data ?? [],
     },
   }
 }

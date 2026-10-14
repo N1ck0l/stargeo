@@ -18,8 +18,9 @@
  * (ver `CAMPOS`), porque a service_role enxerga a linha inteira — é o mapa de
  * saída, não o RLS, que decide o que o cliente vê.
  */
-import { comHandler, ErroApp, json, lerJson } from '../_shared/http.ts'
+import { comHandler, ErroApp, ipDe, json, lerJson } from '../_shared/http.ts'
 import { admin } from '../_shared/supabase.ts'
+import { limitar } from '../_shared/limite.ts'
 
 /**
  * O que volta para o cliente.
@@ -81,6 +82,11 @@ Deno.serve(
     }
 
     const db = admin()
+
+    // Por IP e por código: o primeiro segura a varredura de muitos códigos, o
+    // segundo a de muitos e-mails contra um código conhecido.
+    await limitar(db, 'rastreio', [`ip:${ipDe(request)}`, `codigo:${codigo}`], { maximo: 20, janelaSegundos: 600 })
+
     const { data, error } = await db
       .from('orders')
       .select(CAMPOS.join(','))

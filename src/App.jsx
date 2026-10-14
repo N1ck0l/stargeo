@@ -19,13 +19,13 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { CertificateModal } from './components/CertificateModal'
 import { Footer } from './components/Footer'
-import { Hero } from './components/Hero'
-import { LoveLetter } from './components/LoveLetter'
+import { Hero } from '../loja/src/pagina/secoes/Hero'
+import { LoveLetter } from '../loja/src/pagina/secoes/LoveLetter'
 import { Navbar } from './components/Navbar'
-import { PersonalMessage } from './components/PersonalMessage'
+import { PersonalMessage } from '../loja/src/pagina/secoes/PersonalMessage'
 import { ScrollProgress } from './components/ScrollProgress'
-import { SkyMap } from './components/SkyMap'
-import { StarDetails } from './components/StarDetails'
+import { SkyMap } from '../loja/src/pagina/secoes/SkyMap'
+import { StarDetails } from '../loja/src/pagina/secoes/StarDetails'
 import { Starfield } from './components/Starfield'
 import { UpdateNotice } from './components/UpdateNotice'
 import { ContentProvider } from './lib/content.jsx'
@@ -35,7 +35,7 @@ import { ContentProvider } from './lib/content.jsx'
  * de posição celeste. Carregar sob demanda tira ~34 KB do código inicial.
  */
 const SkyFinder = lazy(() =>
-  import('./components/SkyFinder').then((mod) => ({ default: mod.SkyFinder })),
+  import('../loja/src/pagina/secoes/SkyFinder').then((mod) => ({ default: mod.SkyFinder })),
 )
 
 /** O painel de edição também não é do site público — entra só se for pedido. */

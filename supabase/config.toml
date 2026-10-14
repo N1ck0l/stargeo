@@ -72,5 +72,7 @@ verify_jwt = false
 
 [functions.resend-certificate]
 # Esta EXIGE autenticação: dispara e-mail para o cliente e lê pedido. Nunca
-# chamar do navegador.
+# chamar do navegador. O `verify_jwt` aqui é só a primeira porta — a chave anon
+# também é um JWT válido do projeto. A função confere DENTRO dela que o Bearer
+# é a service_role (`ehServiceRole`), que só o `admin-api` tem.
 verify_jwt = true

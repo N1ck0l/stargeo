@@ -14,7 +14,10 @@
 # comando de build é específico da loja.
 
 [build]
-  command = "npm run build:loja"
+  # `verificar` (lint + typecheck + testes) ANTES do build: commit com push é
+  # deploy, e sem isto um teste vermelho ia para o ar do mesmo jeito. Se
+  # falhar, a Netlify mantém no ar a última versão boa.
+  command = "npm run verificar && npm run build:loja"
   publish = "dist-loja"
 
 [build.environment]
@@ -73,3 +76,10 @@
     # difícil de desfazer (o navegador recusa HTTP por esse tempo em TODOS os
     # subdomínios), então o primeiro passo é pequeno e só depois se sobe.
     Strict-Transport-Security = "max-age=604800; includeSubDomains"
+    # CSP em modo SÓ RELATÓRIO: nada é bloqueado, as violações aparecem no
+    # console do navegador. A loja só fala com a própria origem e com o
+    # Supabase (functions, auth do painel); o Mercado Pago é navegação, que a
+    # CSP não restringe. Depois de navegar loja → checkout → /p/CODE →
+    # /admin sem nenhuma violação no console, troque o nome do header para
+    # `Content-Security-Policy` e ela passa a valer.
+    Content-Security-Policy-Report-Only = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"

@@ -10,6 +10,11 @@ import { Link } from '../lib/Link.jsx'
  * e-mail); quem tem sessão guardada no navegador cai direto no editor, com o
  * token revalidado no servidor antes de mostrar qualquer coisa.
  *
+ * Quando o servidor está no modo de link por e-mail (`EDICAO_POR_EMAIL`), o
+ * login responde `{ enviado: true }` e o token chega no link do e-mail, no
+ * fragmento `#acesso=…`. Quem abre o link entra direto: o fragmento é lido uma
+ * vez, apagado da barra de endereço e tratado como uma sessão guardada.
+ *
  * Só existem três campos, e são os de `CAMPOS_DO_CLIENTE` do servidor:
  * assinatura, carta e mensagem pessoal. Nome, estrela e data aparecem aqui
  * como cartões SÓ PARA LER — são o que foi comprado, e a lista branca do
@@ -19,7 +24,10 @@ export function EdicaoPagina({ codigo }) {
   // Três fases: `login` (sem sessão), `validando` (sessão local na mão,
   // esperando o servidor confirmar) e `editor`. Sem sessão guardada a tela já
   // nasce no login; com sessão, o efeito revalida e só então libura o editor.
-  const [fase, setFase] = useState(() => (lerSessao(codigo) ? 'validando' : 'login'))
+  const [tokenDoLink] = useState(lerTokenDoLink)
+  const [fase, setFase] = useState(() =>
+    tokenDoLink || lerSessao(codigo) ? 'validando' : 'login',
+  )
   const [codigoAnterior, setCodigoAnterior] = useState(codigo)
   if (codigoAnterior !== codigo) {
     setCodigoAnterior(codigo)
@@ -33,6 +41,7 @@ export function EdicaoPagina({ codigo }) {
 
   const [email, setEmail] = useState('')
   const [entrando, setEntrando] = useState(false)
+  const [linkEnviado, setLinkEnviado] = useState(false)
 
   const [assinatura, setAssinatura] = useState('')
   const [carta, setCarta] = useState('')
@@ -46,7 +55,7 @@ export function EdicaoPagina({ codigo }) {
   // --- sessão guardada: revalida antes de liberar o editor ------------------
   useEffect(() => {
     let vivo = true
-    const guardado = lerSessao(codigo)
+    const guardado = tokenDoLink ? { token: tokenDoLink } : lerSessao(codigo)
     if (!guardado) {
       // A tela já está no login (estado inicial ou ajuste acima).
       return
@@ -63,13 +72,17 @@ export function EdicaoPagina({ codigo }) {
       .catch(() => {
         if (!vivo) return
         limparSessao(codigo)
-        setAviso('Sua sessão de edição terminou. Entre de novo com seu e-mail.')
+        setAviso(
+          tokenDoLink
+            ? 'Este link de edição venceu ou já não vale. Peça outro com seu e-mail.'
+            : 'Sua sessão de edição terminou. Entre de novo com seu e-mail.',
+        )
         setFase('login')
       })
     return () => {
       vivo = false
     }
-  }, [codigo])
+  }, [codigo, tokenDoLink])
 
   function montarEditor(dados) {
     // O `page-update` devolve menos campos que o `page-auth` (sem `nome` nem
@@ -90,6 +103,11 @@ export function EdicaoPagina({ codigo }) {
     setEntrando(true)
     try {
       const dados = await entrarEdicao({ code: codigo, email })
+      if (dados.enviado) {
+        setLinkEnviado(true)
+        setAviso('')
+        return
+      }
       guardarSessao(codigo, dados.token, dados.expiraEm)
       setSessao({ token: dados.token, expiraEm: dados.expiraEm })
       montarEditor(dados)
@@ -173,46 +191,63 @@ export function EdicaoPagina({ codigo }) {
           </h1>
           <p className="mt-4 text-center leading-relaxed text-ivory/70">
             Entre com o código da página — <span className="font-mono text-gold">{codigo}</span> — e o
-            e-mail de quem comprou. Não existe senha: o e-mail é a chave.
+            e-mail de quem comprou. Não existe senha.
           </p>
 
-          <form onSubmit={aoEntrar} className="cartao mt-8">
-            <div className="grid gap-4">
-              <div>
-                <label htmlFor="email-edicao" className="rotulo">
-                  E-mail de quem comprou
-                </label>
-                <input
-                  id="email-edicao"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  value={email}
-                  onChange={(evento) => setEmail(evento.target.value)}
-                  placeholder="voce@exemplo.com"
-                  className="campo"
-                />
-              </div>
-            </div>
-
-            {erro && (
-              <p
-                role="alert"
-                className="animate-fade-in mt-4 rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+          {linkEnviado ? (
+            <div role="status" className="cartao animate-fade-in mt-8 text-center">
+              <p className="font-serif text-xl text-ivory">Confira seu e-mail</p>
+              <p className="mt-3 leading-relaxed text-ivory/70">
+                Se <span className="text-gold">{email}</span> for o e-mail desta página, um link para
+                editar acabou de chegar lá. Ele abre a edição direto, sem senha.
+              </p>
+              <button
+                type="button"
+                onClick={() => setLinkEnviado(false)}
+                className="mt-6 text-sm text-ivory/55 transition hover:text-gold"
               >
-                {erro}
-              </p>
-            )}
-            {aviso && !erro && (
-              <p className="animate-fade-in mt-4 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
-                {aviso}
-              </p>
-            )}
+                Usar outro e-mail
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={aoEntrar} className="cartao mt-8">
+              <div className="grid gap-4">
+                <div>
+                  <label htmlFor="email-edicao" className="rotulo">
+                    E-mail de quem comprou
+                  </label>
+                  <input
+                    id="email-edicao"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    value={email}
+                    onChange={(evento) => setEmail(evento.target.value)}
+                    placeholder="voce@exemplo.com"
+                    className="campo"
+                  />
+                </div>
+              </div>
 
-            <button type="submit" className="btn btn-primary mt-6 w-full" disabled={entrando}>
-              {entrando ? 'Entrando…' : 'Entrar para editar'}
-            </button>
-          </form>
+              {erro && (
+                <p
+                  role="alert"
+                  className="animate-fade-in mt-4 rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+                >
+                  {erro}
+                </p>
+              )}
+              {aviso && !erro && (
+                <p className="animate-fade-in mt-4 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+                  {aviso}
+                </p>
+              )}
+
+              <button type="submit" className="btn btn-primary mt-6 w-full" disabled={entrando}>
+                {entrando ? 'Entrando…' : 'Entrar para editar'}
+              </button>
+            </form>
+          )}
 
           <div className="mt-8 flex justify-center gap-4 text-sm">
             <Link para={`/p/${codigo}`} className="text-ivory/60 transition hover:text-gold">
@@ -397,6 +432,23 @@ function contarParagrafos(texto) {
  * A leitura ainda cai na chave antiga (`stargeo:edicao:...`) quando a nova não
  * existe: sessão aberta antes do rename da marca não pode ser perdida no F5.
  */
+/**
+ * Token que veio no link do e-mail (`#acesso=<hex>`), lido uma vez só.
+ *
+ * O fragmento sai da barra de endereço na hora: o token não pode ficar no
+ * histórico nem ir junto num "copiar link" para quem recebeu o presente.
+ */
+function lerTokenDoLink() {
+  try {
+    const casado = window.location.hash.match(/^#acesso=([a-f0-9]{64})$/)
+    if (!casado) return null
+    window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    return casado[1]
+  } catch {
+    return null
+  }
+}
+
 function chaveLocal(codigo) {
   return `stellara:edicao:${codigo}`
 }

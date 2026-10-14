@@ -2,6 +2,7 @@ import { STARS } from '../../../shared/stars.js'
 import { CertificadoPreview } from '../components/CertificadoPreview.jsx'
 import { Escala } from '../components/Escala.jsx'
 import { Link } from '../lib/Link.jsx'
+import { usePreco } from '../lib/preco.js'
 import { useState } from 'react'
 import { Reveal } from '../components/Reveal.jsx'
 import { useScroll, useTypewriter } from '../lib/useReveal.js'
@@ -35,11 +36,12 @@ import { useScroll, useTypewriter } from '../lib/useReveal.js'
  */
 
 /**
- * O produto à venda, com o preço de exibição.
+ * O produto à venda.
  *
- * `eram` é o preço "de" riscado — âncora de desconto, puro texto de vitrine;
- * `inclui` é a lista que a pessoa lê antes de decidir. O valor autoritativo
- * está no banco.
+ * `preco` e `eram` (o preço "de", riscado) são só a RESERVA enquanto o banco
+ * não responde — o que aparece vem de `products` via `usePreco`, o mesmo
+ * valor que o checkout cobra. `inclui` é a lista que a pessoa lê antes de
+ * decidir.
  */
 const PRODUTO = {
   slug: 'certificado-digital',
@@ -395,6 +397,7 @@ function Confianca() {
  */
 function Certificado() {
   const [nome, setNome] = useState('')
+  const { preco, eram } = usePreco(PRODUTO.slug, PRODUTO)
 
   return (
     <section id="certificados" className="espaco-secao border-t border-white/8">
@@ -428,10 +431,10 @@ function Certificado() {
               </ul>
 
               <div className="mt-7 flex items-baseline gap-3 border-t border-white/10 pt-6">
-                <span className="font-display text-3xl text-ivory">R$ {PRODUTO.preco}</span>
-                <span className="text-sm text-ivory/35 line-through">R$ {PRODUTO.eram}</span>
+                <span className="font-display text-3xl text-ivory">R$ {preco}</span>
+                {eram && <span className="text-sm text-ivory/35 line-through">R$ {eram}</span>}
               </div>
-              <p className="mt-1 text-xs text-ivory/45">ou em até 3x sem juros</p>
+              <p className="mt-1 text-xs text-ivory/45">à vista no Pix ou no cartão</p>
 
               <Link para={`/produto/${PRODUTO.slug}`} className="btn btn-primary mt-6 w-full">
                 Montar o meu certificado

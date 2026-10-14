@@ -1,11 +1,11 @@
-import { Reveal } from './Reveal'
-import { kausAustralis } from '../data/star'
-import { useContent } from '../lib/contentContext'
+import { Reveal } from '../../components/Reveal'
+import { kausAustralis } from '../../data/star'
+import { useContent } from '../../lib/contentContext'
 
 /**
  * Seção "A estrela": ficha técnica em cartões.
  *
- * Papel na arquitetura: transforma os dados de `src/data/star.js` (que são
+ * Papel na arquitetura: transforma os dados de `loja/src/data/star.js` (que são
  * fatos conferidos no SIMBAD) numa grade de `dl` legível, ao lado da chamada
  * para o certificado. É a prova de que o presente usa coordenadas de verdade.
  *

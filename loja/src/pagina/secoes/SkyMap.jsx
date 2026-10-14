@@ -3,8 +3,8 @@ import {
   constellationLines,
   kausAustralis,
   sagittariusStars,
-} from '../data/star'
-import { useContent } from '../lib/contentContext'
+} from '../../data/star'
+import { useContent } from '../../lib/contentContext'
 import {
   DEG,
   RAD_PER_HOUR,
@@ -18,7 +18,7 @@ import {
   project,
   toCanvasPoint,
   zoomAt,
-} from '../lib/astro'
+} from '../../../../shared/astro.js'
 
 /** Centro inicial: em volta de Kaus Australis, com a figura do bule visível. */
 const INITIAL_VIEW = { ra: 18.6, dec: -29.8, scale: SCALE_DEFAULT }
@@ -62,7 +62,7 @@ const BACKDROP_STARS = Array.from({ length: 520 }, (_, i) => ({
  * Mapa do céu — canvas interativo com projeção gnomônica.
  *
  * Papel na arquitetura: seção `#ceu`, o coração visual do site. Toda a
- * matemática (projeção, arrasto, zoom ancorado) mora em `src/lib/astro.js`,
+ * matemática (projeção, arrasto, zoom ancorado) mora em `shared/astro.js`,
  * que só reexporta `shared/astro.js`; este componente é a casca que desenha,
  * detecta gestos e expõe o mapa ao teclado.
  *

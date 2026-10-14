@@ -1,0 +1,24 @@
+# Lint, typecheck e testes em todo push e pull request.
+#
+# A Netlify já roda `npm run verificar` antes de publicar (ver netlify.toml);
+# isto aqui é para o vermelho aparecer no GitHub — no commit e no PR — sem
+# precisar abrir o log de deploy.
+name: verificar
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run verificar
+      - run: npm run build:loja

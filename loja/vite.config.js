@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { renameSync, existsSync } from 'node:fs'
+import { existsSync, renameSync, rmdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 /**
@@ -46,8 +46,45 @@ function achatarHtml() {
 
       if (existsSync(aninhado)) {
         renameSync(aninhado, final)
-        // A pasta `loja/` agora está vazia; `assets/` e o resto ficam na raiz.
+        // A pasta `loja/` ficou vazia; `assets/` e o resto já estão na raiz.
+        rmdirSync(resolve(saida, 'loja'))
       }
+    },
+  }
+}
+
+/**
+ * Escreve no `<head>` as URLs absolutas da prévia social.
+ *
+ * O Open Graph exige URL ABSOLUTA na imagem e no `canonical`, e os robôs de
+ * prévia (WhatsApp, Facebook, Telegram) leem o HTML cru — não executam
+ * JavaScript. Por isso a troca é aqui, no build, e não num script da página.
+ *
+ * O domínio vem de `SITE_URL` e, sem ela, de `URL` — a variável que a Netlify
+ * define em todo build com o endereço principal do site. Build local sem
+ * nenhuma das duas sai sem as tags (não há endereço certo para pôr).
+ */
+function metaSocial() {
+  return {
+    name: 'stellara-meta-social',
+    transformIndexHtml() {
+      const site = (process.env.SITE_URL || process.env.URL || '').replace(/\/$/, '')
+      if (!site) return []
+      const imagem = `${site}/og-image.png`
+      const meta = (atributo, nome, conteudo) => ({
+        tag: 'meta',
+        attrs: { [atributo]: nome, content: conteudo },
+        injectTo: 'head',
+      })
+      return [
+        meta('property', 'og:url', `${site}/`),
+        meta('property', 'og:image', imagem),
+        meta('property', 'og:image:alt', 'Cartão da Stellara com o céu de Sagitário'),
+        meta('property', 'og:image:width', '1200'),
+        meta('property', 'og:image:height', '630'),
+        meta('name', 'twitter:image', imagem),
+        { tag: 'link', attrs: { rel: 'canonical', href: `${site}/` }, injectTo: 'head' },
+      ]
     },
   }
 }
@@ -84,5 +121,5 @@ export default defineConfig({
     },
   },
 
-  plugins: [react(), tailwindcss(), achatarHtml()],
+  plugins: [react(), tailwindcss(), metaSocial(), achatarHtml()],
 })

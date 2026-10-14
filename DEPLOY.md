@@ -1,4 +1,9 @@
-# Publicar o Stellara
+# Publicar o site pessoal (legado)
+
+> **Este guia é do site-presente original** (`src/`, `dist/`), não da loja.
+> A loja publica sozinha a cada push na `main` (Netlify, `netlify.toml`), e a
+> configuração dela — Supabase, secrets, Netlify — está em
+> [LOJA.md](LOJA.md).
 
 O projeto é uma página estática: não há servidor, banco de dados nem API.
 Tudo o que você precisa é gerar a pasta `dist/` e Placesem qualquer hospedagem

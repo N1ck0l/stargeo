@@ -8,9 +8,9 @@ import { cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { ContentProvider } from '../src/lib/content.jsx'
 import { CertificateModal } from '../src/components/CertificateModal'
-import { StarDetails } from '../src/components/StarDetails'
-import { SkyMap } from '../src/components/SkyMap'
-import { DEFAULTS } from '../src/data/defaults'
+import { StarDetails } from '../loja/src/pagina/secoes/StarDetails'
+import { SkyMap } from '../loja/src/pagina/secoes/SkyMap'
+import { DEFAULTS } from '../loja/src/data/defaults'
 
 afterEach(cleanup)
 

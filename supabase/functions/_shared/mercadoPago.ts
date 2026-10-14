@@ -10,7 +10,7 @@
  * `MERCADO_PAGO_ACCESS_TOKEN` — segredo que só existe em `supabase secrets`.
  * Nenhum valor daqui volta para o navegador.
  */
-import { ErroApp } from './http.ts'
+import { compararSeguro, ErroApp } from './http.ts'
 import { variavel } from './supabase.ts'
 
 const BASE = 'https://api.mercadopago.com'
@@ -136,6 +136,8 @@ export interface Pagamento {
   payment_method_id?: string
   /** Em REAIS (a API não fala em centavos). */
   transaction_amount: number
+  /** `BRL` para tudo que a loja vende. */
+  currency_id?: string
 }
 
 /**
@@ -210,16 +212,6 @@ export async function verificarAssinatura(
   return compararSeguro(esperada, partes.v1)
 }
 
-/** Comparação que não retorna cedo — o tempo não pode depender do conteúdo. */
-function compararSeguro(a: string, b: string): boolean {
-  if (a.length !== b.length) return false
-  let diff = 0
-  for (let i = 0; i < a.length; i += 1) {
-    diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
-  }
-  return diff === 0
-}
-
 /**
  * `approved` é o único status que autoriza entregar.
  *
@@ -229,4 +221,18 @@ function compararSeguro(a: string, b: string): boolean {
  */
 export function ehAprovado(status: string | undefined): boolean {
   return status === 'approved'
+}
+
+/**
+ * O pagamento cobriu o pedido? Valor em centavos e moeda precisam bater.
+ *
+ * O status `approved` diz que ALGUM dinheiro entrou, não que foi o preço do
+ * pedido. A preferência é criada no servidor com o valor do banco, então hoje
+ * não há caminho conhecido para pagar menos — esta conferência é a última
+ * linha de defesa para quando surgir um (preferência reaproveitada, pagamento
+ * criado por fora com o mesmo `external_reference`, erro de configuração).
+ */
+export function valorConfere(pagamento: Pick<Pagamento, 'transaction_amount' | 'currency_id'>, centavos: number): boolean {
+  if (pagamento.currency_id && pagamento.currency_id !== 'BRL') return false
+  return Math.round(Number(pagamento.transaction_amount) * 100) >= centavos
 }

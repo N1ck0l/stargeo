@@ -1,10 +1,10 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
-import { ContentContext } from '../../../src/lib/contentContext.js'
-import { Hero } from '../../../src/components/Hero.jsx'
-import { StarDetails } from '../../../src/components/StarDetails.jsx'
-import { SkyMap } from '../../../src/components/SkyMap.jsx'
-import { LoveLetter } from '../../../src/components/LoveLetter.jsx'
-import { PersonalMessage } from '../../../src/components/PersonalMessage.jsx'
+import { ContentContext } from '../lib/contentContext.js'
+import { Hero } from './secoes/Hero.jsx'
+import { StarDetails } from './secoes/StarDetails.jsx'
+import { SkyMap } from './secoes/SkyMap.jsx'
+import { LoveLetter } from './secoes/LoveLetter.jsx'
+import { PersonalMessage } from './secoes/PersonalMessage.jsx'
 import { ErroApi } from '../lib/api.js'
 import { buscarPagina } from '../lib/pagina.js'
 import { montarConteudo } from '../lib/conteudoPagina.js'
@@ -15,7 +15,7 @@ import { Link } from '../lib/Link.jsx'
  * a câmera, o `html-to-image` nem o motor da bússola.
  */
 const SkyFinder = lazy(() =>
-  import('../../../src/components/SkyFinder.jsx').then((m) => ({ default: m.SkyFinder })),
+  import('./secoes/SkyFinder.jsx').then((m) => ({ default: m.SkyFinder })),
 )
 const ModalCertificado = lazy(() => import('./ModalCertificado.jsx').then((m) => ({ default: m.ModalCertificado })))
 

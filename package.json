@@ -11,7 +11,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.functions.json",
-    "test": "node src/lib/astro.test.mjs && node src/lib/sky.test.mjs && node shared/moderation.test.mjs && vitest run",
+    "test": "node shared/astro.test.mjs && node shared/sky.test.mjs && node shared/moderation.test.mjs && vitest run",
     "verificar": "npm run lint && npm run typecheck && npm test"
   },
   "dependencies": {

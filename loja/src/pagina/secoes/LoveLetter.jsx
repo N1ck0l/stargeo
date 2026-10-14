@@ -1,11 +1,11 @@
-import { Reveal } from './Reveal'
-import { useContent } from '../lib/contentContext'
+import { Reveal } from '../../components/Reveal'
+import { useContent } from '../../lib/contentContext'
 
 /**
  * Seção da carta.
  *
  * Papel na arquitetura: imprime na tela os parágrafos de `content.carta`
- * (padrão: `letterParagraphs`, de `src/data/star.js`) dentro de um "papel"
+ * (padrão: `letterParagraphs`, de `loja/src/data/star.js`) dentro de um "papel"
  * com borda dourada brilhante. É a única seção que usa a classe
  * `shimmer-border` no corpo do texto.
  *

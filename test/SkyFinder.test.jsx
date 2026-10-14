@@ -5,7 +5,7 @@
  */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { SkyFinder } from '../src/components/SkyFinder'
+import { SkyFinder } from '../loja/src/pagina/secoes/SkyFinder'
 
 afterEach(cleanup)
 

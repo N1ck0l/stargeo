@@ -1,6 +1,6 @@
 # Pendências
 
-Estado em 14 de outubro de 2026. A plataforma está completa: loja, páginas
+Estado em 14 de outubro de 2026 (depois da rodada de correções da loja). A plataforma está completa: loja, páginas
 dedicadas, edição do cliente e painel `/admin` (Supabase Auth), tudo verificado
 com E2E no navegador. O que sobra divide-se entre o que só o dono pode fazer e
 o que dá para melhorar.
@@ -91,6 +91,42 @@ vezes (na compra e no webhook), mas nenhuma lista de termos é completa — vale
 acompanhar os primeiros pedidos de perto. O painel mostra todos os pedidos em
 tempo quase real.
 
+### 1.7 Publicar a rodada de correções de 14/10
+
+O código está no repositório, mas o Supabase não publica sozinho com o push:
+
+1. `supabase db push` — aplica a migration `0009` (trava de entrega,
+   `rate_limits`, `resumo_pedidos()`). **Antes das funções**: o webhook novo
+   grava `delivery_started_at`, e sem a coluna ele responde 500.
+2. Republicar as funções que mudaram: `mp-webhook`, `resend-certificate`,
+   `create-checkout`, `track-order`, `page-auth`, `admin-api` (comandos em
+   `LOJA.md`).
+3. Na Netlify, em *Environment variables*, deixar `VITE_FUNCTIONS_URL` com
+   escopo de **Functions** também — a prévia de `/p/CODE` lê em tempo de
+   execução.
+4. Navegar loja → produto → `/p/SG-GEOV-ANNA` → `/admin` com o console aberto e
+   conferir que a CSP (em modo só-relatório) não reclama de nada; aí trocar o
+   nome do header para `Content-Security-Policy` no `netlify.toml`.
+5. Depois do domínio e do e-mail: `supabase secrets set EDICAO_POR_EMAIL=1`.
+
+### 1.8 Parcelamento: decidir
+
+A home dizia "ou em até 3x sem juros", mas a preferência do Mercado Pago é
+criada com `installments: 1` — ninguém conseguia parcelar. O texto agora diz
+"à vista no Pix ou no cartão". Se a ideia é parcelar, é `installments` (e
+quem absorve os juros) em `supabase/functions/_shared/mercadoPago.ts`, e o
+texto volta em `loja/src/pages/Home.jsx`.
+
+### 1.9 Remover o site pessoal da `main`
+
+A loja não depende mais de `src/`: o que a página dedicada usava (Hero, mapa,
+carta, Mira, dados da estrela) foi movido para `loja/src/`. O resto de `src/`,
+o `index.html` da raiz, `public/` e o `vite.config.js` da raiz são só o
+site-presente antigo, guardado na tag local `site-pessoal-legado`
+(`git push origin site-pessoal-legado` para ela existir no GitHub também).
+A remoção ficou para você autorizar; os testes do site pessoal
+(`App`, `CertificateModal`, `Navbar`, `Content`) saem junto.
+
 ---
 
 ## 2. Melhorias que dá para fazer
@@ -115,9 +151,40 @@ menores: o og-image caiu de 201 KB para ~32 KB e o ícone de 512 px de
 de cada build recebeu os mesmos). Se a arte mudar de novo, a geração é
 reproduzível a partir do `favicon.svg` e da prancha da marca.
 
+### 2.3 Tipos gerados do banco
+
+As Edge Functions fazem `as unknown as` nas linhas do banco. `supabase gen
+types typescript --linked > supabase/functions/_shared/database.types.ts` e
+`createClient<Database>` em `_shared/supabase.ts` tiram os casts e pegam nome
+de coluna errado no typecheck. Precisa do CLI logado no projeto.
+
 ---
 
-## 3. O que foi corrigido (rodada anterior — site pessoal)
+## 3. O que foi corrigido (rodada de 14/10 — loja)
+
+| O que era | Consequência |
+| --- | --- |
+| `resend-certificate` confiava só no `verify_jwt` | A chave anon (pública, no bundle) passava: qualquer um com o id do pedido disparava reenvio. Também aceitava pedido `in_process` (não pago) |
+| Webhook entregava a cada evento aprovado | `payment.created` + `payment.updated` + reenvios = PDF regerado e **e-mail repetido**; eventos simultâneos entregavam em paralelo |
+| Escritas no banco sem checar erro | O supabase-js devolve o erro em vez de lançar: status não gravado passava calado, o webhook respondia 200 e o Mercado Pago não reenviava |
+| Upsert em `certificate_drafts` sem `onConflict` | Conflitava na chave errada e falhava na segunda entrega, em silêncio |
+| Valor pago não era conferido | `approved` bastava, qualquer que fosse o valor ou a moeda |
+| Sem limite de requisições | Checkout, rastreio e login de edição aceitavam chamadas em laço |
+| `meta.js` nunca rodava | `window.__STELLARA_ENV__` não existia: a loja **nunca teve og:image**. E robô de prévia não executa JS — agora as tags saem no HTML pelo build |
+| `/p/CODE` sem prévia própria | O link do presente no WhatsApp mostrava o cartão genérico; agora mostra "Uma estrela para Geovanna · Kaus Australis" |
+| Preço escrito no front | Mudar o preço no banco deixaria o botão mostrando um valor e o Mercado Pago cobrando outro |
+| "Em até 3x sem juros" | O checkout só aceita 1 parcela (ver 1.8) |
+| Receita do painel sobre 500 pedidos | A partir do pedido 501 o total e a receita mentiam |
+| Deploy sem teste | A Netlify publicava commit com teste vermelho |
+
+E de estrutura: a loja deixou de importar do site pessoal (componentes e
+dados movidos para `loja/src/`), CI no GitHub Actions, CSP em modo
+só-relatório, link de edição por e-mail pronto para ligar, README da loja.
+Testes: 94 → **112** no vitest (webhook, reenvio e prévia social novos).
+
+---
+
+## 4. O que foi corrigido (rodada anterior — site pessoal)
 
 Uma revisão completa do código do site pessoal encontrou problemas reais,
 todos resolvidos:
@@ -146,13 +213,13 @@ de 95 para **151 verificações**.
 
 ---
 
-## 4. Estado atual, para conferência
+## 5. Estado atual, para conferência
 
 | Item | Situação |
 | --- | --- |
-| Build | limpo (site pessoal e loja), deploy automático no push |
+| Build | limpo (site pessoal e loja), deploy automático no push — só depois de `verificar` passar |
 | Lint | limpo, zero warnings (oxlint) |
-| Testes | **224 verificações** — 78 no vitest + astro (39) + céu (82) + moderação (25) |
+| Testes | **258 verificações** — 112 no vitest + astro (39) + céu (82) + moderação (25); também no GitHub Actions |
 | E2E no navegador | compra→página, página pública (30), edição do cliente (22), painel (25) — todos verdes |
 | Pacote inicial | 111 kB gzip de JS + 11,4 de CSS (chunk do Supabase só em `/admin` e `/editar`) |
 | PWA / offline | do site pessoal (`dist/`), funcionando — a loja não usa service worker |
@@ -177,6 +244,9 @@ para o site pessoal (`src/`), que hoje é build legado.
 - `loja/src/pagina/` — página dedicada e edição do cliente
 - `loja/src/lib/admin.js` — sessão/autenticação do painel
 - `supabase/functions/` — `get-page`, `page-auth`, `page-update`, `admin-api`
+- `supabase/functions/mp-webhook/webhook.ts` — a entrega (reserva, valor, PDF, e-mail)
 - `supabase/migrations/0004–0006` — `pages`, `page_edit_tokens`, `admins`, seed
+- `supabase/migrations/0009` — trava de entrega, `rate_limits`, `resumo_pedidos()`
 - `shared/moderation.js` — termos bloqueados (compra e webhook)
-- `src/data/star.js` / `defaults.js` — dados do site pessoal (legado)
+- `loja/src/data/star.js` / `defaults.js` — dados da estrela e texto padrão da página
+- `netlify/edge-functions/pagina-og.ts` — prévia social de `/p/CODE`

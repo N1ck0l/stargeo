@@ -1,4 +1,4 @@
-import { kausAustralis } from '../data/star'
+import { kausAustralis } from '../../loja/src/data/star'
 
 /**
  * Rodapé do site.

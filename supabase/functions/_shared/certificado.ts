@@ -139,9 +139,6 @@ export async function enviarEmail(
   estrela: Record<string, unknown>,
   caminho: string,
 ): Promise<void> {
-  const chave = variavel('RESEND_API_KEY')
-  const de = variavel('EMAIL_FROM')
-
   const codigo = String(pedido.code ?? '')
   const email = String(pedido.customer_email ?? '')
   const nomeComprador = String(pedido.customer_name ?? '').split(' ')[0]
@@ -242,25 +239,82 @@ export async function enviarEmail(
     </div>
   `
 
+  await enviarPorResend({ para: email, assunto, html: corpo, referencia: codigo })
+}
+
+/**
+ * Manda um e-mail pelo Resend. Único lugar que fala com a API dele: o
+ * certificado (`enviarEmail`) e o link de edição (`enviarLinkDeEdicao`)
+ * passam por aqui.
+ *
+ * Falha vira `ErroApp('email_falhou')` com o corpo do Resend só no log. Quem
+ * chama decide o que isso significa — no webhook, o pedido está pago e o PDF
+ * já está no Storage, então o erro é registrado e o reenvio fica com o painel.
+ */
+export async function enviarPorResend(opcoes: {
+  para: string
+  assunto: string
+  html: string
+  referencia: string
+}): Promise<void> {
   const resposta = await fetch('https://api.resend.com/emails', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${chave}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${variavel('RESEND_API_KEY')}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      from: de,
-      to: [email],
-      subject: assunto,
-      html: corpo,
-      // O e-mail transacional não deve ficar na caixa de entrada principal.
-      headers: { 'X-Entity-Ref-ID': codigo },
+      from: variavel('EMAIL_FROM'),
+      to: [opcoes.para],
+      subject: opcoes.assunto,
+      html: opcoes.html,
+      // Agrupa as mensagens do mesmo pedido no cliente de e-mail.
+      headers: { 'X-Entity-Ref-ID': opcoes.referencia },
     }),
   })
 
   if (!resposta.ok) {
-    // O pedido está pago e o PDF já está no Storage: o e-mail pode ser
-    // reenviado. Por isso o erro é registrado, mas o webhook responde 200 —
-    // devolver erro faria o Mercado Pago reenviar para sempre.
     throw new ErroApp('email_falhou', 'Não foi possível enviar o e-mail.', 502, await resposta.text())
   }
+}
+
+/**
+ * Link de acesso à edição da página, mandado para o e-mail de quem comprou.
+ *
+ * O link leva o token no FRAGMENTO (`#acesso=`), não na query: fragmento não
+ * vai para o servidor, não fica em log de acesso nem no `Referer` de quem a
+ * página chamar depois.
+ */
+export async function enviarLinkDeEdicao(opcoes: {
+  para: string
+  codigo: string
+  token: string
+  validadeDias: number
+}): Promise<void> {
+  const link = `${urlDoSite()}/p/${encodeURIComponent(opcoes.codigo)}/editar#acesso=${opcoes.token}`
+
+  const html = `
+    <div style="font-family:Georgia,serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#090b20;color:#f6f1e7">
+      <h1 style="font-weight:normal;color:#d8b66a;font-size:24px;margin:0 0 16px">Editar a sua página</h1>
+      <p style="line-height:1.6">
+        Recebemos um pedido para editar a página <strong>${escapeHtml(opcoes.codigo)}</strong>.
+        O botão abaixo abre a edição direto, sem senha, e vale por ${opcoes.validadeDias} dias.
+      </p>
+      <p style="margin:28px 0">
+        <a href="${link}"
+           style="display:inline-block;padding:12px 24px;background:#d8b66a;color:#090b20;text-decoration:none;border-radius:999px">
+          Editar minha página
+        </a>
+      </p>
+      <p style="line-height:1.6;font-size:13px;color:#b9b3a6">
+        Se não foi você, ignore este e-mail: sem o link, ninguém entra na edição.
+      </p>
+    </div>
+  `
+
+  await enviarPorResend({
+    para: opcoes.para,
+    assunto: 'Seu link para editar a página · Stellara',
+    html,
+    referencia: `${opcoes.codigo}-edicao`,
+  })
 }
 
 /**
