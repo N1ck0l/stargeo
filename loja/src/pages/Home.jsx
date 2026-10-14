@@ -1,4 +1,6 @@
 import { STARS } from '../../../shared/stars.js'
+import { CertificadoPreview } from '../components/CertificadoPreview.jsx'
+import { Escala } from '../components/Escala.jsx'
 import { Link } from '../lib/Link.jsx'
 import { useState } from 'react'
 import { Reveal } from '../components/Reveal.jsx'
@@ -7,80 +9,52 @@ import { useScroll, useTypewriter } from '../lib/useReveal.js'
 /**
  * Home da loja.
  *
- * O produto tem uma venda a fazer, não uma seção de catálogo: para alguém
- * presenteando, a dúvida real não é "quanto custa", é "isso é sério?".
- * A vitrine inteira responde a isso — coordenadas conferidas com o SIMBAD,
- * entrega imediata, e a prévia do certificado antes de pagar.
+ * Antes de ser um site de vendas, esta página é de APRESENTAÇÃO: quem chega
+ * ainda não sabe o que é "dedicar uma estrela", então ela primeiro mostra a
+ * ideia (manifesto), o céu (as 12 estrelas) e o OBJETO — a folha do
+ * certificado, com prévia ao vivo digitando o nome — e só depois explica como
+ * funciona, por que confiar e quanto custa. A ordem das seções é essa, e é a
+ * ordem em que a dúvida aparece.
  *
  * As animações são as MESMAS do site pessoal: céu por trás, revelação por
  * rolagem, parallax do herói, máquina de escrever e brilho nas bordas.
  *
  * Papel na arquitetura: é a rota raiz do roteador em `loja/src/App.jsx`
  * (`telaPara` devolve `<Home />` para qualquer caminho desconhecido), e é
- * export default deste arquivo. Todo o resto é interno: `Hero`, `Estrelas`,
- * `Faq` e cia. não são importados de lugar nenhum.
+ * export default deste arquivo. Todo o resto é interno: `Hero`, `Manifesto`,
+ * `Estrelas` e cia. não são importados de lugar nenhum.
  *
- * Invariantes: os preços e textos de `PRODUTOS` são de EXIBIÇÃO (o cobrado
- * é decidido pelo servidor no `create-checkout`, e uma divergência aqui não
- * muda o valor da compra); os 12 `slug` batem com `shared/stars.js`, que é
+ * Invariantes: o preço de `PRODUTO` é de EXIBIÇÃO (o cobrado é decidido pelo
+ * servidor no `create-checkout`, e uma divergência aqui não muda o valor da
+ * compra); o `slug` de `PRODUTO` é o único que existe — o mesmo de
+ * `pages/Produto.jsx` e do banco (os outros níveis ficaram desligados na
+ * migration 0007); os 12 `slug` de estrela batem com `shared/stars.js`, que é
  * de onde vêm nome, magnitude e história; e nada aqui pode esconder conteúdo
  * de quem pediu movimento reduzido — as revelações nascem visíveis nesse
  * caso (ver `lib/useReveal.js`).
  */
 
 /**
- * Preços de exibição. O valor autoritativo está no banco.
+ * O produto à venda, com o preço de exibição.
  *
  * `eram` é o preço "de" riscado — âncora de desconto, puro texto de vitrine;
- * `destaque` escolhe o cartão "mais vendido", que só muda moldura e botão.
+ * `inclui` é a lista que a pessoa lê antes de decidir. O valor autoritativo
+ * está no banco.
  */
-const PRODUTOS = [
-  {
-    slug: 'certificado-digital',
-    nome: 'Certificado Digital',
-    resumo: 'O essencial, na hora',
-    preco: 49,
-    eram: 79,
-    destaque: false,
-    inclui: [
-      'Certificado em PDF de alta resolução',
-      'Mapa do céu da constelação',
-      'Código de registro único',
-      'Entrega por e-mail em minutos',
-      'Acesso ao app Mira celeste',
-    ],
-  },
-  {
-    slug: 'certificado-mapa-impresso',
-    nome: 'Certificado + Mapa Impresso',
-    resumo: 'O mais vendido',
-    preco: 149,
-    eram: 212,
-    destaque: true,
-    inclui: [
-      'Tudo do Certificado Digital',
-      'Mapa celeste em A4 pronto para emoldurar',
-      'Guia de campo: como achar a estrela',
-      'Cartão do céu do hemisfério sul',
-      'Escolha entre as 12 estrelas',
-    ],
-  },
-  {
-    slug: 'certificado-premium',
-    nome: 'Certificado Premium',
-    resumo: 'A experiência completa',
-    preco: 249,
-    eram: 329,
-    destaque: false,
-    inclui: [
-      'Tudo do Certificado + Mapa',
-      'Guia de observação para a sua cidade',
-      'Mapa celeste em 4K (600 dpi)',
-      'A história da estrela narrada em áudio',
-      'Tela de céu personalizada',
-    ],
-  },
-]
+const PRODUTO = {
+  slug: 'certificado-digital',
+  nome: 'Certificado Digital',
+  resumo: 'O essencial, na hora',
+  preco: 49,
+  eram: 79,
+  inclui: [
+    'Certificado em PDF de alta resolução',
+    'Mapa do céu da constelação',
+    'Código de registro único',
+    'Entrega por e-mail em minutos',
+    'Acesso ao app Mira celeste',
+  ],
+}
 
 const CONFianca = [
   { titulo: 'Entrega em minutos', texto: 'O certificado sai por e-mail assim que o pagamento cai.' },
@@ -141,18 +115,19 @@ function seguirPonteiro(evento) {
 }
 
 /**
- * Sequência de seções da vitrine, na ordem em que a dúvida aparece:
- * o que é (herói), por que confiar, quanto custa, o que escolher,
- * como funciona, objeções (FAQ) e a última chamada.
+ * Sequência de seções da vitrine: o que é (herói), a ideia (manifesto), o
+ * céu (estrelas), o objeto (certificado com prévia ao vivo), como funciona,
+ * garantias, objeções (FAQ) e a última chamada. Apresentação antes de preço.
  */
 export default function Home() {
   return (
     <>
       <Hero />
-      <Confianca />
-      <Produtos />
+      <Manifesto />
       <Estrelas />
+      <Certificado />
       <ComoFunciona />
+      <Confianca />
       <Faq />
       <ChamadaFinal />
     </>
@@ -219,9 +194,15 @@ function Hero() {
           </Reveal>
 
           <Reveal delay={500} className="mt-9 flex flex-wrap gap-4">
-            <Link para="/produto/certificado-digital" className="btn btn-primary animate-pulse-glow">
+            {/*
+              Âncora nativa, não `Link`: o destino é uma seção DESTA tela, e
+              a rolagem suave do navegador resolve sem trocar de rota. O
+              caminho de compra começa na seção do certificado, não aqui —
+              o herói apresenta, a seção vende.
+            */}
+            <a href="#certificados" className="btn btn-primary animate-pulse-glow">
               Ver o certificado
-            </Link>
+            </a>
             <a href="#como-funciona" className="btn btn-secundario">
               Como funciona
             </a>
@@ -341,13 +322,45 @@ function EstrelaGrande() {
 }
 
 /**
+ * Manifesto: a ideia antes de qualquer preço.
+ *
+ * A pausa mágica entre o herói e o catálogo — a frase da marca em corpo
+ * grande, sem botão e sem form. Quem chegou curioso lê isto e só depois
+ * encontra o produto; o rodapé repete a mesma frase em corpo miúdo.
+ */
+function Manifesto() {
+  return (
+    <section className="border-t border-white/8">
+      <div className="pilha max-w-3xl py-20 text-center sm:py-24">
+        <Reveal>
+          <p className="font-display text-xs tracking-[0.3em] text-gold uppercase">A ideia</p>
+          <p className="font-serif mt-6 text-3xl leading-snug text-ivory sm:text-4xl">
+            Ninguém é dono de uma estrela.
+            <br />
+            Mas todo mundo pode dedicar <span className="gold-text italic">uma</span>.
+          </p>
+        </Reveal>
+
+        <Reveal delay={140}>
+          <p className="mx-auto mt-7 max-w-2xl leading-relaxed text-ivory/70">
+            Escolhemos doze estrelas que se enxergam daqui, conferimos cada coordenada no catálogo
+            SIMBAD — o mesmo dos astrônomos — e desenhamos o céu onde elas aparecem. O que fica é um
+            ponto fixo no mapa do universo, com um nome escrito do lado.
+          </p>
+        </Reveal>
+      </div>
+    </section>
+  )
+}
+
+/**
  * Faixa de garantias: as quatro objeções de quem compra presente
  * (entrega, visibilidade, desistência, suporte) respondidas antes que a
  * pessoa precise perguntar.
  */
 function Confianca() {
   return (
-    <section className="border-y border-white/8 bg-white/[0.02]">
+    <section className="border-t border-white/8 bg-white/[0.02]">
       <div className="pilha grid gap-6 py-8 sm:grid-cols-2 lg:grid-cols-4">
         {CONFianca.map((item, i) => (
           <Reveal key={item.titulo} delay={i * 90} className="flex items-start gap-3">
@@ -369,91 +382,95 @@ function Confianca() {
 }
 
 /**
- * Catálogo dos três produtos.
+ * O produto apresentado — a folha em si.
  *
- * `id="certificados"` é a âncora do botão "Rolar" do herói — se o id mudar,
- * a chamada para rolar aponta para o nada.
+ * `id="certificados"` é a âncora do botão "Rolar" e do "Ver o certificado"
+ * do herói: se o id mudar, as duas chamadas apontam para o nada.
+ *
+ * A prévia é a MESMA folha do configurador (`CertificadoPreview` dentro de
+ * `Escala`), e o campo de nome atualiza ela a cada tecla — a pessoa vê o
+ * objeto antes de pensar em preço. Só depois vêm o cartão com o que está
+ * incluso e o valor: apresentação primeiro, venda em seguida. É a mesma
+ * ordem no celular (a folha nasce por cima, via `order-1`).
  */
-function Produtos() {
+function Certificado() {
+  const [nome, setNome] = useState('')
+
   return (
-    <section id="certificados" className="espaco-secao">
+    <section id="certificados" className="espaco-secao border-t border-white/8">
       <div className="pilha">
         <Reveal className="mx-auto max-w-2xl text-center">
-          <h2 className="font-display text-3xl text-ivory sm:text-4xl">Três formas de presente</h2>
+          <p className="font-display text-xs tracking-[0.3em] text-gold uppercase">O certificado</p>
+          <h2 className="font-display mt-4 text-3xl text-ivory sm:text-4xl">
+            Um ponto fixo no céu, com o nome de quem você ama
+          </h2>
           <p className="mt-4 leading-relaxed text-ivory/70">
-            Todos têm o certificado com coordenadas reais. O que muda é o que vem junto — e a
-            prévia é a mesma nos três.
+            {PRODUTO.resumo}: folha A4 em alta resolução, coordenadas conferidas com o SIMBAD e
+            código de registro único. Chega por e-mail em minutos.
           </p>
         </Reveal>
 
-        <div className="mt-14 grid items-start gap-6 lg:grid-cols-3">
-          {PRODUTOS.map((produto, i) => (
-            <Reveal key={produto.slug} delay={i * 130} className="h-full">
-              <CartaoProduto produto={produto} />
-            </Reveal>
-          ))}
+        <div className="mt-12 grid items-start gap-10 lg:grid-cols-2">
+          {/* --- Cartão do que vem junto (esquerda no desktop) --------------- */}
+          <Reveal delay={260} className="order-2 lg:order-1">
+            <div className="tilt spotlight cartao h-fit" onPointerMove={seguirPonteiro}>
+              <h3 className="font-display text-xl text-ivory">O que vem junto</h3>
+
+              <ul className="mt-5 space-y-3">
+                {PRODUTO.inclui.map((item) => (
+                  <li key={item} className="flex items-start gap-2.5 text-sm text-ivory/75">
+                    <svg width="16" height="16" viewBox="0 0 24 24" className="mt-0.5 shrink-0 text-gold" aria-hidden="true">
+                      <path d="M4 12l5 5L20 6" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                    </svg>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-7 flex items-baseline gap-3 border-t border-white/10 pt-6">
+                <span className="font-display text-3xl text-ivory">R$ {PRODUTO.preco}</span>
+                <span className="text-sm text-ivory/35 line-through">R$ {PRODUTO.eram}</span>
+              </div>
+              <p className="mt-1 text-xs text-ivory/45">ou em até 3x sem juros</p>
+
+              <Link para={`/produto/${PRODUTO.slug}`} className="btn btn-primary mt-6 w-full">
+                Montar o meu certificado
+              </Link>
+              <p className="mt-3 text-center text-xs text-ivory/45">
+                Pix, cartão ou boleto · nota fiscal para pessoa jurídica
+              </p>
+            </div>
+          </Reveal>
+
+          {/* --- Módulo ao vivo: nome digitado → folha (direita no desktop) --- */}
+          <Reveal delay={130} className="order-1 lg:order-2">
+            <label htmlFor="nome-ao-vivo" className="rotulo">
+              Escreva um nome e veja a folha ganhar vida
+            </label>
+            <input
+              id="nome-ao-vivo"
+              className="campo"
+              type="text"
+              value={nome}
+              onChange={(evento) => setNome(evento.target.value)}
+              placeholder="Ex.: Maria Fernanda"
+              maxLength={80}
+            />
+
+            <div className="shimmer-border mt-4 overflow-hidden rounded-2xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
+              <Escala>
+                <CertificadoPreview estrela={STARS[0]} honoreeName={nome} code="SG-XXXX-XXXX" />
+              </Escala>
+            </div>
+
+            <p className="mt-3 text-xs leading-relaxed text-ivory/45">
+              A prévia usa as mesmas medidas e as mesmas fontes do PDF que você vai receber. O
+              código de registro só é real depois da compra.
+            </p>
+          </Reveal>
         </div>
-
-        <Reveal delay={200}>
-          <p className="mt-8 text-center text-xs text-ivory/50">
-            Preços em reais, por e-mail, cartão ou Pix. Emissão de nota fiscal para pessoa jurídica.
-          </p>
-        </Reveal>
       </div>
     </section>
-  )
-}
-
-/**
- * Cartão de um produto, com o brilho que segue o ponteiro (`.spotlight`).
- *
- * As três colunas têm a MESMA altura (`h-full` no `Reveal` + `flex-1` na
- * lista): como os produtos têm quantidades diferentes de item, sem isso a
- * linha de botões ficaria desalinhada.
- */
-function CartaoProduto({ produto }) {
-  return (
-    <article
-      className={`tilt spotlight relative flex h-full flex-col rounded-3xl border p-7 ${
-        produto.destaque
-          ? 'shimmer-border border-gold/60 bg-gold/[0.06] shadow-[0_0_50px_rgba(232,200,114,0.12)]'
-          : 'border-white/10 bg-white/[0.03] hover:border-white/20'
-      }`}
-      onPointerMove={seguirPonteiro}
-    >
-      {produto.destaque && (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gold px-4 py-1 text-xs font-medium text-night">
-          Mais vendido
-        </span>
-      )}
-
-      <h3 className="font-display text-xl text-ivory">{produto.nome}</h3>
-      <p className="mt-1 text-sm text-gold/80">{produto.resumo}</p>
-
-      <div className="mt-6 flex items-baseline gap-3">
-        <span className="font-display text-3xl text-ivory">R$ {produto.preco}</span>
-        <span className="text-sm text-ivory/35 line-through">R$ {produto.eram}</span>
-      </div>
-      <p className="mt-1 text-xs text-ivory/45">ou em até 3x sem juros</p>
-
-      <ul className="mt-7 flex-1 space-y-3">
-        {produto.inclui.map((item) => (
-          <li key={item} className="flex items-start gap-2.5 text-sm text-ivory/75">
-            <svg width="16" height="16" viewBox="0 0 24 24" className="mt-0.5 shrink-0 text-gold" aria-hidden="true">
-              <path d="M4 12l5 5L20 6" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
-            {item}
-          </li>
-        ))}
-      </ul>
-
-      <Link
-        para={`/produto/${produto.slug}`}
-        className={`btn mt-8 w-full ${produto.destaque ? 'btn-primary' : 'btn-secundario'}`}
-      >
-        Montar o meu
-      </Link>
-    </article>
   )
 }
 
@@ -526,7 +543,7 @@ function Estrelas() {
               ))}
             </dl>
 
-            <Link para={`/produto/certificado-mapa-impresso?estrela=${selecionada.slug}`} className="btn btn-primary mt-7 w-full">
+            <Link para={`/produto/certificado-digital?estrela=${selecionada.slug}`} className="btn btn-primary mt-7 w-full">
               Dedicá-la a alguém
             </Link>
           </Reveal>
@@ -659,7 +676,7 @@ function ChamadaFinal() {
               Leva menos de dois minutos, e você vê o certificado pronto antes de pagar qualquer
               coisa.
             </p>
-            <Link para="/produto/certificado-mapa-impresso" className="btn btn-primary animate-pulse-glow mt-8">
+            <Link para="/produto/certificado-digital" className="btn btn-primary animate-pulse-glow mt-8">
               Montar o meu certificado
             </Link>
             {/* Quem já comprou não quer um segundo certificado — quer a

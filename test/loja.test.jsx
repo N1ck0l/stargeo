@@ -7,7 +7,7 @@
  */
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CertificadoPreview } from '../loja/src/components/CertificadoPreview.jsx'
 import Loja from '../loja/src/App.jsx'
@@ -129,7 +129,7 @@ describe('CertificadoPreview', () => {
 describe('configurador', () => {
   // --- Moderação: telefone na mensagem é vetor de golpe ---
   it('avisa sobre telefone, que é vetor de golpe', async () => {
-    render(<Produto slug="certificado-mapa-impresso" />)
+    render(<Produto slug="certificado-digital" />)
 
     fireEvent.change(screen.getByLabelText(/Nome de quem recebe/i), {
       target: { value: 'Ana' },
@@ -148,20 +148,20 @@ describe('configurador', () => {
   it('não reclama do campo vazio antes de a pessoa tocar nele', () => {
     // Erro cedo demais é o que faz a pessoa fechar a aba: o nome obrigatório
     // só reclama depois do blur, nunca na primeira pintura.
-    render(<Produto slug="certificado-mapa-impresso" />)
+    render(<Produto slug="certificado-digital" />)
     expect(screen.queryByText(/campo vazio/i)).toBeNull()
   })
 
   it('esconde o erro de campo que ainda não foi tocado', () => {
     // Digitar uma letra só já deixa o campo abaixo do mínimo (2), mas sem
     // blur ainda não há erro — "tocado" aqui é ter saído do campo.
-    render(<Produto slug="certificado-mapa-impresso" />)
+    render(<Produto slug="certificado-digital" />)
     fireEvent.change(screen.getByLabelText(/Nome de quem recebe/i), { target: { value: 'A' } })
     expect(screen.queryByText(/campo vazio/i)).toBeNull()
   })
 
   it('mostra o erro depois que o campo é tocado', () => {
-    render(<Produto slug="certificado-mapa-impresso" />)
+    render(<Produto slug="certificado-digital" />)
     const campo = screen.getByLabelText(/Nome de quem recebe/i)
     fireEvent.change(campo, { target: { value: 'A' } })
     fireEvent.blur(campo)
@@ -171,7 +171,7 @@ describe('configurador', () => {
   it('marca o campo inválido para leitores de tela', () => {
     // `aria-invalid` é o gancho que o `finalizar` usa para achar o primeiro
     // campo errado e levar o foco até lá.
-    render(<Produto slug="certificado-mapa-impresso" />)
+    render(<Produto slug="certificado-digital" />)
     const campo = screen.getByLabelText(/Nome de quem recebe/i)
     fireEvent.change(campo, { target: { value: 'A' } })
     fireEvent.blur(campo)
@@ -180,7 +180,7 @@ describe('configurador', () => {
 
   // --- Prévia ao vivo: o que é digitado aparece no certificado ---
   it('a prévia acompanha o que é digitado', () => {
-    const { container } = render(<Produto slug="certificado-mapa-impresso" />)
+    const { container } = render(<Produto slug="certificado-digital" />)
     fireEvent.change(screen.getByLabelText(/Nome de quem recebe/i), {
       target: { value: 'Beatriz Souza' },
     })
@@ -190,14 +190,14 @@ describe('configurador', () => {
   it('trocar de estrela muda a prévia', () => {
     // Os dados astronômicos da folha são os do catálogo novo — mesma fonte
     // (`shared/stars.js`) que alimenta o PDF.
-    const { container } = render(<Produto slug="certificado-mapa-impresso" />)
+    const { container } = render(<Produto slug="certificado-digital" />)
     fireEvent.click(screen.getByRole('button', { name: /Sirius/ }))
     expect(container.textContent).toContain('α Canis Majoris')
   })
 
   // --- Moderação: contador do limite de 600 caracteres ---
   it('conta os caracteres da mensagem', () => {
-    render(<Produto slug="certificado-mapa-impresso" />)
+    render(<Produto slug="certificado-digital" />)
     const campo = screen.getByLabelText(/Mensagem no certificado/i)
     fireEvent.change(campo, { target: { value: 'olá' } })
     expect(screen.getByText('3/600')).toBeTruthy()
@@ -205,7 +205,7 @@ describe('configurador', () => {
 
   // --- Checkout: o preço é calculado no servidor (Mercado Pago), nunca na tela ---
   it('avisa que o preço vem do servidor, e não da tela', () => {
-    render(<Produto slug="certificado-mapa-impresso" />)
+    render(<Produto slug="certificado-digital" />)
     expect(document.body.textContent).toMatch(/Mercado Pago/i)
   })
 
@@ -213,14 +213,26 @@ describe('configurador', () => {
   it('mostra a dica do e-mail (o certificado chega para lá)', () => {
     // Regressão: o campo passava `hint="…"` e o componente só lia `dica`, então
     // o texto de ajuda ficava invisível mesmo com a prop preenchida.
-    render(<Produto slug="certificado-mapa-impresso" />)
+    render(<Produto slug="certificado-digital" />)
     expect(screen.getByText(/É para cá que o certificado chega/i)).toBeTruthy()
+  })
+
+  it('slug descontinuado cai na tela de não encontrado, não em erro', () => {
+    // Os níveis mapa impresso e premium ficaram desligados no banco (migration
+    // 0007): um link antigo — de e-mail, de pedido velho — tem que degradar
+    // com elegância, sem derrubar a tela de erro da casca.
+    render(<Produto slug="certificado-premium" />)
+    expect(screen.getByText(/Certificado não encontrado/)).toBeTruthy()
+    expect(screen.queryByText('Algo saiu errado por aqui')).toBeNull()
   })
 })
 
 // === Link de navegação interna ===
 describe('Link', () => {
   afterEach(() => {
+    // Os testes de âncora instalam um stub de `scrollIntoView` (jsdom não o
+    // tem); removê-lo aqui não afeta os demais, que rodam pelo `?.()`.
+    delete Element.prototype.scrollIntoView
     window.history.pushState(null, '', '/')
   })
 
@@ -265,6 +277,43 @@ describe('Link', () => {
     render(<Link para="/rastrear">Rastrear pedido</Link>)
     fireEvent.click(screen.getByText('Rastrear pedido'))
     expect(window.location.pathname).toBe('/rastrear')
+  })
+
+  it('rola até a seção quando o destino é uma âncora da mesma tela', () => {
+    // Regressão: `navegar` comparava a URL inteira com o pathname, então
+    // `/#faq` caía no caminho genérico, empurrava a URL e rolava para o TOPO —
+    // o link de FAQ do rodapé nunca chegava ao FAQ.
+    const rolar = vi.fn()
+    Element.prototype.scrollIntoView = rolar
+    window.history.pushState(null, '', '/')
+
+    render(
+      <>
+        <Link para="/#faq">Perguntas frequentes</Link>
+        <div id="faq" />
+      </>,
+    )
+    fireEvent.click(screen.getByText('Perguntas frequentes'))
+
+    expect(window.location.pathname).toBe('/')
+    expect(window.location.hash).toBe('#faq')
+    // Mesma tela: `replaceState`, sem encher o histórico de âncoras.
+    expect(rolar).toHaveBeenCalledWith({ behavior: 'smooth' })
+  })
+
+  it('ao trocar de tela, espera a seção nascer e rola até ela', async () => {
+    // A seção do destino só existe DEPOIS do render da tela nova — por isso a
+    // tentativa adiada: sem ela, o clique a partir de outra rota não rolava.
+    const rolar = vi.fn()
+    Element.prototype.scrollIntoView = rolar
+    window.history.pushState(null, '', '/rastrear')
+    render(<Loja />)
+
+    fireEvent.click(screen.getByRole('link', { name: 'Perguntas frequentes' }))
+
+    expect(window.location.pathname).toBe('/')
+    await screen.findByRole('heading', { name: 'Perguntas frequentes' })
+    await waitFor(() => expect(rolar).toHaveBeenCalled())
   })
 })
 
@@ -357,6 +406,41 @@ describe('rastreamento', () => {
 
     const alerta = await screen.findByRole('alert')
     expect(alerta.textContent).not.toMatch(/e-mail não confere|existe/i)
+  })
+})
+
+// === Home: apresentação do produto, antes de qualquer venda ===
+describe('vitrine da home', () => {
+  afterEach(() => {
+    window.history.pushState(null, '', '/')
+  })
+
+  it('não anuncia os níveis que ainda não existem', () => {
+    // Regressão: a home anunciava três produtos (mapa impresso e premium)
+    // que não existem de verdade — e qualquer link para eles levava a uma
+    // página que não pode ser comprada (migration 0007 os desligou).
+    window.history.pushState(null, '', '/')
+    const { container } = render(<Loja />)
+    const hrefs = [...container.querySelectorAll('a')].map((a) => a.getAttribute('href'))
+
+    expect(hrefs.some((href) => href?.includes('certificado-mapa-impresso'))).toBe(false)
+    expect(hrefs.some((href) => href?.includes('certificado-premium'))).toBe(false)
+    expect(document.body.textContent).not.toContain('Mapa Impresso')
+    expect(document.body.textContent).not.toContain('Premium')
+  })
+
+  it('mostra a folha do certificado na home, com o nome digitado ao vivo', () => {
+    // A home é de apresentação: o OBJETO (a mesma folha do configurador)
+    // aparece antes de qualquer preço, e o nome digitado entra nela na hora.
+    window.history.pushState(null, '', '/')
+    const { container } = render(<Loja />)
+
+    expect(container.textContent).toContain('CERTIFICADO DE DEDICAÇÃO CELESTE')
+
+    fireEvent.change(screen.getByLabelText(/Escreva um nome/i), {
+      target: { value: 'Beatriz' },
+    })
+    expect(container.textContent).toContain('Beatriz')
   })
 })
 

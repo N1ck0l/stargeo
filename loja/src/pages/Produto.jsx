@@ -8,11 +8,15 @@ import { Reveal } from '../components/Reveal.jsx'
 import { criarCheckout, ErroApi, irParaPagamento } from '../lib/api.js'
 import { Link } from '../lib/Link.jsx'
 
-/** Preços de exibição. O valor autoritativo é sempre lido do banco. */
+/**
+ * Preços de exibição. O valor autoritativo é sempre lido do banco.
+ *
+ * Por enquanto só existe UM produto de verdade (o digital): slug fora desta
+ * lista cai na tela "Certificado não encontrado" abaixo. Os outros níveis
+ * ficam desligados no banco até virarem produto real — ver migration 0007.
+ */
 const PRODUTOS = {
   'certificado-digital': { nome: 'Certificado Digital', preco: 49 },
-  'certificado-mapa-impresso': { nome: 'Certificado + Mapa Impresso', preco: 149 },
-  'certificado-premium': { nome: 'Certificado Premium', preco: 249 },
 }
 
 const MESES = [

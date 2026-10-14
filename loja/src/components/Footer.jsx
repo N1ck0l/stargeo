@@ -10,11 +10,12 @@ const ANO = new Date().getFullYear()
  *
  * Quem importa: `loja/src/App.jsx`. Export default `Footer`.
  *
- * Invariantes: os três links de produto batem com os `slug` de
- * `pages/Home.jsx`; o aviso de arrependimento (7 dias) é obrigatório em
- * venda fora do estabelecimento físico e não pode sair dali; e o contato
- * por e-mail fica visível, sem formulário — quem reclama aqui é gente
- * mandando e-mail do celular.
+ * Invariantes: o link de produto do rodapé bate com o slug de
+ * `pages/Home.jsx` e `pages/Produto.jsx` (só existe o certificado digital);
+ * o aviso de arrependimento (7 dias) é obrigatório em venda fora do
+ * estabelecimento físico e não pode sair dali; e o contato por e-mail fica
+ * visível, sem formulário — quem reclama aqui é gente mandando e-mail do
+ * celular.
  */
 export default function Footer() {
   return (
@@ -37,7 +38,7 @@ export default function Footer() {
             </p>
           </div>
 
-          <nav aria-label="Ajuda">
+          <nav aria-label="Comprar">
             <h2 className="font-display text-xs tracking-[0.2em] text-gold uppercase">Comprar</h2>
             <ul className="mt-4 space-y-2.5 text-sm">
               <li>
@@ -46,19 +47,19 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link para="/produto/certificado-mapa-impresso" className="text-ivory/70 transition hover:text-gold">
-                  Com mapa impresso
+                <Link para="/#estrelas" className="text-ivory/70 transition hover:text-gold">
+                  As 12 estrelas
                 </Link>
               </li>
               <li>
-                <Link para="/produto/certificado-premium" className="text-ivory/70 transition hover:text-gold">
-                  Premium
+                <Link para="/#como-funciona" className="text-ivory/70 transition hover:text-gold">
+                  Como funciona
                 </Link>
               </li>
             </ul>
           </nav>
 
-          <nav aria-label="Conta">
+          <nav aria-label="Ajuda">
             <h2 className="font-display text-xs tracking-[0.2em] text-gold uppercase">Ajuda</h2>
             <ul className="mt-4 space-y-2.5 text-sm">
               <li>

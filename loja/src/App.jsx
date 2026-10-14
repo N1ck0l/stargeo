@@ -174,7 +174,7 @@ function Cabecalho({ caminho }) {
             para="/"
             className={`nav-link text-sm text-ivory/80 transition hover:text-gold ${limpo === '/' ? 'is-active' : ''}`}
           >
-            Certificates
+            Certificados
           </Link>
           <Link para="/#estrelas" className="nav-link text-sm text-ivory/80 transition hover:text-gold">
             Estrelas

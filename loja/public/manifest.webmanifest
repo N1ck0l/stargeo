@@ -1,7 +1,7 @@
 {
-  "name": "StarGeo — Kaus Australis para Geovanna",
+  "name": "StarGeo",
   "short_name": "StarGeo",
-  "description": "Uma estrela de Sagitário dedicada a Geovanna Beatriz Santos Trindade.",
+  "description": "Certificados de estrela com coordenadas reais, dedicados a quem você ama.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
