@@ -22,6 +22,7 @@ import { comHandler, ErroApp, idRequisicao, json } from '../_shared/http.ts'
 import { admin } from '../_shared/supabase.ts'
 import { buscarPagamento, ehAprovado, verificarAssinatura } from '../_shared/mercadoPago.ts'
 import { enviarEmail, gerarEGuardar } from '../_shared/certificado.ts'
+import { criarPaginaDoPedido } from '../_shared/pagina.ts'
 import { validarPedido } from '../../../shared/moderation.js'
 
 /** Campos que a entrega precisa. Estão na lista porque `select *` num pedido
@@ -159,9 +160,12 @@ async function entregar(
   }
 
   // --- Estrela ---------------------------------------------------------
+  // `*` porque a página dedicada monta o conteúdo com `story` e `best_month`,
+  // que não estão na lista curta de antes — e a linha inteira serve o PDF e o
+  // e-mail do mesmo jeito.
   const { data: estrela, error: erroEstrela } = await db
     .from('stars')
-    .select('slug, name, bayer, constellation, constellation_latin, spectral_type, ra_hours, dec_degrees, magnitude, distance_ly')
+    .select('*')
     .eq('slug', pedido.star_slug)
     .maybeSingle()
 
@@ -197,6 +201,18 @@ async function entregar(
     content_hash: hash,
     page_count: 1,
   })
+
+  // --- Página dedicada --------------------------------------------------
+  // ANTES do e-mail, porque o link vai no corpo. Idempotente pelo pedido
+  // (unique em `pages`), então o reenvio do webhook não reescreve o que o
+  // cliente ou o admin já editou. E nunca derruba a entrega: falha aqui vira
+  // log, e a página pode ser criada pelo painel depois.
+  try {
+    const paginaId = await criarPaginaDoPedido(db, pedido, estrela as Record<string, unknown>)
+    if (paginaId) console.log(`[webhook ${idLog}] página criada para o pedido ${pedidoId}`)
+  } catch (erro) {
+    console.error(`[webhook ${idLog}] página não criada para ${pedidoId}:`, erro)
+  }
 
   // --- E-mail ----------------------------------------------------------
   try {

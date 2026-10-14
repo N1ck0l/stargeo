@@ -8,22 +8,13 @@
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import { buildCertificatePdf } from '../../../shared/pdf.js'
 import { formatDec, formatRa } from '../../../shared/stars.js'
-import { baseDasFontes, variavel } from './supabase.ts'
+import { baseDasFontes, urlDoSite, variavel } from './supabase.ts'
 import { ErroApp } from './http.ts'
 
-/** DATA em português, sem depender do fuso do servidor. */
-const MESES = [
-  'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
-  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
-]
-
-export function dataEmPortugues(iso: string | null | undefined): string | undefined {
-  if (!iso) return undefined
-  // `T00:00:00Z` evita que o fuso do servidor empurre a data para o dia anterior.
-  const d = new Date(`${iso}T00:00:00Z`)
-  if (Number.isNaN(d.getTime())) return undefined
-  return `${d.getUTCDate()} de ${MESES[d.getUTCMonth()]} de ${d.getUTCFullYear()}`
-}
+// A função vive em `datas.ts` (para `pagina.ts` não importar o PDF junto), e é
+// re-exportada aqui porque é parte da API de quem gera o certificado.
+export { dataEmPortugues } from './datas.ts'
+import { dataEmPortugues } from './datas.ts'
 
 /**
  * Gera o PDF do pedido e grava no Storage.
@@ -145,6 +136,40 @@ export async function enviarEmail(
     throw new ErroApp('link_falhou', 'Não foi possível gerar o link de download.', 500, erroLink?.message)
   }
 
+  /*
+   * A página dedicada, se existir e estiver publicada.
+   *
+   * A conferência é aqui dentro porque o mesmo `enviarEmail` roda no webhook
+   * (página recém-criada), no reenvio do painel (página pode existir) e em
+   * pedidos anteriores às páginas (não existe — sem botão, sem link morto).
+   * Página em rascunho também fica de fora: o rascunho não é público.
+   */
+  const { data: pagina } = await db
+    .from('pages')
+    .select('code')
+    .eq('code', codigo)
+    .eq('status', 'published')
+    .maybeSingle()
+
+  const botaoPagina = pagina
+    ? `
+      <p style="margin:0 0 28px">
+        <a href="${urlDoSite()}/p/${escapeHtml(codigo)}"
+           style="display:inline-block;border:1.5px solid #2b2342;color:#2b2342;text-decoration:none;
+                  padding:14px 28px;border-radius:999px;font-family:system-ui,sans-serif;
+                  font-weight:600;font-size:15px">
+          Ver a página dedicada
+        </a>
+      </p>
+
+      <p style="font-size:14px;line-height:1.7;color:#5a5170;margin:0 0 24px">
+        A página fica no ar nesse endereço. Com o código
+        <strong>${escapeHtml(codigo)}</strong> e o seu e-mail, você também pode
+        editar o texto dela quando quiser.
+      </p>
+    `
+    : ''
+
   const assunto = `${destino}, a sua estrela está pronta`
 
   const corpo = `
@@ -169,7 +194,7 @@ export async function enviarEmail(
           Baixar o certificado (PDF)
         </a>
       </p>
-
+      ${botaoPagina}
       <p style="font-size:14px;line-height:1.7;color:#5a5170;margin:0 0 24px">
         O link vale por 30 dias. Guarde o arquivo: ele fica em uma pasta só sua.
       </p>

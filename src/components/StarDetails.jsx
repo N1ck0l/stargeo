@@ -4,22 +4,34 @@ import { useContent } from '../lib/contentContext'
 
 export function StarDetails({ onOpenCertificate }) {
   const { content } = useContent()
+  // Ver `Hero.jsx`: no site pessoal a estrela é o import, nas páginas de
+  // clientes ela vem no conteúdo.
+  const estrela = content.estrela ?? kausAustralis
 
   /*
    * Montado aqui, e não no módulo, porque "Nome batizado" vem do conteúdo
    * editável — fora do componente ele ficaria preso no valor padrão.
+   *
+   * Campos que só existem para Kaus Australis (catálogos, nota de magnitude)
+   * são condicionais: numa página de outra estrela o que não temos não aparece,
+   * em vez de virar "undefined" na tela.
    */
   const facts = [
-    { label: 'Nome oficial / científico', value: `${kausAustralis.commonName} (${kausAustralis.bayer})` },
+    { label: 'Nome oficial / científico', value: `${estrela.commonName} (${estrela.bayer})` },
     { label: 'Nome batizado', value: content.nome },
-    { label: 'Constelação', value: `${kausAustralis.constellation} (${kausAustralis.constellationLatin})` },
-    { label: 'Ascensão reta (J2000)', value: kausAustralis.ra.formatted },
-    { label: 'Declinação (J2000)', value: kausAustralis.dec.formatted },
-    { label: 'Magnitude aparente', value: kausAustralis.magnitudeRange },
-    { label: 'Distância', value: `${kausAustralis.distanceLy} anos-luz (~${kausAustralis.distancePc} pc)` },
-    { label: 'Tipo espectral', value: kausAustralis.spectralType },
-    { label: 'Catálogos', value: `${kausAustralis.hip} · ${kausAustralis.hd} · ${kausAustralis.hr}` },
-  ]
+    { label: 'Constelação', value: `${estrela.constellation} (${estrela.constellationLatin})` },
+    { label: 'Ascensão reta (J2000)', value: estrela.ra.formatted },
+    { label: 'Declinação (J2000)', value: estrela.dec.formatted },
+    {
+      label: 'Magnitude aparente',
+      value: estrela.magnitudeRange ?? String(estrela.magnitude),
+    },
+    { label: 'Distância', value: `${estrela.distanceLy} anos-luz (~${estrela.distancePc} pc)` },
+    { label: 'Tipo espectral', value: estrela.spectralType },
+    estrela.hip && estrela.hd && estrela.hr
+      ? { label: 'Catálogos', value: `${estrela.hip} · ${estrela.hd} · ${estrela.hr}` }
+      : null,
+  ].filter(Boolean)
 
   return (
     <section id="estrela" className="relative z-10 mx-auto max-w-6xl px-5 py-16">
@@ -31,10 +43,12 @@ export function StarDetails({ onOpenCertificate }) {
             <p className="mt-5 max-w-xl text-ivory/70 leading-relaxed">
               {content.descricaoEstrela}
             </p>
-            <p className="mt-4 max-w-xl text-sm leading-relaxed text-ivory/60">
-              <span className="text-gold/80">Sobre a magnitude:</span>{' '}
-              {kausAustralis.magnitudeNote}
-            </p>
+            {estrela.magnitudeNote && (
+              <p className="mt-4 max-w-xl text-sm leading-relaxed text-ivory/60">
+                <span className="text-gold/80">Sobre a magnitude:</span>{' '}
+                {estrela.magnitudeNote}
+              </p>
+            )}
           </Reveal>
 
           <Reveal delay={160}>

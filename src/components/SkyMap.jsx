@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   constellationLines,
   kausAustralis,
@@ -30,13 +30,21 @@ const RA_GRID = [16, 17, 18, 19, 20, 21]
 const DEC_GRID = [-50, -40, -30, -20, -10]
 
 /**
- * Índice das estrelas por id, montado uma vez.
+ * Grades ao redor da estrela da página, para céus fora de Sagitário.
  *
- * As linhas da constelação são resolvidas a cada quadro; refazer o `Map` ali
- * significava alocar 10 entradas 60 vezes por segundo para dados que nunca
- * mudam.
+ * As grades fixas acima cobrem a região do bule; numa página de outra
+ * constelação elas ficariam fora de tela e o mapa perderia a referência de
+ * coordenadas. Aqui elas acompanham a estrela.
  */
-const STAR_BY_ID = new Map(sagittariusStars.map((star) => [star.id, star]))
+function gradeRa(ra) {
+  const centro = Math.round(ra)
+  return [-2, -1, 0, 1, 2].map((d) => centro + d)
+}
+
+function gradeDec(dec) {
+  const centro = Math.round(dec / 10) * 10
+  return [-20, -10, 0, 10, 20].map((d) => centro + d)
+}
 
 /**
  * Estrelas de fundo: posições determinísticas (sem `Math.random`) para que o
@@ -57,9 +65,52 @@ const BACKDROP_STARS = Array.from({ length: 520 }, (_, i) => ({
  * numa estrela para ver os detalhes. Também é operável por teclado.
  */
 export function SkyMap({ onOpenCertificate }) {
+  const { content } = useContent()
+
+  /*
+   * Duas fontes de dado, com o MESMO fallback do site pessoal: sem
+   * `content.estrela`/`content.sky` (que é o caso do site da Geovanna) tudo
+   * continua vindo do import e nada muda; com eles (páginas da loja) o mapa
+   * mostra a estrela e o céu do cliente.
+   */
+  const estrela = content.estrela ?? kausAustralis
+  const ceu = content.sky ?? { stars: sagittariusStars, lines: constellationLines }
+  const estrelas = ceu.stars
+  const linhas = ceu.lines
+  /** Céu do bule: a vista e a grade continuam as de sempre nesse caso. */
+  const ehBule = linhas.length > 0
+
+  /**
+   * Índice das estrelas por id, montado uma vez por céu.
+   *
+   * As linhas da constelação são resolvidas a cada quadro; refazer o `Map` ali
+   * significava alocar entradas 60 vezes por segundo para dados que nunca
+   * mudam. Era um `Map` de módulo; como o céu agora vem do conteúdo, o índice
+   * é do componente — capturado pelo efeito do canvas no primeiro render.
+   */
+  const porId = useMemo(() => new Map(estrelas.map((star) => [star.id, star])), [estrelas])
+
+  const vistaInicial = useMemo(
+    () =>
+      ehBule
+        ? { ...INITIAL_VIEW }
+        : { ra: estrela.ra.hoursDecimal, dec: estrela.dec.decimal, scale: SCALE_DEFAULT },
+    [ehBule, estrela],
+  )
+
+  /** Grade de coordenadas: a de Sagitário, ou a que acompanha a estrela. */
+  const raGrid = useMemo(
+    () => (ehBule ? RA_GRID : gradeRa(estrela.ra.hoursDecimal)),
+    [ehBule, estrela],
+  )
+  const decGrid = useMemo(
+    () => (ehBule ? DEC_GRID : gradeDec(estrela.dec.decimal)),
+    [ehBule, estrela],
+  )
+
   const canvasRef = useRef(null)
   const wrapRef = useRef(null)
-  const viewRef = useRef({ ...INITIAL_VIEW })
+  const viewRef = useRef(vistaInicial)
   const sizeRef = useRef({ width: 0, height: 0 })
   /*
    * Redesenho sob demanda, publicado pelo efeito que tem o `draw` em mãos.
@@ -72,9 +123,8 @@ export function SkyMap({ onOpenCertificate }) {
    */
   const redrawRef = useRef(() => {})
   const [selected, setSelected] = useState(
-    () => sagittariusStars.find((star) => star.dedicated) ?? sagittariusStars[0],
+    () => estrelas.find((star) => star.dedicated) ?? estrelas[0],
   )
-  const { content } = useContent()
   /*
    * O desenho vive num efeito com `[]`, então não enxergaria uma variável do
    * componente mudar. A ref é o meio de manter o rótulo da estrela em dia sem
@@ -86,13 +136,13 @@ export function SkyMap({ onOpenCertificate }) {
     redrawRef.current()
   }, [content.nomeCurto])
 
-  // Recalcula o zoom para que o bule de chá caiba na tela atual.
+  // Recalcula o zoom para que a figura caiba na tela atual.
   const resetView = useCallback(() => {
     const { width, height } = sizeRef.current
-    viewRef.current = { ...INITIAL_VIEW, scale: fitScale(width, height) }
+    viewRef.current = { ...vistaInicial, scale: fitScale(width, height) }
     redrawRef.current()
-    setSelected(sagittariusStars.find((star) => star.dedicated) ?? sagittariusStars[0])
-  }, [])
+    setSelected(estrelas.find((star) => star.dedicated) ?? estrelas[0])
+  }, [vistaInicial, estrelas])
 
   const zoomBy = useCallback((factor) => {
     viewRef.current = zoomAt(viewRef.current, 0, 0, factor)
@@ -226,7 +276,7 @@ export function SkyMap({ onOpenCertificate }) {
       const view = viewRef.current
       let closest = null
       let best = Infinity
-      for (const star of sagittariusStars) {
+      for (const star of estrelas) {
         const point = project(star.ra, star.dec, view, width, height)
         if (!point) continue
         const distance = Math.hypot(px - point.x, py - point.y)
@@ -268,7 +318,7 @@ export function SkyMap({ onOpenCertificate }) {
       // Grade de coordenadas (meridianos e paralelos).
       ctx.strokeStyle = 'rgba(247, 241, 225, 0.07)'
       ctx.lineWidth = 1
-      for (const ra of RA_GRID) {
+      for (const ra of raGrid) {
         ctx.beginPath()
         let pen = false
         for (let dec = -60; dec <= 5; dec += 1) {
@@ -285,7 +335,7 @@ export function SkyMap({ onOpenCertificate }) {
         }
         ctx.stroke()
       }
-      for (const dec of DEC_GRID) {
+      for (const dec of decGrid) {
         ctx.beginPath()
         let pen = false
         for (let ra = view.ra - 8; ra <= view.ra + 8; ra += 0.1) {
@@ -314,11 +364,11 @@ export function SkyMap({ onOpenCertificate }) {
         ctx.fill()
       }
 
-      // Figura do bule de chá, desenhada como se fosse traçada à mão.
-      const points = constellationLines
+      // Figura da constelação, desenhada como se fosse traçada à mão.
+      const points = linhas
         .map(([fromId, toId]) => {
-          const from = STAR_BY_ID.get(fromId)
-          const to = STAR_BY_ID.get(toId)
+          const from = porId.get(fromId)
+          const to = porId.get(toId)
           if (!from || !to) return null
           const p1 = project(from.ra, from.dec, view, width, height)
           const p2 = project(to.ra, to.dec, view, width, height)
@@ -340,7 +390,7 @@ export function SkyMap({ onOpenCertificate }) {
 
       // Estrelas da constelação, com halo proporcional à magnitude.
       const placedLabels = []
-      for (const star of sagittariusStars) {
+      for (const star of estrelas) {
         const point = project(star.ra, star.dec, view, width, height)
         if (!visible(point, 40)) continue
         const radius = magnitudeRadius(star.mag) * (star.dedicated ? 1.5 : 1)
@@ -404,11 +454,11 @@ export function SkyMap({ onOpenCertificate }) {
       ctx.font = '10px Outfit, sans-serif'
       const decSpan = Math.max(0.5, (height / 2 - 34) / view.scale / DEG)
       const raSpan = Math.max(0.5, (width / 2 - 46) / (view.scale * RAD_PER_HOUR))
-      for (const dec of DEC_GRID) {
+      for (const dec of decGrid) {
         const point = project(normalizeRaDelta(view.ra - raSpan), dec, view, width, height)
         if (visible(point, 20)) ctx.fillText(`${dec}°`, point.x, point.y)
       }
-      for (const ra of RA_GRID) {
+      for (const ra of raGrid) {
         const point = project(ra, view.dec + decSpan, view, width, height)
         if (visible(point, 20)) ctx.fillText(`${ra}h`, point.x, point.y)
       }
@@ -612,7 +662,10 @@ export function SkyMap({ onOpenCertificate }) {
       window.removeEventListener('resize', handleResize)
       motionQuery.removeEventListener('change', handleMotionChange)
     }
-  }, [])
+    // O desenho captura o céu do PRIMEIRO render (conteúdo da página não muda
+    // depois de carregado); as dependências existem para o lint — e são
+    // estáveis, então o efeito não remonta sem motivo.
+  }, [estrelas, linhas, raGrid, decGrid, porId])
 
   const isDedicated = selected?.dedicated
 
@@ -622,12 +675,14 @@ export function SkyMap({ onOpenCertificate }) {
         <p className="font-display text-[11px] tracking-[0.35em] text-gold uppercase">
           Mapa do céu
         </p>
-        <h2 className="font-serif mt-3 text-4xl text-ivory sm:text-5xl">Sagitário, de perto</h2>
+        <h2 className="font-serif mt-3 text-4xl text-ivory sm:text-5xl">
+          {estrela.constellation}, de perto
+        </h2>
         <p className="mt-4 text-ivory/70">
           Arraste para percorrer o céu, use a roda ou os botões para aproximar e toque
           numa estrela para ver os detalhes. O anel dourado marca
           {' '}
-          <strong className="font-medium text-gold">Kaus Australis</strong>, dedicada a{' '}
+          <strong className="font-medium text-gold">{estrela.commonName}</strong>, dedicada a{' '}
           {content.nomeCurto}.
         </p>
       </div>
@@ -638,14 +693,14 @@ export function SkyMap({ onOpenCertificate }) {
           enxergariam as estrelas. Esta lista é a alternativa textual equivalente.
         */}
         <p id="sky-map-desc" className="sr-only">
-          Mapa celeste da constelação de Sagitário, projeção gnomônica, época J2000, com
-          norte para cima e ascensão reta crescente para a esquerda. As linhas douradas
-          ligam as estrelas do bule de chá. Use as setas para percorrer, mais e menos
-          para aproximar e afastar, e 0 para recentrar. Os detalhes da estrela
-          selecionada aparecem no painel ao lado.
+          Mapa celeste da constelação de {estrela.constellation}, projeção gnomônica,
+          época J2000, com norte para cima e ascensão reta crescente para a esquerda.
+          {linhas.length > 0 && ' As linhas douradas ligam as estrelas da figura.'}
+          {' '}Use as setas para percorrer, mais e menos para aproximar e afastar, e 0
+          para recentrar. Os detalhes da estrela selecionada aparecem no painel ao lado.
         </p>
         <ul className="sr-only">
-          {sagittariusStars.map((star) => (
+          {estrelas.map((star) => (
             <li key={star.id}>
               {star.name} ({star.bayer}), magnitude {star.mag.toFixed(2)}, ascensão reta{' '}
               {formatRa(star.ra)}, declinação {formatDec(star.dec)}
@@ -692,7 +747,7 @@ export function SkyMap({ onOpenCertificate }) {
               className="sky-canvas h-full w-full cursor-grab touch-none"
               role="application"
               tabIndex={0}
-              aria-label={`Mapa do céu de Sagitário. Use as setas para percorrer, mais e menos para aproximar e afastar, e 0 para recentrar em ${kausAustralis.commonName}.`}
+              aria-label={`Mapa do céu de ${estrela.constellation}. Use as setas para percorrer, mais e menos para aproximar e afastar, e 0 para recentrar em ${estrela.commonName}.`}
               aria-describedby="sky-map-desc"
               onKeyDown={handleKeyDown}
             />
@@ -751,7 +806,7 @@ export function SkyMap({ onOpenCertificate }) {
               <div className="flex justify-between gap-4">
                 <dt className="text-ivory/60">Constelação</dt>
                 <dd className="text-right">
-                  {kausAustralis.constellation} ({kausAustralis.constellationLatin})
+                  {estrela.constellation} ({estrela.constellationLatin})
                 </dd>
               </div>
             </dl>

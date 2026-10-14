@@ -78,6 +78,18 @@ body {
   }
 }
 
+/*
+ * Mapa celeste (página dedicada) — alto contraste (Windows): o modo força as
+ * cores do CSS, mas o conteúdo de um canvas é bitmap e não é repintado. Sem
+ * esta regra as estrelas claras ficariam sobre o fundo branco do sistema e
+ * sumiriam. Optar o mapa para fora do forçamento devolve o fundo escuro e o
+ * contraste original.
+ */
+.sky-canvas {
+  forced-color-adjust: none;
+  background-color: #07061a;
+}
+
 /* --------------------------------------------------------------------------
    Fundo da página
    --------------------------------------------------------------------------

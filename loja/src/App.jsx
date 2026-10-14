@@ -5,6 +5,9 @@ import Home from './pages/Home.jsx'
 import Produto from './pages/Produto.jsx'
 import Rastrear from './pages/Rastrear.jsx'
 import Obrigado from './pages/Obrigado.jsx'
+import { PaginaDedicada } from './pagina/PaginaDedicada.jsx'
+import { EdicaoPagina } from './pagina/EdicaoPagina.jsx'
+import { AdminPagina } from './admin/AdminPagina.jsx'
 import Footer from './components/Footer.jsx'
 import { ScrollProgress } from './components/ScrollProgress.jsx'
 import { Starfield } from './components/Starfield.jsx'
@@ -26,10 +29,24 @@ function telaPara(caminho) {
 
   if (limpo === '/rastrear') return <Rastrear />
   if (limpo === '/obrigado') return <Obrigado />
+  // Painel administrativo: fora do menu, fora do SEO — quem sabe o endereço
+  // é quem tem conta (e a lista branca do servidor deixa entrar).
+  if (limpo === '/admin') return <AdminPagina />
   if (limpo.startsWith('/produto/')) {
     // O slug é extraído aqui, e não dentro da página: quem descobre o caminho
     // é o roteador.
     return <Produto slug={limpo.slice('/produto/'.length)} />
+  }
+  if (limpo.startsWith('/p/')) {
+    // Página dedicada de um cliente, ou a edição dela. O código é o do pedido
+    // (`SG-XXXX-XXXX`); a validação de formato é do servidor, aqui só
+    // normalizamos para maiúsculas porque o endereço pode chegar digitado à
+    // mão — e a edição vive sob o mesmo código, mais `/editar`.
+    const resto = limpo.slice('/p/'.length).toUpperCase()
+    if (resto.endsWith('/EDITAR')) {
+      return <EdicaoPagina codigo={resto.slice(0, -'/EDITAR'.length)} />
+    }
+    return <PaginaDedicada codigo={resto} />
   }
 
   return <Home />

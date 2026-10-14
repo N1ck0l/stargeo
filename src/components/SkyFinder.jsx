@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { StarTrails } from './StarTrails'
 import { brightStars } from '../data/brightStars'
 import { kausAustralis, sagittariusStars } from '../data/star'
+import { useContent } from '../lib/contentContext'
 import {
   devicePointing,
   equatorialToHorizontal,
@@ -57,6 +59,15 @@ export function SkyFinder({ onClose }) {
   const videoRef = useRef(null)
   const streamRef = useRef(null)
   const dialogRef = useRef(null)
+
+  /*
+   * O alvo e a figura do céu vêm do conteúdo quando a página é de um cliente;
+   * sem isso (site pessoal) o fallback é o import, como era antes — ver o
+   * mesmo padrão em `Hero.jsx`.
+   */
+  const { content } = useContent()
+  const estrela = content.estrela ?? kausAustralis
+  const celestes = content.skyFigura?.stars ?? sagittariusStars
 
   const [stage, setStage] = useState('intro')
   const [error, setError] = useState('')
@@ -253,8 +264,8 @@ export function SkyFinder({ onClose }) {
   // --- cálculos ------------------------------------------------------------
   const target = useMemo(() => {
     if (!fix) return null
-    return equatorialToHorizontal(kausAustralis.ra.hoursDecimal, kausAustralis.dec.decimal, fix.lat, fix.lon, now)
-  }, [fix, now])
+    return equatorialToHorizontal(estrela.ra.hoursDecimal, estrela.dec.decimal, fix.lat, fix.lon, now)
+  }, [estrela, fix, now])
 
   const guide = target && pointing ? guidance(target, pointing) : null
 
@@ -265,8 +276,8 @@ export function SkyFinder({ onClose }) {
    */
   const vis = useMemo(() => {
     if (!fix) return null
-    return visibility(kausAustralis.ra.hoursDecimal, kausAustralis.dec.decimal, fix.lat, fix.lon, now)
-  }, [fix, now])
+    return visibility(estrela.ra.hoursDecimal, estrela.dec.decimal, fix.lat, fix.lon, now)
+  }, [estrela, fix, now])
 
   /**
    * Qualidade da bússola.
@@ -277,16 +288,16 @@ export function SkyFinder({ onClose }) {
    */
   const compassQuality = accuracy === null ? 'desconhecida' : accuracy <= 10 ? 'boa' : accuracy <= 25 ? 'média' : 'ruim'
 
-  /** Onde cada estrela do bule está, para desenhar o desenho completo. */
+  /** Onde cada estrela da figura está, para desenhar o desenho completo. */
   const constellation = useMemo(() => {
     if (!fix || !pointing) return []
-    return sagittariusStars
+    return celestes
       .map((star) => {
         const pos = equatorialToHorizontal(star.ra, star.dec, fix.lat, fix.lon, now)
         return { ...star, ...pos, bearing: wrap180(pos.azimuth - pointing.azimuth) }
       })
       .filter((star) => Math.abs(star.bearing) < fov / 2)
-  }, [fix, pointing, now, fov])
+  }, [celestes, fix, pointing, now, fov])
 
   /**
    * O céu em volta: as estrelas mais brilhantes que a olho nu aparecem.
@@ -327,9 +338,9 @@ export function SkyFinder({ onClose }) {
    */
   const skyBackdrop = useMemo(
     () => skyStars.filter(
-      (star) => !sagittariusStars.some((s) => Math.abs(s.ra - star.ra) < 0.05 && Math.abs(s.dec - star.dec) < 0.5),
+      (star) => !celestes.some((s) => Math.abs(s.ra - star.ra) < 0.05 && Math.abs(s.dec - star.dec) < 0.5),
     ),
-    [skyStars],
+    [skyStars, celestes],
   )
 
   // O azimute do alvo vira deslocamento horizontal na tela.
@@ -337,12 +348,18 @@ export function SkyFinder({ onClose }) {
 
   const compassPoints = { N: 0, L: 90, S: 180, O: 270 }
 
-  return (
+  /*
+   * Portal no fim do `body`: o diálogo é `fixed z-50`, e um ancestral com
+   * `z-index` (o `<main class="z-10">` da loja, por exemplo) criaria um
+   * contexto de empilhamento onde o 50 fica preso por baixo do header (z-40).
+   * No fim do body ele disputa no mesmo nível que todo mundo — e vence.
+   */
+  return createPortal(
     <div
       ref={dialogRef}
       role="dialog"
       aria-modal="true"
-      aria-label="Mira celeste: para onde fica Kaus Australis"
+      aria-label={`Mira celeste: para onde fica ${estrela.commonName}`}
       className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-night text-ivory"
     >
       {/* Câmera ao fundo; some quando não há permissão. */}
@@ -360,7 +377,7 @@ export function SkyFinder({ onClose }) {
       <div className="safe-top relative z-10 flex items-start justify-between gap-4 px-5 pt-5">
         <div>
           <p className="font-display text-[10px] tracking-[0.3em] text-gold uppercase">Mira celeste</p>
-          <h2 className="font-serif mt-1 text-2xl sm:text-3xl">Ache {kausAustralis.commonName}</h2>
+          <h2 className="font-serif mt-1 text-2xl sm:text-3xl">Ache {estrela.commonName}</h2>
         </div>
         <button
           type="button"
@@ -397,8 +414,8 @@ export function SkyFinder({ onClose }) {
             </svg>
             <h3 className="font-serif mt-6 text-2xl">Aponte a câmera para o céu</h3>
             <p className="mt-4 text-ivory/75 leading-relaxed">
-              O celular usa a bússola para mostrar para onde fica Kaus Australis,
-              a estrela mais brilhante de Sagitário. Gire devagar até a seta
+              O celular usa a bússola para mostrar para onde fica {estrela.commonName},
+              na constelação de {estrela.constellation}. Gire devagar até a seta
               apontar para ela.
             </p>
             <p className="mt-4 text-sm text-ivory/60">
@@ -634,7 +651,7 @@ export function SkyFinder({ onClose }) {
             {calibrating && (
               <div className="mx-auto mt-4 max-w-2xl border-t border-white/10 pt-4">
                 <p className="mb-3 text-xs text-ivory/70">
-                  Ajuste até a estrela de Kaus Australis cair dentro do círculo do
+                  Ajuste até a estrela de {estrela.commonName} cair dentro do círculo do
                   meio quando você apontar para ela.
                 </p>
                 <label className="flex items-center gap-3 text-xs text-ivory/80">
@@ -694,6 +711,7 @@ export function SkyFinder({ onClose }) {
           </div>
         </>
       )}
-    </div>
+    </div>,
+    document.body,
   )
 }

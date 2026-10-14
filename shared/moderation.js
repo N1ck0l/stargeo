@@ -112,7 +112,7 @@ export function limpar(texto) {
  */
 
 /**
- * Valida um campo de texto livre.
+ * Valida um campo de texto livre com limite conhecido.
  *
  * @param {string} campo
  * @param {string} valor
@@ -121,11 +121,26 @@ export function limpar(texto) {
 export function validarTexto(campo, valor) {
   const limite = LIMITES[campo]
   if (!limite) return `campo desconhecido: ${campo}`
+  return validarTextoLivre(valor, limite)
+}
 
+/**
+ * Valida texto com limite arbitrário — o caminho dos textos de PÁGINA.
+ *
+ * A página dedicada não imprime estes textos, mas passa pelas mesmas duas
+ * regras por motivos iguais: termo de ódio e tentativa de contato não ficam
+ * melhores só porque o suporte é web. O tamanho, que no certificado é limite
+ * físico de papel, aqui é só um teto contra abuso de espaço.
+ *
+ * @param {string} valor
+ * @param {{min?: number, max: number}} limite
+ * @returns {string|null} mensagem de erro, ou null se estiver tudo bem
+ */
+export function validarTextoLivre(valor, { min = 0, max }) {
   const limpo = limpar(valor)
 
-  if (limpo.length < limite.min) return `campo vazio ou curto demais`
-  if (limpo.length > limite.max) return `passa de ${limite.max} caracteres (tem ${limpo.length})`
+  if (limpo.length < min) return `campo vazio ou curto demais`
+  if (limpo.length > max) return `passa de ${max} caracteres (tem ${limpo.length})`
 
   const normalizado = normalizar(limpo)
 

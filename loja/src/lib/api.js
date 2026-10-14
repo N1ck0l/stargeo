@@ -34,10 +34,21 @@ function base() {
   return BASE.replace(/\/$/, '')
 }
 
-async function chamar(caminho, corpo) {
+/**
+ * POST para uma Edge Function, com o erro virando `ErroApi`.
+ *
+ * Exportado porque as chamadas de página (`lib/pagina.js`) e as do painel
+ * (`lib/admin.js`) usam o mesmo contrato — só mudam o caminho, o corpo e,
+ * no painel, o cabeçalho de Authorization.
+ *
+ * @param {string} caminho
+ * @param {object} corpo
+ * @param {{ headers?: Record<string, string> }} [opcoes]
+ */
+export async function chamar(caminho, corpo, opcoes = {}) {
   const resposta = await fetch(`${base()}/${caminho}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...opcoes.headers },
     body: JSON.stringify(corpo ?? {}),
   })
 

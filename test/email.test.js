@@ -26,6 +26,14 @@ const ESTRELA = {
   constellation: 'Sagitário',
 }
 
+/**
+ * Página dedicada publicada para este pedido — ou null.
+ *
+ * `enviarEmail` confere se a página existe antes de botar o link: página
+ * inexistente ou em rascunho não pode virar link morto no e-mail.
+ */
+let paginaPublicada = null
+
 /** Banco falso: só o que `enviarEmail` toca. */
 const db = {
   storage: {
@@ -36,6 +44,18 @@ const db = {
       }),
     }),
   },
+  from: (tabela) => ({
+    select: () => ({
+      eq: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({
+            data: tabela === 'pages' ? paginaPublicada : null,
+            error: null,
+          }),
+        }),
+      }),
+    }),
+  }),
 }
 
 let enviado
@@ -49,6 +69,7 @@ beforeEach(() => {
     },
   }
 
+  paginaPublicada = null
   enviado = null
   globalThis.fetch = vi.fn(async (url, opcoes) => {
     enviado = { url, corpo: JSON.parse(opcoes.body) }
@@ -100,5 +121,22 @@ describe('enviarEmail', () => {
 
     expect(enviado.corpo.html).not.toContain('<script>alert(1)</script>')
     expect(enviado.corpo.html).toContain('&lt;script&gt;')
+  })
+
+  it('publica o link da página dedicada quando ela está no ar', async () => {
+    paginaPublicada = { code: PEDIDO.code }
+
+    await enviarEmail(db, PEDIDO, ESTRELA, 'caminho/certificado.pdf')
+
+    expect(enviado.corpo.html).toContain('Ver a página dedicada')
+    expect(enviado.corpo.html).toContain('/p/SG-AB3K-9ZXM')
+    expect(enviado.corpo.html).toContain('editar o texto dela')
+  })
+
+  it('não mostra a página quando ela não existe (ou está em rascunho)', async () => {
+    await enviarEmail(db, PEDIDO, ESTRELA, 'caminho/certificado.pdf')
+
+    expect(enviado.corpo.html).not.toContain('Ver a página dedicada')
+    expect(enviado.corpo.html).not.toContain('/p/SG-')
   })
 })

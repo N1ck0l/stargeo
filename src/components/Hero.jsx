@@ -5,6 +5,12 @@ import { useScroll, useTypewriter } from '../lib/useReveal'
 
 export function Hero({ onOpenCertificate, onOpenFinder }) {
   const { content } = useContent()
+  /*
+   * A estrela chega no conteúdo quando a página é de um cliente (a loja monta
+   * `content.estrela`); no site pessoal ela continua vindo do import — o
+   * fallback mantém o comportamento de antes, byte a byte.
+   */
+  const estrela = content.estrela ?? kausAustralis
   const scrollY = useScroll()
   const { output, done } = useTypewriter(content.fraseHero)
 
@@ -59,8 +65,8 @@ export function Hero({ onOpenCertificate, onOpenFinder }) {
         {/* Frase digitada; reserva a altura final para o layout não pular. */}
         <Reveal as="p" delay={520} className="mt-7 min-h-[3.5rem] max-w-2xl font-serif text-lg italic text-ivory/75 sm:text-xl">
           {content.nome}, este pedaço do universo foi escolhido para você:{' '}
-          <span className="text-gold not-italic">{kausAustralis.commonName}</span> (
-          {kausAustralis.bayer}), visível a olho nu no céu do Brasil.
+          <span className="text-gold not-italic">{estrela.commonName}</span> (
+          {estrela.bayer}), visível a olho nu no céu do Brasil.
         </Reveal>
       </div>
 
