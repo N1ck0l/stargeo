@@ -20,11 +20,20 @@ const MESES = [
   'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
 ]
 
+/** Hoje, no fuso de quem está comprando, no formato que o `<input type="date">` entende (`YYYY-MM-DD`). */
 function dataDeHoje() {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+/**
+ * `YYYY-MM-DD` → "14 de outubro de 2026", para imprimir no certificado.
+ *
+ * A leitura é em UTC (`T00:00:00Z` + `getUTC*`) de propósito: `new Date(iso)`
+ * interpretaria a meia-noite no fuso local, e para quem está a oeste de
+ * Greenwich cairia no dia ANTERIOR — a pessoa escolheria 25 de dezembro e o
+ * papel sairia com 24.
+ */
 function dataEmPortugues(iso) {
   if (!iso) return undefined
   const d = new Date(`${iso}T00:00:00Z`)
@@ -47,6 +56,16 @@ function dataEmPortugues(iso) {
  * (`shared/moderation.js`). Não é segurança — quem controla o navegador
  * desliga qualquer coisa — é para a pessoa não descobrir a regra só depois de
  * pagar. O servidor valida de novo.
+ *
+ * Papel na arquitetura: rota `/produto/:slug`, com o `slug` passado por prop
+ * pelo roteador (`loja/src/App.jsx`). Export default `Produto`; importa
+ * `CertificadoPreview` + `Escala` (a folha), `Reveal`, `shared/moderation.js`
+ * (regra única) e `lib/api.js` (`criarCheckout` / `irParaPagamento`).
+ *
+ * Invariantes: o pedido só nasce DEPOIS de a validação passar — falhar aqui
+ * não deixa pedido órfão no banco; a prévia tem de mostrar o mesmo que o PDF
+ * final; e a saída é sempre o Mercado Pago (o checkout é um
+ * `location.assign`, nunca um formulário de cartão dentro desta página).
  */
 export default function Produto({ slug }) {
   const produto = PRODUTOS[slug]
@@ -99,13 +118,18 @@ export default function Produto({ slug }) {
     customerEmail: email,
   })
 
+  /** Mensagem de erro do campo, nula enquanto a pessoa não tiver tocado nele. */
   const erroDe = (campo) => {
     if (!tocou[campo]) return null
     return validacao.erros.find((e) => e.campo === campo)?.motivo ?? null
   }
 
+  /** Marca o campo como tocado. É idempotente: repetir devolve o mesmo objeto e não re-renderiza. */
   const marcarTocado = (campo) => setTocou((t) => (t[campo] ? t : { ...t, [campo]: true }))
 
+  // Slug desconhecido: não existe página de "produto não encontrado" — este
+  // aviso é a rota de saída, e ele só aparece DEPOIS dos hooks, porque
+  // retornar antes deles quebraria a ordem das regras do React.
   if (!produto) {
     return (
       <div className="pilha espaco-secao text-center">
@@ -118,6 +142,14 @@ export default function Produto({ slug }) {
     )
   }
 
+  /**
+   * Envia o formulário: valida, cria o pedido, guarda o código no navegador
+   * e sai para o Mercado Pago.
+   *
+   * A ordem importa. Validar ANTES de `criarCheckout` para não criar pedido
+   * que ninguém vai pagar; guardar o código ANTES de `irParaPagamento`,
+   * porque depois do `location.assign` não há mais JS desta página rodando.
+   */
   async function finalizar(evento) {
     evento.preventDefault()
     setErro('')
@@ -127,6 +159,8 @@ export default function Produto({ slug }) {
     if (!validacao.ok) {
       setTocou({ honoreeName: true, fromName: true, message: true, customerName: true, customerEmail: true })
       setErro(explicarErros(validacao.erros))
+      // Foco no primeiro campo inválido: sem isso, quem navega por teclado
+      // ou leitor de tela continua no botão sem saber o que corrigir.
       const primeiro = document.querySelector('[aria-invalid="true"]')
       primeiro?.focus()
       return
@@ -192,7 +226,10 @@ export default function Produto({ slug }) {
           formulário com ~350 px, que é o mínimo confortável.
         */}
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_min(700px,60%)]">
-          {/* --- Formulário -------------------------------------------------- */}
+          {/* --- Formulário --------------------------------------------------
+              No celular o formulário vem DEPOIS da prévia (`order-2`): quem
+              compra pelo telefone precisa ver o certificado antes de
+              começar a digitar. No desktop, os dois cabem lado a lado. */}
           <div className="order-2 space-y-8 lg:order-1">
             <Secao numero="1" titulo="Para quem é o certificado?">
               <Campo
@@ -221,6 +258,9 @@ export default function Produto({ slug }) {
                       setEstrelaSlug(item.slug)
                       const params = new URLSearchParams(window.location.search)
                       params.set('estrela', item.slug)
+                      // `replaceState` e não `push`: trocar de estrela não
+                      // deve encher o histórico com o mesmo caminho — voltar
+                      // tem que sair da página.
                       window.history.replaceState(null, '', `${window.location.pathname}?${params}`)
                     }}
                     aria-pressed={item.slug === estrelaSlug}
@@ -298,7 +338,7 @@ export default function Produto({ slug }) {
                   onBlur={() => marcarTocado('customerEmail')}
                   erro={erroDe('customerEmail')}
                   placeholder="para enviar o certificado"
-                  hint="É para cá que o certificado chega. Não pedimos CPF para emitir."
+                  dica="É para cá que o certificado chega. Não pedimos CPF para emitir."
                 />
               </div>
             </Secao>
@@ -327,6 +367,9 @@ export default function Produto({ slug }) {
             <div className="lg:sticky lg:top-24">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <h2 className="font-display text-sm tracking-[0.2em] text-gold uppercase">Prévia</h2>
+                {/* Duas opções fixas com `aria-pressed`: é um rádio estilizado,
+                    e a versão clara existe porque o PDF sai nas duas — a
+                    clara gasta menos tinta de impressora. */}
                 <div
                   className="flex rounded-full border border-white/15 p-0.5 text-xs"
                   role="group"
@@ -383,6 +426,13 @@ export default function Produto({ slug }) {
   )
 }
 
+/**
+ * Seção numerada do formulário.
+ *
+ * Numerar e separar em quatro blocos é deliberado: um formulário comprido
+ * parece mais trabalho do que é, e a pessoa que começa costuma terminar. A
+ * revelação envolve o bloco inteiro — o comentário sobre isso está no JSX.
+ */
 function Secao({ numero, titulo, children }) {
   return (
     // A revelação envolve a seção inteira: o número, o título e o campo entram

@@ -1,9 +1,17 @@
+/**
+ * Loja StarGeo: prévia do certificado (HTML que espelha o PDF), configurador
+ * do produto (formulário, validação, moderação de mensagem, preço) e
+ * rastreamento de pedidos — mais a casca do App (rotas, rodapé) e as regras
+ * de CSS das quais a prévia depende para escalar e para as utilities do
+ * Tailwind vencerem.
+ */
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CertificadoPreview } from '../loja/src/components/CertificadoPreview.jsx'
 import Loja from '../loja/src/App.jsx'
+import { Link } from '../loja/src/lib/Link.jsx'
 import Produto from '../loja/src/pages/Produto.jsx'
 import Rastrear from '../loja/src/pages/Rastrear.jsx'
 import { getStar } from '../shared/stars.js'
@@ -12,6 +20,7 @@ afterEach(cleanup)
 
 const estrela = getStar('kaus-australis')
 
+// === Prévia do certificado (espelho HTML do PDF) ===
 describe('CertificadoPreview', () => {
   it('mostra o nome, a estrela e as coordenadas reais', () => {
     render(<CertificadoPreview estrela={estrela} honoreeName="Geovanna" code="SG-TEST-TEST" />)
@@ -29,6 +38,8 @@ describe('CertificadoPreview', () => {
   })
 
   it('usa a folha A4 em PAISAGEM, em milímetros, para bater com o PDF', () => {
+    // Medidas batendo com o arquivo que vai por e-mail: 297 × 210 mm, unidade
+    // e orientação iguais — não pixels "aproximados".
     const { container } = render(<CertificadoPreview estrela={estrela} honoreeName="Ana" code="X" />)
     const folha = container.querySelector('.certificado')
 
@@ -61,6 +72,8 @@ describe('CertificadoPreview', () => {
   })
 
   it('tem texto de apoio quando o nome está vazio', () => {
+    // Nome vazio mostra o texto de exemplo — nem folha em branco, nem
+    // `undefined` impresso no papel.
     render(<CertificadoPreview estrela={estrela} honoreeName="" code="X" />)
     expect(document.body.textContent).toContain('Nome de quem recebe')
   })
@@ -81,6 +94,8 @@ describe('CertificadoPreview', () => {
   })
 
   it('esconde a mensagem quando está vazia', () => {
+    // Só espaço em branco não é mensagem: o bloco não nasce, e nada de
+    // imprimir "undefined" no lugar do texto ausente.
     render(<CertificadoPreview estrela={estrela} honoreeName="Ana" message="   " code="X" />)
     expect(screen.queryByText('Documento simbólico. Coordenadas conferidas com o SIMBAD.')).toBeTruthy()
     expect(document.body.textContent).not.toContain('undefined')
@@ -109,7 +124,9 @@ describe('CertificadoPreview', () => {
   })
 })
 
+// === Configurador do produto ===
 describe('configurador', () => {
+  // --- Moderação: telefone na mensagem é vetor de golpe ---
   it('avisa sobre telefone, que é vetor de golpe', async () => {
     render(<Produto slug="certificado-mapa-impresso" />)
 
@@ -119,17 +136,24 @@ describe('configurador', () => {
     fireEvent.change(screen.getByLabelText(/Mensagem no certificado/i), {
       target: { value: 'Me liga no (11) 98765-4321' },
     })
+    // A validação roda no blur: sem disparar o evento, o campo ainda conta
+    // como "intocado" e o aviso não aparece.
     fireEvent.blur(screen.getByLabelText(/Mensagem no certificado/i))
 
     expect(await screen.findByText(/não pode conter telefone/i)).toBeTruthy()
   })
 
+  // --- Formulário: erro de validação só depois que o campo é tocado ---
   it('não reclama do campo vazio antes de a pessoa tocar nele', () => {
+    // Erro cedo demais é o que faz a pessoa fechar a aba: o nome obrigatório
+    // só reclama depois do blur, nunca na primeira pintura.
     render(<Produto slug="certificado-mapa-impresso" />)
     expect(screen.queryByText(/campo vazio/i)).toBeNull()
   })
 
   it('esconde o erro de campo que ainda não foi tocado', () => {
+    // Digitar uma letra só já deixa o campo abaixo do mínimo (2), mas sem
+    // blur ainda não há erro — "tocado" aqui é ter saído do campo.
     render(<Produto slug="certificado-mapa-impresso" />)
     fireEvent.change(screen.getByLabelText(/Nome de quem recebe/i), { target: { value: 'A' } })
     expect(screen.queryByText(/campo vazio/i)).toBeNull()
@@ -144,6 +168,8 @@ describe('configurador', () => {
   })
 
   it('marca o campo inválido para leitores de tela', () => {
+    // `aria-invalid` é o gancho que o `finalizar` usa para achar o primeiro
+    // campo errado e levar o foco até lá.
     render(<Produto slug="certificado-mapa-impresso" />)
     const campo = screen.getByLabelText(/Nome de quem recebe/i)
     fireEvent.change(campo, { target: { value: 'A' } })
@@ -151,6 +177,7 @@ describe('configurador', () => {
     expect(campo.getAttribute('aria-invalid')).toBe('true')
   })
 
+  // --- Prévia ao vivo: o que é digitado aparece no certificado ---
   it('a prévia acompanha o que é digitado', () => {
     const { container } = render(<Produto slug="certificado-mapa-impresso" />)
     fireEvent.change(screen.getByLabelText(/Nome de quem recebe/i), {
@@ -160,11 +187,14 @@ describe('configurador', () => {
   })
 
   it('trocar de estrela muda a prévia', () => {
+    // Os dados astronômicos da folha são os do catálogo novo — mesma fonte
+    // (`shared/stars.js`) que alimenta o PDF.
     const { container } = render(<Produto slug="certificado-mapa-impresso" />)
     fireEvent.click(screen.getByRole('button', { name: /Sirius/ }))
     expect(container.textContent).toContain('α Canis Majoris')
   })
 
+  // --- Moderação: contador do limite de 600 caracteres ---
   it('conta os caracteres da mensagem', () => {
     render(<Produto slug="certificado-mapa-impresso" />)
     const campo = screen.getByLabelText(/Mensagem no certificado/i)
@@ -172,14 +202,76 @@ describe('configurador', () => {
     expect(screen.getByText('3/600')).toBeTruthy()
   })
 
+  // --- Checkout: o preço é calculado no servidor (Mercado Pago), nunca na tela ---
   it('avisa que o preço vem do servidor, e não da tela', () => {
     render(<Produto slug="certificado-mapa-impresso" />)
     expect(document.body.textContent).toMatch(/Mercado Pago/i)
   })
+
+  // --- Dica do e-mail: a prop se chama `dica`, não `hint` ---
+  it('mostra a dica do e-mail (o certificado chega para lá)', () => {
+    // Regressão: o campo passava `hint="…"` e o componente só lia `dica`, então
+    // o texto de ajuda ficava invisível mesmo com a prop preenchida.
+    render(<Produto slug="certificado-mapa-impresso" />)
+    expect(screen.getByText(/É para cá que o certificado chega/i)).toBeTruthy()
+  })
 })
 
+// === Link de navegação interna ===
+describe('Link', () => {
+  afterEach(() => {
+    window.history.pushState(null, '', '/')
+  })
+
+  it('executa o onClick do chamador e ainda navega pela SPA', () => {
+    // Regressão: `{...resto}` vinha depois do handler de navegação, então o
+    // `onClick` do chamador SUBSTITUÍA a navegação — o link do menu mobile
+    // (que passa onClick para fechar o menu) virava `<a>` nativa e
+    // recarregava a SPA inteira.
+    const aoClicar = vi.fn()
+    render(
+      <Link para="/rastrear" onClick={aoClicar}>
+        Rastrear pedido
+      </Link>,
+    )
+
+    fireEvent.click(screen.getByText('Rastrear pedido'))
+
+    expect(aoClicar).toHaveBeenCalledTimes(1)
+    // pushState = navegação interna, sem recarregar a página.
+    expect(window.location.pathname).toBe('/rastrear')
+  })
+
+  it('deixa o chamador cancelar a navegação com preventDefault', () => {
+    // Mesmo contrato do `onClick` nativo de uma `<a>`: quem chama pode
+    // decidir que o clique não deve navegar.
+    render(
+      <Link
+        para="/rastrear"
+        onClick={(evento) => {
+          evento.preventDefault()
+        }}
+      >
+        Rastrear pedido
+      </Link>,
+    )
+
+    fireEvent.click(screen.getByText('Rastrear pedido'))
+    expect(window.location.pathname).toBe('/')
+  })
+
+  it('navega normalmente quando ninguém passa onClick', () => {
+    render(<Link para="/rastrear">Rastrear pedido</Link>)
+    fireEvent.click(screen.getByText('Rastrear pedido'))
+    expect(window.location.pathname).toBe('/rastrear')
+  })
+})
+
+// === Rastreio: consulta protegida por código + e-mail ===
 describe('rastreamento', () => {
   it('pede código e e-mail — o código sozinho não protege nada', () => {
+    // Os dois campos têm `label` ligada por `htmlFor`: se o id se perder,
+    // `getByLabelText` falha antes de qualquer asserção de texto.
     render(<Rastrear />)
     expect(screen.getByLabelText(/Código do pedido/i)).toBeTruthy()
     expect(screen.getByLabelText(/E-mail da compra/i)).toBeTruthy()
@@ -196,6 +288,8 @@ describe('rastreamento', () => {
   })
 
   it('não deixa o resultado vazar para quem não tem o par certo', async () => {
+    // 404 do servidor vira alerta genérico: a mensagem não pode nem dizer
+    // que o código existe nem qual dos dois campos estava errado.
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 404,
@@ -212,6 +306,7 @@ describe('rastreamento', () => {
   })
 })
 
+// === Casca do App: rotas e rodapé ===
 describe('casca da loja', () => {
   // O cabeçalho e o rodapé só existem no App. Renderizar as páginas isoladas
   // não os alcança — foi assim que um `ANO` solto no rodapé chegou ao ar e
@@ -238,8 +333,11 @@ describe('casca da loja', () => {
   })
 })
 
+// === Regras de CSS das quais a prévia depende (fontes e @layer) ===
 describe('prévia do certificado', () => {
   it('importa as fontes que o PDF usa, senão a folha sai em Georgia', () => {
+    // Lido do disco, não do bundle: o que quebra em produção é o `@import`
+    // sumir do CSS final, não o componente.
     const css = readFileSync(join(process.cwd(), 'loja/src/index.css'), 'utf8')
     expect(css).toMatch(/@import\s+["'][^"']*fonts\.css["']/)
   })
