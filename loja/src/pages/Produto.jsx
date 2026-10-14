@@ -245,7 +245,7 @@ export default function Produto({ slug }) {
                 onChange={setParaQuem}
                 onBlur={() => marcarTocado('honoreeName')}
                 erro={erroDe('honoreeName')}
-                placeholder="Ex.: Geovanna Beatriz Santos Trindade"
+                placeholder="Ex.: Maria Fernanda Oliveira"
                 maxLength={80}
               />
               <p className="mt-2 text-xs text-ivory/50">
