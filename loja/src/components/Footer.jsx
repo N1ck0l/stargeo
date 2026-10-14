@@ -67,6 +67,11 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link para="/editar" className="text-ivory/70 transition hover:text-gold">
+                  Editar minha página
+                </Link>
+              </li>
+              <li>
                 <a href="mailto:contato@stargeo.com" className="text-ivory/70 transition hover:text-gold">
                   Falar com a gente
                 </a>

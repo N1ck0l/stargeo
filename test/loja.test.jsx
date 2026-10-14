@@ -11,6 +11,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CertificadoPreview } from '../loja/src/components/CertificadoPreview.jsx'
 import Loja from '../loja/src/App.jsx'
+import Editar from '../loja/src/pages/Editar.jsx'
 import { Link } from '../loja/src/lib/Link.jsx'
 import Produto from '../loja/src/pages/Produto.jsx'
 import Rastrear from '../loja/src/pages/Rastrear.jsx'
@@ -267,6 +268,59 @@ describe('Link', () => {
   })
 })
 
+// === Acesso do cliente à página própria (/editar) ===
+describe('acesso do cliente', () => {
+  afterEach(() => {
+    localStorage.clear()
+    window.history.pushState(null, '', '/')
+  })
+
+  it('pede o código da página', () => {
+    render(<Editar />)
+    expect(screen.getByLabelText(/Código da página/i)).toBeTruthy()
+  })
+
+  it('leva para a edição com o código no formato certo, em maiúsculas', () => {
+    // A tela só resolve o código: o login de verdade (e-mail + token) é do
+    // EdicaoPagina, em /p/:code/editar. Minúsculas na entrada saem
+    // maiúsculas, como o servidor normaliza.
+    render(<Editar />)
+    fireEvent.change(screen.getByLabelText(/Código da página/i), {
+      target: { value: 'sg-ab3k-9zxm' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Continuar/i }))
+    expect(window.location.pathname).toBe('/p/SG-AB3K-9ZXM/editar')
+  })
+
+  it('recusa código fora do formato, sem sair da tela', () => {
+    render(<Editar />)
+    fireEvent.change(screen.getByLabelText(/Código da página/i), {
+      target: { value: '12345' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Continuar/i }))
+    expect(screen.getByRole('alert').textContent).toMatch(/SG-XXXX-XXXX/)
+    expect(window.location.pathname).toBe('/')
+  })
+
+  it('pré-preenche o código do último pedido deste navegador', () => {
+    // O checkout grava `stargeo:ultimo-pedido` antes de sair para o pagamento
+    // — quem acabou de comprar não digita o código de novo.
+    localStorage.setItem(
+      'stargeo:ultimo-pedido',
+      JSON.stringify({ code: 'SG-AB3K-9ZXM', email: 'ana@exemplo.com' }),
+    )
+    render(<Editar />)
+    expect(screen.getByLabelText(/Código da página/i).value).toBe('SG-AB3K-9ZXM')
+  })
+
+  it('o rodapé oferece o acesso em todas as telas', () => {
+    // Sem este link, o cliente só descobria a edição pelo pé da própria
+    // página /p/ — que é justamente a página que ele não sabe que existe.
+    render(<Loja />)
+    expect(screen.getByRole('link', { name: /Editar minha página/i })).toBeTruthy()
+  })
+})
+
 // === Rastreio: consulta protegida por código + e-mail ===
 describe('rastreamento', () => {
   it('pede código e e-mail — o código sozinho não protege nada', () => {
@@ -316,7 +370,7 @@ describe('casca da loja', () => {
     window.history.pushState(null, '', '/')
   })
 
-  it.each(['/', '/rastrear', '/produto/certificado-digital', '/obrigado'])(
+  it.each(['/', '/rastrear', '/editar', '/produto/certificado-digital', '/obrigado'])(
     'monta a rota %s sem cair na tela de erro',
     (caminho) => {
       window.history.pushState(null, '', caminho)

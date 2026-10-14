@@ -120,6 +120,11 @@ const FAQ = [
     resposta:
       'O PDF é feito para isso: A4 em alta resolução, com uma versão clara que economiza tinta de jato de tinta. Muita gente imprime e emoldura.',
   },
+  {
+    pergunta: 'Já comprei, como acesso minha página?',
+    resposta:
+      'Clique em "Editar minha página" no rodapé, ou venha direto para Editar. Digite o código que veio no e-mail da compra e o e-mail usado no pagamento — a página abre e você ajusta a carta, a assinatura e a mensagem pessoal quando quiser.',
+  },
 ]
 
 /**
@@ -657,6 +662,15 @@ function ChamadaFinal() {
             <Link para="/produto/certificado-mapa-impresso" className="btn btn-primary animate-pulse-glow mt-8">
               Montar o meu certificado
             </Link>
+            {/* Quem já comprou não quer um segundo certificado — quer a
+                página daquele. O atalho sai do mesmo bloco, em tamanho de
+                leitura, sem disputar o botão principal. */}
+            <p className="mt-6 text-sm text-ivory/55">
+              Já é seu?{' '}
+              <Link para="/editar" className="text-gold transition hover:underline">
+                Acesse sua página para editar o texto
+              </Link>
+            </p>
           </div>
         </Reveal>
       </div>

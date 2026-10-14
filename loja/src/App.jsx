@@ -9,8 +9,9 @@
  * erro). Exporta `default App`.
  *
  * Rotas internas, todas em `telaPara` abaixo: `/` (home), `/produto/:slug`,
- * `/obrigado`, `/rastrear`, `/admin`, `/p/:code` (página dedicada) e
- * `/p/:code/editar`. Não existe rota 404 — caminho desconhecido cai na home.
+ * `/obrigado`, `/rastrear`, `/editar` (acesso do cliente à página própria),
+ * `/admin`, `/p/:code` (página dedicada) e `/p/:code/editar`. Não existe rota
+ * 404 — caminho desconhecido cai na home.
  *
  * Invariantes: a troca de tela é toda SPA (`lib/rota.js` + `lib/Link.jsx`);
  * os poucos `<a>` que existem são o link de pular conteúdo (rolagem interna)
@@ -24,6 +25,7 @@ import Home from './pages/Home.jsx'
 import Produto from './pages/Produto.jsx'
 import Rastrear from './pages/Rastrear.jsx'
 import Obrigado from './pages/Obrigado.jsx'
+import Editar from './pages/Editar.jsx'
 import { PaginaDedicada } from './pagina/PaginaDedicada.jsx'
 import { EdicaoPagina } from './pagina/EdicaoPagina.jsx'
 import { AdminPagina } from './admin/AdminPagina.jsx'
@@ -48,6 +50,9 @@ function telaPara(caminho) {
 
   if (limpo === '/rastrear') return <Rastrear />
   if (limpo === '/obrigado') return <Obrigado />
+  // Acesso do cliente à própria página: só resolve o código e passa para
+  // `/p/:code/editar`, que é onde o login de verdade (e-mail + token) mora.
+  if (limpo === '/editar') return <Editar />
   // Painel administrativo: fora do menu, fora do SEO — quem sabe o endereço
   // é quem tem conta (e a lista branca do servidor deixa entrar).
   if (limpo === '/admin') return <AdminPagina />
