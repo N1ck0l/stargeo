@@ -1,4 +1,19 @@
-/** Formatação compartilhada das telas do painel. */
+/**
+ * Helpers de formatação e erro das telas do painel.
+ *
+ * Arquivo sem React de propósito: é a camada de "falar com o administrador"
+ * (moeda, data, status, mensagem) e o tratador de erro que TODAS as abas
+ * compartilham. Quem importa: `AdminPagina`, `VisaoGeral`, `Pedidos`,
+ * `Paginas` e `EditorAdmin`.
+ *
+ * Exports: `ROTULOS_STATUS`, `rotuloStatus`, `classeStatus`, `brl`,
+ * `dataCurta`, `mensagemDeErro`, `tratarErro`.
+ *
+ * Invariante: `tratarErro` é a ÚNICA porta de 401 — se ele não for chamado,
+ * uma sessão vencida vira mensagem de erro em tela, e não volta pro login.
+ * Por isso ele devolve `null` nesse caso: quem chama só mostra se houver
+ * texto.
+ */
 import { ErroApi } from '../lib/api.js'
 
 /** Status do Mercado Pago em palavras de gente. */

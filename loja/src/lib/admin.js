@@ -21,6 +21,7 @@ import { ErroApi, chamar } from './api.js'
 
 let clientePromise = null
 
+/** Um único cliente Supabase por sessão da página — o import já é sob demanda. */
 function supabase() {
   if (!clientePromise) {
     clientePromise = import('@supabase/supabase-js').then(({ createClient }) =>
@@ -66,6 +67,7 @@ export async function sessaoAtual() {
   return data.session ?? null
 }
 
+/** Sai do painel: o token morre no servidor, e a tela volta para o login. */
 export async function sairDoPainel() {
   const db = await supabase()
   await db.auth.signOut()

@@ -8,6 +8,17 @@ import { useReveal } from '../lib/useReveal'
  * ```
  *
  * Se a pessoa pediu movimento reduzido, o conteúdo aparece sem animação.
+ *
+ * Papel na arquitetura: casca de animação reutilizável por TODAS as seções.
+ * A animação em si não mora aqui — mora na classe `.reveal` de `index.css`,
+ * que lê exatamente as três variáveis passadas abaixo (`--reveal-delay`,
+ * `--reveal-distance`, `--reveal-duration`). Trocar o nome de uma variável
+ * silencia todas as entradas do site.
+ *
+ * `as` escolhe a tag (`"p"`, `"h2"`, `"section"`…), e `...rest` vai direto
+ * para o elemento — é assim que chegam `className` extra, `id` e atributos
+ * ARIA. O `className` recebido entra DEPOIS das classes `reveal`, então um
+ * utilitário do chamador consegue sobrescrever o padrão.
  */
 export function Reveal({
   as: Tag = 'div',

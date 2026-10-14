@@ -44,6 +44,11 @@ export function VisaoGeral({ aoExpirar, aoAbrirPagina, aoIrParaPedidos }) {
 
   const { pedidos, paginas } = dados
 
+  /*
+   * Os seis números do topo, na ordem em que o dono da loja olha: volume,
+   * dinheiro e ritmo primeiro (`destaque` pinta de dourado), o resto depois.
+   * Receita e "pagos" vêm filtrados no servidor — não é a soma da tela.
+   */
   const cartoes = [
     { valor: pedidos.total, rotulo: 'Pedidos', destaque: false },
     { valor: pedidos.porStatus?.approved ?? 0, rotulo: 'Pagos', destaque: true },
@@ -68,6 +73,11 @@ export function VisaoGeral({ aoExpirar, aoAbrirPagina, aoIrParaPedidos }) {
         ))}
       </div>
 
+      {/*
+        O único alerta desta tela: falha de e-mail é o problema que passa
+        despercebido (pedido pago, entrega silenciosa) — por isso ganha aviso
+        aqui, mas a correção (reenvio) mora na aba Pedidos.
+      */}
       {pedidos.comErroDeEmail > 0 && (
         <p className="mt-4 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
           {pedidos.comErroDeEmail}{' '}

@@ -4,6 +4,20 @@
  * Junta as duas pontas da entrega porque elas sempre andam juntas: o PDF só é
  * útil se chegar no e-mail, e o e-mail só serve se o PDF for o que a pessoa
  * comprou.
+ *
+ * Não tem rota própria — é código compartilhado, chamado por `mp-webhook`
+ * (entrega do pedido pago) e por `resend-certificate` (reenvio pelo painel).
+ * Nenhuma das duas expõe este módulo ao navegador: quem chega aqui já passou
+ * pela autenticação de quem a chama (assinatura do webhook / service_role).
+ *
+ * Efeitos colaterais, os dois mais caros do projeto: grava o PDF no bucket
+ * PRIVADO `certificados` e dispara e-mail pelo Resend. Nada aqui lê corpo de
+ * requisição nem decide dono de nada — a identidade de quem entrega vem de
+ * quem chamou.
+ *
+ * Invariantes: o pedido sai sempre com as duas versões do arquivo (escura e
+ * clara), o link do e-mail vale 30 dias e morre depois, e reentregar é seguro
+ * — o Storage leva `upsert`, e o e-mail é reenviado só quando o admin manda.
  */
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import { buildCertificatePdf } from '../../../shared/pdf.js'
@@ -23,7 +37,13 @@ import { dataEmPortugues } from './datas.ts'
  * gerado pelo banco, então não pode colidir nem ser adivinhado. O código
  * curto fica só para a pessoa.
  *
- * @returns o caminho no Storage
+ * O mesmo pedido pode ser processado mais de uma vez (webhook reenviado,
+ * reenvio do painel) — por isso o upload é `upsert` e o hash devolvido serve
+ * para conferir se o arquivo mudou.
+ *
+ * @param luz    `false` = versão escura (a original); `true` = clara, que
+ *               economiza tinta na impressão. As duas convivem no mesmo pedido.
+ * @returns o caminho no Storage, o hash SHA-256 em hex e o tamanho em bytes
  */
 export async function gerarEGuardar(
   db: SupabaseClient,
@@ -66,6 +86,8 @@ export async function gerarEGuardar(
     )
   }
 
+  // Duas entradas no bucket para o mesmo pedido: `certificado.pdf` (escura) e
+  // `certificado-claro.pdf` (clara). O sufixo é o único que as separa.
   const caminho = `${pedido.id}/certificado${luz ? '-claro' : ''}.pdf`
 
   // `upsert` e não `insert`: o Mercado Pago reenvia o webhook quando não recebe
@@ -97,6 +119,10 @@ export async function gerarEGuardar(
 
 /**
  * Envia o e-mail com o link para baixar o certificado.
+ *
+ * Efeito colateral: uma mensagem real na caixa de entrada de quem comprou
+ * (Resend). Em caso de falha lança `ErroApp` — nada é gravado como entregue,
+ * e é o chamador quem decide se tenta de novo.
  *
  * A estrela chega por parâmetro porque `orders` guarda só `star_slug`, não o
  * nome nem a constelação. O webhook já busca a estrela para gerar o PDF, e o

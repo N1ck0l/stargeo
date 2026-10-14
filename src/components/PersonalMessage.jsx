@@ -13,6 +13,9 @@ export function PersonalMessage() {
   if (content.mostrarMensagem === false) return null
   if (!raw) return null
 
+  // Duas ou mais quebras de linha viram parágrafo; uma única quebra é só
+  // quebra de linha dentro do mesmo parágrafo. É o mesmo critério que o
+  // painel de admin usa para juntar o texto de volta.
   const paragraphs = raw.split(/\n{2,}/).filter(Boolean)
 
   return (

@@ -13,6 +13,18 @@
  * Chamar com `{action: …}` — lista branca por `switch`, sem roteamento dinâmico
  * que aceite caminho arbitrário. Reenvio de e-mail e escrita em `orders`
  * acontecem aqui dentro com a service_role; a chave nunca chega ao navegador.
+ *
+ * Endereço: `https://<ref>.supabase.co/functions/v1/admin-api`, chamado por
+ * `loja/src/lib/admin.js`. Publicada com `--no-verify-jwt` (ver `LOJA.md`) —
+ * o gateway não valida nada, então é ESTE código que autentica cada ação.
+ *
+ * Efeitos colaterais: grava em `pages` (criar, atualizar, publicar) e dispara
+ * o `resend-certificate`, que manda e-mail de verdade.
+ *
+ * Invariante: a service_role enxerga o schema inteiro, então o que protege o
+ * dado é a lista branca de ações — nenhuma aceita tabela, coluna ou SQL vindo
+ * do corpo. O que o painel recebe é sempre o retorno de uma função escrita
+ * aqui, nunca uma consulta montada em tempo de execução.
  */
 import { comHandler, ErroApp, json, lerJson } from '../_shared/http.ts'
 import { admin, variavel } from '../_shared/supabase.ts'
@@ -57,6 +69,9 @@ Deno.serve(
     const db = admin()
     const operador = await verificarAdmin(db, request)
 
+    // Lista branca de ações: cada `case` chama uma função própria. O que não
+    // está aqui vira 422 — não existe "ação genérica" que aceite SQL, coluna
+    // ou caminho arbitrário do corpo.
     switch (acao) {
       case 'overview':
         return json(request, await visaoGeral(db))
@@ -97,6 +112,17 @@ interface Operador {
   email: string
 }
 
+/**
+ * Quem está chamando — e se ele pode.
+ *
+ * Duas travas nesta ordem: sessão válida do Supabase Auth, depois linha em
+ * `admins`. A ordem importa: um id que não existe no Auth nunca chega a
+ * revelar se ele consta (ou não) na lista branca.
+ *
+ * @returns o id da conta e o e-mail gravado em `admins`. As ações de página
+ *          recebem este objeto como contexto; hoje não o usam (`_operador`) —
+ *          é o encaixe natural para registrar quem alterou o quê.
+ */
 async function verificarAdmin(db: ReturnType<typeof admin>, request: Request): Promise<Operador> {
   const token = lerToken(request)
   if (!token) {
@@ -131,6 +157,13 @@ async function verificarAdmin(db: ReturnType<typeof admin>, request: Request): P
 // Visão geral
 // ---------------------------------------------------------------------------
 
+/**
+ * Aba "visão geral": agregados que o painel desenha em cima.
+ *
+ * Só leitura, com teto de 500 linhas por lista: os números são calculados em
+ * memória aqui, e trazer `orders` inteira para contar é o caminho mais rápido
+ * para uma função serverless estourar o tempo de execução.
+ */
 async function visaoGeral(db: ReturnType<typeof admin>) {
   const [pedidos, paginas] = await Promise.all([
     db
@@ -188,6 +221,12 @@ async function visaoGeral(db: ReturnType<typeof admin>) {
 // Pedidos
 // ---------------------------------------------------------------------------
 
+/**
+ * Pedidos paginados, com filtro opcional por status e busca livre.
+ *
+ * `limit` é preso entre 1 e 200 e `offset` não desce de zero: os dois vêm do
+ * corpo da requisição, e número do cliente nunca manda no banco.
+ */
 async function listarPedidos(db: ReturnType<typeof admin>, corpo: Record<string, unknown>) {
   const status = typeof corpo.status === 'string' && corpo.status ? corpo.status : null
   const busca = typeof corpo.q === 'string' ? limpar(corpo.q).slice(0, 80) : ''
@@ -232,7 +271,14 @@ async function listarPedidos(db: ReturnType<typeof admin>, corpo: Record<string,
   }
 }
 
-/** Repasse para `resend-certificate`, que valida e envia com a service_role. */
+/**
+ * Repasse para `resend-certificate`, que valida e envia com a service_role.
+ *
+ * Não envia e-mail daqui: a checagem (pedido pago, PDF existente, não
+ * entregue) mora na função chamada, para valer igual quando o reenvio vier
+ * de outro caminho. A chamada leva a service_role no header — é por isso que
+ * ela acontece servidor a servidor, nunca do navegador.
+ */
 async function reenviarEmail(corpo: Record<string, unknown>) {
   const orderId = String(corpo.orderId ?? '')
   if (!orderId) throw new ErroApp('pedido_ausente', 'Informe o pedido.', 422)
@@ -269,6 +315,12 @@ async function reenviarEmail(corpo: Record<string, unknown>) {
 // Estrelas (seletor do editor)
 // ---------------------------------------------------------------------------
 
+/**
+ * Catálogo inteiro para o seletor do editor de página.
+ *
+ * Sem filtro de `active`: o painel precisa ver também as estrelas fora da
+ * vitrine (uma página já publicada pode apontar para uma delas).
+ */
 async function listarEstrelas(db: ReturnType<typeof admin>) {
   const { data, error } = await db
     .from('stars')
@@ -284,6 +336,13 @@ async function listarEstrelas(db: ReturnType<typeof admin>) {
 // Páginas
 // ---------------------------------------------------------------------------
 
+/**
+ * Páginas para a aba "páginas" — inclui `draft`, que é justamente o que o
+ * `get-page` responde como 404 para o público.
+ *
+ * Teto de 200 linhas, como em `listarPedidos`: o painel pagina no cliente e
+ * não precisa do histórico inteiro de uma vez.
+ */
 async function listarPaginas(db: ReturnType<typeof admin>, corpo: Record<string, unknown>) {
   const status = typeof corpo.status === 'string' && corpo.status ? corpo.status : null
   const busca = typeof corpo.q === 'string' ? limpar(corpo.q).slice(0, 80) : ''
@@ -313,6 +372,16 @@ async function listarPaginas(db: ReturnType<typeof admin>, corpo: Record<string,
   return { paginas: data ?? [], total: count ?? 0 }
 }
 
+/**
+ * Abre uma página para o editor do painel: linha crua + `conteudo` já no
+ * formato que os componentes do site leem.
+ *
+ * Rascunho abre normalmente — aqui quem olha é o admin, e o `status` vem
+ * junto para o front mostrar "publicada" ou "rascunho".
+ *
+ * É a mesma forma que `criarPagina` e `atualizarPagina` devolvem ao terminar,
+ * para o editor não ter dois formatos de "página aberta".
+ */
 async function abrirPagina(db: ReturnType<typeof admin>, corpo: Record<string, unknown>) {
   const codigo = String(corpo.code ?? '').trim().toUpperCase()
   if (!RE_CODIGO.test(codigo)) {
@@ -368,6 +437,7 @@ async function criarPagina(
   }
 
   // --- origem: manual -----------------------------------------------------
+  // Nada de pedido por trás: o admin escolhe nome, estrela, código e data.
   const nome = limpar(String(corpo.honoree_name ?? ''))
   const slug = limpar(String(corpo.star_slug ?? ''))
   const codigo = corpo.code ? String(corpo.code).trim().toUpperCase() : gerarCodigo()
@@ -440,6 +510,17 @@ async function criarPagina(
   return await abrirPagina(db, { code: criada.code })
 }
 
+/**
+ * Atualização parcial: só o que veio no corpo entra na conta.
+ *
+ * Cada campo presente passa pela mesma régua da criação (formato do código,
+ * data ISO, estrela que existe no catálogo, limite de texto) e `conteudo` é
+ * mesclado sobre o que já está no banco ANTES de validar — um patch do front
+ * não apaga campo que ele não conhece.
+ *
+ * Nada veio? 422 em vez de um `update` vazio: gravar sem mudar nada só
+ * poluiria o `updated_at`.
+ */
 async function atualizarPagina(
   db: ReturnType<typeof admin>,
   corpo: Record<string, unknown>,
@@ -562,7 +643,15 @@ function mesclarConteudo(base: ConteudoPagina, patch: unknown): ConteudoPagina {
   return conteudo
 }
 
-/** Código `SG-XXXX-XXXX` com o alfabeto do pedido, tentando de novo em colisão. */
+/**
+ * Código `SG-XXXX-XXXX` com o mesmo alfabeto do `gen_order_code()` de
+ * `0001_loja.sql` — as duas pontas precisam se entender, porque o código é o
+ * endereço da página e o que o cliente digita no rastreio.
+ *
+ * Não há re-sorteio em colisão: se o código já existe, o `unique` de
+ * `pages.code` barra com 23505 e `criarPagina` traduz para 409
+ * (`codigo_em_uso`). Sortear de novo aqui não mudaria o desfecho.
+ */
 function gerarCodigo(): string {
   const bloco = () =>
     Array.from({ length: 4 }, () => ALFABETO[crypto.getRandomValues(new Uint8Array(1))[0] % ALFABETO.length]).join('')

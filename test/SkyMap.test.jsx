@@ -1,3 +1,9 @@
+/**
+ * Mapa do céu sob `prefers-reduced-motion: reduce`: todo comando (botões e
+ * teclado) precisa redesenhar o canvas na hora, sem depender do laço de
+ * animação. Regressão de bug: com movimento reduzido a vista "mudava" mas
+ * nada era repintado. A métrica de redesenho está explicada no bloco abaixo.
+ */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { SkyMap } from '../src/components/SkyMap'

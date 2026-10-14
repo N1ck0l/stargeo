@@ -1,16 +1,21 @@
 {
-  "//": "Configuração de tipo das Edge Functions. O runtime é o Deno, então os tipos do Deno e do Supabase vêm de CDN.",
+  "//": "Configuração de tipo das Edge Functions. O runtime é o Deno, então os tipos do Deno e do Supabase vêm de CDN. É o alvo de `npm run typecheck`.",
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    // Edge Functions importam o próprio arquivo com extensão (`./index.ts`),
+    // o que só é permitido com isto ligado.
     "allowImportingTsExtensions": true,
     "strict": true,
     "noUncheckedIndexedAccess": false,
     "noImplicitOverride": true,
+    // `shared/` é lido por este tsconfig, e ele não pode ganhar código morto
+    // às custas das functions: uma variável esquecida lá vira erro aqui.
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "skipLibCheck": true,
+    // Só checagem: a compilação em si é do empacotador do Deno em deploy.
     "noEmit": true,
     "allowJs": true,
     /*
@@ -31,6 +36,9 @@
       "npm:@supabase/supabase-js@2": ["./node_modules/@supabase/supabase-js/dist/index.d.cts"]
     }
   },
+  // `shared/` entra porque as functions importam os módulos de lá (e são JS
+  // puro, checáveis com allowJs). O site pessoal e a loja (`src/`, `loja/`,
+  // `test/`) ficam de fora: eles têm seu próprio caminho de build via Vite.
   "include": ["supabase/functions/**/*.ts", "supabase/functions/**/*.d.ts", "shared/**/*.js"],
   "exclude": ["node_modules", "dist", "test", "src"]
 }

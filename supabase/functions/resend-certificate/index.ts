@@ -14,6 +14,19 @@
  * prática significa que esta função NÃO PODE ser chamada do navegador. Ela é
  * chamada por outra Edge Function autenticada, ou por `curl` com o token. É
  * por isso que `verify_jwt` está ligado nas duas.
+ *
+ * URL: `https://<ref>.supabase.co/functions/v1/resend-certificate`. É a única
+ * função do projeto com `verify_jwt` LIGADO (ver `config.toml` e `LOJA.md`)
+ * porque, diferente das outras, esta não confere nada aqui dentro — ela confia
+ * em quem a chamou. O `admin-api` é quem coloca a service_role no header.
+ *
+ * Efeitos colaterais: envia e-mail de verdade (Resend) e grava `delivered_at`
+ * / `email_error` em `orders`.
+ *
+ * Idempotência: o reenvio só passa quando há pendência. Pedido entregue com
+ * sucesso (`delivered_at` e sem `email_error`) responde 409 — o segundo clique
+ * depois de um envio bom não manda cópia nova; ele volta a valer se o envio
+ * anterior tiver falhado.
  */
 import { comHandler, ErroApp, json, lerJson } from '../_shared/http.ts'
 import { admin } from '../_shared/supabase.ts'

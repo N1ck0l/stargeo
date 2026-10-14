@@ -18,6 +18,15 @@ import { Link } from '../lib/Link.jsx'
  * O caso "pagou mas o PDF ainda está sendo gerado" é o mais comum e o que mais
  * assusta quando mal explicado. Dizer isso com clareza evita o e-mail de
  * "cadê meu produto" que chega trinta segundos depois.
+ *
+ * Papel na arquitetura: rota `/obrigado` em `loja/src/App.jsx`, export
+ * default. A consulta usa `rastrear` de `lib/api.js` — o mesmo caminho de
+ * `/rastrear`, então os dois telas nunca discordam sobre um pedido.
+ *
+ * Invariantes: o estado mostrado vem do SERVIDOR; o parâmetro da URL é só
+ * leitura de contexto, nunca decisão. Nada do pedido aparece na URL ou na
+ * tela antes da confirmação do servidor. E toda tela tem saída: link para o
+ * rastreamento ou para a home.
  */
 export default function Obrigado() {
   const [estado, setEstado] = useState('consultando')
@@ -98,6 +107,21 @@ async function rastrearUltimo() {
   return rastrear({ code: codigo, email })
 }
 
+/**
+ * Traduz o pedido (mais o status que a URL trouxe, no máximo) em um dos
+ * cinco estados da tela.
+ *
+ * A ordem das verificações importa: `approved`/`in_process` vêm primeiro,
+ * porque "está pago" é a resposta que a pessoa quer ouvir e não pode ser
+ * sobrescrita por mais nada.
+ *
+ * O `statusUrl` é lido, mas não decide sozinho: com o pedido ainda `pending` no
+ * servidor, tanto o webhook que atrasou quanto o boleto que ainda não
+ * compensou caem em "processando" — é espera normal, não erro. Por isso as
+ * duas saídas do fim são idênticas; o que não pode acontecer é o pedido
+ * cair em "recusado" por causa de um parâmetro que o próprio navegador
+ * manda e ninguém autentica.
+ */
 function descrever(pedido, statusUrl) {
   if (pedido.status === 'approved' || pedido.status === 'in_process') return 'aprovado'
   if (pedido.status === 'rejected' || pedido.status === 'cancelled') return 'recusado'
@@ -108,6 +132,7 @@ function descrever(pedido, statusUrl) {
   return 'processando'
 }
 
+/** Espera curta com `aria-live`: se a consulta demorar, o leitor de tela anuncia em vez de ficar em silêncio. */
 function Consultando() {
   return (
     <div className="text-center" aria-live="polite">
@@ -121,6 +146,7 @@ function Consultando() {
   )
 }
 
+/** Dinheiro aceito. A promessa é de prazo ("minutos"), não de instante — é o que o webhook de geração cumpre. */
 function Aprovado() {
   return (
     <div className="text-center">
@@ -145,6 +171,7 @@ function Aprovado() {
   )
 }
 
+/** Ainda `pending` no servidor. Só aparece para quem acabou de pagar, e por isso o texto é de espera, não de problema. */
 function Processando() {
   return (
     <div className="text-center">
@@ -164,6 +191,7 @@ function Processando() {
   )
 }
 
+/** Recusado ou cancelado. A primeira linha ("Nada foi cobrado") é a pergunta que vem antes de qualquer outra. */
 function Recusado() {
   return (
     <div className="text-center">
@@ -179,6 +207,11 @@ function Recusado() {
   )
 }
 
+/**
+ * Sem código guardado neste navegador: compra feita no celular e voltada no
+ * computador, ou navegação privada. Não é erro — é o caminho normal para o
+ * rastreamento manual.
+ */
 function SemDados() {
   return (
     <div className="text-center">
@@ -195,6 +228,11 @@ function SemDados() {
   )
 }
 
+/**
+ * Ícone do estado, num dicionário de caminho + cor em vez de um `if` por
+ * tela. A cor NUNCA é o único sinal: cada ícone está ao lado de um título
+ * em texto, para quem não distingue vermelho de verde.
+ */
 function Icone({ tipo }) {
   const caminhos = {
     check: <path d="M4 12l5 5L20 6" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />,

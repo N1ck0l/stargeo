@@ -1,3 +1,11 @@
+/**
+ * Ponto de entrada da loja.
+ *
+ * É o único arquivo que o `index.html` da loja carrega: cria a raiz do React,
+ * importa o CSS do tema (`index.css`) e envolve o `App` na fronteira de erro.
+ * Quem importa: o HTML (via `<script type="module">`, apontado pelo
+ * `loja/vite.config.js`). Não exporta nada.
+ */
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'

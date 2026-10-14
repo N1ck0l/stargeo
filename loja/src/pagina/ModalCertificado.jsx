@@ -21,6 +21,8 @@ export function ModalCertificado({ open, onClose }) {
   const { content } = useContent()
   const painelRef = useRef(null)
   const folhaRef = useRef(null)
+  // Folha clara/escura: a MESMA opção `light` da prévia e do PDF — muda a
+  // papelada, nunca o conteúdo.
   const [claro, setClaro] = useState(false)
   const [baixando, setBaixando] = useState(false)
 
@@ -94,6 +96,9 @@ export function ModalCertificado({ open, onClose }) {
             setBaixando(true)
             try {
               const { toPng } = await import('html-to-image')
+              // pixelRatio 2: captura em dobro da resolução da folha na tela.
+              // O PDF continua sendo o documento — isto é o jeito rápido de
+              // guardar uma cópia sem esperar o e-mail.
               const url = await toPng(folhaRef.current, { pixelRatio: 2 })
               const link = document.createElement('a')
               link.href = url

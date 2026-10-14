@@ -8,9 +8,21 @@
  * 2. Lê o preço do BANCO — nunca do corpo da requisição.
  * 3. Grava o pedido e devolve o link de pagamento.
  *
- * O passo 2 é o que impede a klassik Fraude de editar um campo no navegador e
- * pagar R$ 0,01: o cliente manda o `productSlug` e pronto, o valor é o que a
+ * O passo 2 é o que impede a fraude clássica de editar um campo no navegador
+ * e pagar R$ 0,01: o cliente manda o `productSlug` e pronto, o valor é o que a
  * loja definiu.
+ *
+ * Endereço: `https://<ref>.supabase.co/functions/v1/create-checkout`,
+ * publicada com `--no-verify-jwt` (ver `LOJA.md`) — quem compra não tem
+ * sessão nenhuma, e a proteção é o preço no servidor, não o token.
+ *
+ * Efeitos colaterais: INSERT em `orders` (nascido `pending`, com o código de
+ * rastreio vindo do `default` do banco) e a criação da preferência no Mercado
+ * Pago. Não cobra nada: o que cobra é o link devolvido.
+ *
+ * Invariante: nada é gravado antes do texto passar pela moderação; e se a
+ * preferência falhar depois do INSERT, o pedido fica `pending` — que é a
+ * verdade (o pagamento nunca chegou a ser oferecido).
  */
 import { comHandler, ErroApp, idRequisicao, json, lerJson } from '../_shared/http.ts'
 import { admin } from '../_shared/supabase.ts'
@@ -74,6 +86,10 @@ Deno.serve(
 
     // A estrela precisa existir E estar na lista do produto. Sem essa segunda
     // condição, daria para comprar o kit básico e pedir Sirius nele.
+    // Sem `starSlug` no corpo, cai na primeira estrela do produto (a lista é a
+    // ordem de sugestão da vitrine). O último `??` é defesa contra produto
+    // cadastrado com `star_slugs` vazio — o gatilho de 0001 confere os slugs
+    // que existem, mas não obriga a lista a ter um.
     let starSlug = corpo.starSlug ?? produto.star_slugs[0] ?? 'kaus-australis'
 
     const { data: estrela } = await db
@@ -100,6 +116,8 @@ Deno.serve(
       amount_cents: produto.price_cents,
       customer_email: String(corpo.customerEmail).trim().toLowerCase(),
       customer_name: limpar(corpo.customerName ?? ''),
+      // CPF só com dígitos: máscara é coisa de formulário, e o banco guarda o
+      // número como ele é usado (emissão de nota).
       customer_doc: corpo.customerDoc ? String(corpo.customerDoc).replace(/\D/g, '') : null,
       star_slug: estrela.slug,
       honoree_name: limpar(corpo.honoreeName),
@@ -111,6 +129,8 @@ Deno.serve(
     const { data: pedido, error: erroPedido } = await db
       .from('orders')
       .insert(insercao)
+      // Só o que a resposta e a preferência pedem. O `code` vem do
+      // `gen_order_code()` (default da coluna) — gerado pelo banco, não aqui.
       .select('id, code, amount_cents')
       .single()
 

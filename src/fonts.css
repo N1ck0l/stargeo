@@ -15,6 +15,19 @@
    negrito em vez de fingir um desenho que não existe — o resultado na tela é
    idêntico ao de antes, com 10 arquivos a menos. */
 
+/*
+ * Duas leituras de cada bloco abaixo:
+ *
+ * - `font-display: swap` → o texto aparece de imediato na fonte de sistema e
+ *   troca quando o woff2 chega; sem ele a página fica em branco esperando.
+ * - `unicode-range` → declara que o arquivo cobre só o alfabeto latino (mais
+ *   alguns símbolos comuns). É o que impede o navegador de baixar a fonte ao
+ *   encontrar um glifo que ela nem tem.
+ *
+ * Uma família com dois estilos (o itálico do Cormorant) usa DOIS arquivos —
+ * aí sim o estilo é servido de verdade, e não é fingido pelo navegador.
+ */
+
 @font-face {
   font-family: 'Cinzel';
   font-style: normal;

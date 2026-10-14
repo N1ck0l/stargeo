@@ -77,6 +77,15 @@ export function CertificateModal({ open, onClose }) {
     }
   }, [content.nomeCurto])
 
+  /*
+   * Comportamento de diálogo enquanto `open` for verdadeiro.
+   *
+   * Quatro coisas acontecem aqui, e todas precisam ser desfeitas no cleanup:
+   * trava a rolagem do fundo (compensando a barra para o layout não pular),
+   * joga o foco no primeiro elemento focável, prende o `Tab` dentro do
+   * diálogo e devolve o foco a quem o tinha. Sem isso, quem navega por
+   * teclado continuaria acionando os botões do site escondidos por baixo.
+   */
   useEffect(() => {
     if (!open) return
 
@@ -129,6 +138,8 @@ export function CertificateModal({ open, onClose }) {
     <div
       className="animate-fade-in fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-night/80 p-4 backdrop-blur-sm sm:p-8"
       onClick={(event) => {
+        // Só fecha se o clique foi no próprio fundo: um clique que terminou
+        // dentro do cartão (arrasto do texto, seleção) não fecha nada.
         if (event.target === event.currentTarget) onClose()
       }}
     >
@@ -190,6 +201,12 @@ export function CertificateModal({ open, onClose }) {
           </p>
         )}
 
+        {/*
+          `id="certificate-print"` é o alvo de toda a regra `@media print` de
+          `index.css` (único elemento visível na folha); `sheetRef` é o que o
+          `html-to-image` fotografa. Trocar um dos dois quebra impressão ou
+          download — os dois precisam apontar para este mesmo div.
+        */}
         <div id="certificate-print" ref={sheetRef}
           className={`certificate-paper shimmer-border relative overflow-hidden rounded-sm border-2 p-6 text-center sm:p-10 ${paper ? 'certificate-light' : ''}`}
         >

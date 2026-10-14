@@ -18,6 +18,8 @@ import {
   SCALE_DEFAULT,
 } from './astro.js'
 
+// Contador de falhas em vez de exceção: o relatório completo interessa mais
+// do que parar no primeiro erro. O código de saída (0/1) é o que o CI lê.
 const D = Math.PI / 180
 let failures = 0
 const check = (label, ok, detail = '') => {
@@ -34,6 +36,11 @@ const W = 800
 const H = 600
 
 console.log('=== 1. projeto bate com a fórmula gnomônica independente ===')
+/**
+ * Reimplementação independente da projeção gnomônica, escrita direto da
+ * fórmula (ξ = A/C, η = B/C) sem reaproveitar nada de `shared/astro.js`.
+ * Comparar as duas é o que garante que uma regressão não passe despercebida.
+ */
 function reference(raHours, decDeg, v) {
   const ra = raHours * 15 * D
   const dec = decDeg * D

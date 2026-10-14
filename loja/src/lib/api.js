@@ -9,7 +9,14 @@
 
 const BASE = import.meta.env.VITE_FUNCTIONS_URL
 
-/** Erro com o código estável que a função devolveu. */
+/**
+ * Erro com o código estável que a função devolveu.
+ *
+ * `codigo` é o `erro` do corpo JSON (ex.: `codigo_invalido`), usado para
+ * decidir a mensagem; `status` é o HTTP — `0` significa que a chamada nem
+ * saiu (`VITE_FUNCTIONS_URL` ausente), e por isso nunca é confundido com um
+ * 401/404 de verdade.
+ */
 export class ErroApi extends Error {
   constructor(codigo, mensagem, status) {
     super(mensagem)

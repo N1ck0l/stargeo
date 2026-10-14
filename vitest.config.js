@@ -1,3 +1,17 @@
+/**
+ * Ambiente de teste dos componentes React (Vitest + jsdom).
+ *
+ * Roda via `vitest run`, que por sua vez é o último passo de `npm test`. Os
+ * testes numéricos de astronomia (astro/sky) e os da moderação NÃO passam por
+ * aqui: são scripts Node puros (`node src/lib/astro.test.mjs` etc.), porque
+ * usam `process.exit` e não se dariam bem dentro do runner.
+ *
+ * O ponto não óbvio deste arquivo são os aliases `npm:*` — as Edge Functions
+ * Deno importam com esse prefixo, e os mesmos módulos (`shared/pdf.js`) são
+ * testados aqui em Node. Sem o alias, o Vitest falharia em resolver
+ * 'npm:pdf-lib' antes de qualquer teste rodar.
+ */
+
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 

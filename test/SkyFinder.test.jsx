@@ -1,3 +1,8 @@
+/**
+ * Localizador de estrela pelo céu (Mira): contrato de diálogo modal —
+ * presença ARIA, trava de rolagem, ciclo de foco e fechamento com Esc.
+ * O motivo de o overlay ter virado modal está no bloco abaixo.
+ */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SkyFinder } from '../src/components/SkyFinder'

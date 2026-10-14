@@ -4,12 +4,24 @@
  * Fala com a API v1 por `fetch`, sem SDK: o SDK oficial é enorme para o que
  * usamos (uma preferência, uma consulta e uma assinatura) e traz dependências
  * que não funcionam bem no runtime da Edge Function.
+ *
+ * Quem usa: `create-checkout` (criar a preferência), `mp-webhook` (consultar o
+ * pagamento e conferir a assinatura do corpo). Autenticação: Bearer do
+ * `MERCADO_PAGO_ACCESS_TOKEN` — segredo que só existe em `supabase secrets`.
+ * Nenhum valor daqui volta para o navegador.
  */
 import { ErroApp } from './http.ts'
 import { variavel } from './supabase.ts'
 
 const BASE = 'https://api.mercadopago.com'
 
+/**
+ * Cabeçalhos comuns a toda chamada: o token da conta e o content-type.
+ *
+ * `X-Idempotency-Key` fica opcional: quando presente, o Mercado Pago trata a
+ * repetição da mesma chave como a mesma operação — é o que evita criar duas
+ * preferências idênticas se a rede repetir a chamada.
+ */
 function headers(idempotencyKey?: string): HeadersInit {
   const h: Record<string, string> = {
     Authorization: `Bearer ${variavel('MERCADO_PAGO_ACCESS_TOKEN')}`,
@@ -30,7 +42,9 @@ export interface ItemPreferencia {
 
 export interface Preferencia {
   id: string
+  /** Link de pagamento em produção — é o que vai para o cliente. */
   init_point: string
+  /** Mesmo link, no ambiente de teste do Mercado Pago. */
   sandbox_init_point: string
 }
 
@@ -112,16 +126,25 @@ export async function criarPreferencia(opcoes: {
 
 export interface Pagamento {
   id: number
+  /** Vocabulário do Mercado Pago — ver `ehAprovado` e `traduzirStatus`. */
   status: string
   status_detail?: string
+  /** `external_reference` é o que amarra o pagamento ao nosso `orders.id`. */
   external_reference?: string
   date_approved?: string
   date_last_updated?: string
   payment_method_id?: string
+  /** Em REAIS (a API não fala em centavos). */
   transaction_amount: number
 }
 
-/** Busca um pagamento pelo id. */
+/**
+ * Busca um pagamento pelo id.
+ *
+ * É a FONTE DA VERDADE do webhook: o corpo que chega é forjável por qualquer
+ * um que descubra a URL, então o status que decide a entrega é este — lido
+ * direto na API, com o token da conta.
+ */
 export async function buscarPagamento(id: string | number): Promise<Pagamento> {
   const resposta = await fetch(`${BASE}/v1/payments/${encodeURIComponent(String(id))}`, {
     headers: headers(),
@@ -197,7 +220,13 @@ function compararSeguro(a: string, b: string): boolean {
   return diff === 0
 }
 
-/** 'approved' | 'in_process' | ... no vocabulário do Mercado Pago. */
+/**
+ * `approved` é o único status que autoriza entregar.
+ *
+ * `in_process` (Pix caindo, cartão em análise), `rejected` e companhia
+ * continuam o ciclo normal do Mercado Pago — o webhook grava o status no
+ * pedido e espera o próximo evento.
+ */
 export function ehAprovado(status: string | undefined): boolean {
   return status === 'approved'
 }

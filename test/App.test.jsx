@@ -1,3 +1,11 @@
+/**
+ * Montagem da página única (App): todas as seções existem, o certificado
+ * abre a partir do CTA, a dedicação usa os dados reais da Kaus Australis e
+ * o mapa em canvas tem alternativa textual acessível.
+ *
+ * São verificações de regressão da estrutura pública da landing — o que o
+ * visitante (e o leitor de tela) enxerga sem interagir.
+ */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import App from '../src/App'
@@ -28,6 +36,8 @@ describe('App', () => {
     expect(text).toContain('Kaus Australis')
     expect(text).toContain('Sagitário')
   })
+
+  // === Conteúdo catalogado e acessibilidade do mapa ===
 
   it('oferece uma alternativa textual ao mapa desenhado em canvas', () => {
     const { container } = render(<App />)

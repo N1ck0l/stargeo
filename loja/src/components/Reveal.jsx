@@ -8,6 +8,16 @@ import { useReveal } from '../lib/useReveal'
  * ```
  *
  * Se a pessoa pediu movimento reduzido, o conteúdo aparece sem animação.
+ *
+ * Quem importa: `pages/Home.jsx` e `pages/Rastrear.jsx` — quase toda seção
+ * da loja passa por aqui. Export: `Reveal`. `as` escolhe a tag (`li`, `p`,
+ * `h1`…), então o componente pode entrar dentro de listas sem quebrar a
+ * hierarquia.
+ *
+ * Invariantes: atraso, distância e duração são CSS custom properties
+ * (`--reveal-*`), não estilo calculado no JS — quem anima é o stylesheet,
+ * e `prefers-reduced-motion` é tratado dentro de `useReveal`, que nasce
+ * com `visible` verdadeiro nesse caso.
  */
 export function Reveal({
   as: Tag = 'div',

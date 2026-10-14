@@ -33,9 +33,17 @@
   status = 200
 
 # Cabeçalhos de segurança e cache.
+#
+# Blocos de cabeçalho são CUMULATIVOS na Netlify: um pedido casa com todos os
+# `for` aplicáveis, e só em caso de cabeçalho repetido o mais específico
+# vence. Então o `/*` de segurança lá embaixo vale até para `/assets/*`; os
+# blocos abaixo só acrescentam o Cache-Control próprio de cada pasta.
 [[headers]]
   for = "/assets/*"
   [headers.values]
+    # Os assets do Vite levam hash no nome: o arquivo só muda se o caminho
+    # mudar. `immutable` é o que permite o ano inteiro de max-age sem risco de
+    # servir versão velha.
     Cache-Control = "public, max-age=31536000, immutable"
 
 # As fontes não levam hash no nome (ficam em /fonts), então valem um prazo
@@ -48,10 +56,20 @@
 [[headers]]
   for = "/*"
   [headers.values]
+    # Impede que o navegador "aja como" outro tipo além do declarado —
+    # protege contra MIME sniffing de uploads.
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    # SAMEORIGIN em vez de DENY: nenhuma página embute a loja hoje, mas
+    # DENY também bloqueia iframes da própria origem, e um iframe interno
+    # (ex.: preview futuro) quebraria sem nenhum ganho de segurança externo.
     X-Frame-Options = "SAMEORIGIN"
     # Só a própria origem pode usar câmera, microfone, localização e sensores
     # de orientação — a loja não usa nenhum, mas restringir custa nada.
+    # O site pessoal (que usa câmera e bússola na Mira celeste) não é servido
+    # por este arquivo: o Netlify Drop não aplica o netlify.toml (ver topo).
     Permissions-Policy = "camera=(self), microphone=(), geolocation=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self), ambient-light-sensor=()"
+    # 604800 s = 7 dias. Curto de propósito: HSTS com includeSubDomains é
+    # difícil de desfazer (o navegador recusa HTTP por esse tempo em TODOS os
+    # subdomínios), então o primeiro passo é pequeno e só depois se sobe.
     Strict-Transport-Security = "max-age=604800; includeSubDomains"

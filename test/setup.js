@@ -1,3 +1,11 @@
+/**
+ * Setup global dos testes (jsdom): preenche as lacunas de APIs web que o
+ * jsdom não implementa, mas que os componentes usam em produção — contexto
+ * 2D de canvas, matchMedia, ResizeObserver e IntersectionObserver.
+ *
+ * Os stubs são mínimos de propósito: só precisam existir para a renderização
+ * não quebrar, sem simular comportamento além do necessário.
+ */
 import { vi } from 'vitest'
 
 /**
@@ -45,6 +53,11 @@ if (!window.matchMedia) {
   }))
 }
 
+/**
+ * `ResizeObserver` mede a folha do certificado para escalar a prévia.
+ * Stub sem eventos: os componentes só precisam chamar observe/disconnect
+ * sem lançar "not implemented".
+ */
 if (!window.ResizeObserver) {
   window.ResizeObserver = class {
     observe() {}

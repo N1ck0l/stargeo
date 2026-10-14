@@ -59,10 +59,38 @@ const BACKDROP_STARS = Array.from({ length: 520 }, (_, i) => ({
 }))
 
 /**
- * Mapa celeste interativo da constelação de Sagitário, desenhado em canvas.
+ * Mapa do céu — canvas interativo com projeção gnomônica.
  *
- * Interações: arrastar para percorrer, roda/pinça para zoom, clique ou toque
- * numa estrela para ver os detalhes. Também é operável por teclado.
+ * Papel na arquitetura: seção `#ceu`, o coração visual do site. Toda a
+ * matemática (projeção, arrasto, zoom ancorado) mora em `src/lib/astro.js`,
+ * que só reexporta `shared/astro.js`; este componente é a casca que desenha,
+ * detecta gestos e expõe o mapa ao teclado.
+ *
+ * Importado por: `App.jsx`.
+ * Exports: `SkyMap`.
+ *
+ * Interações: arrastar para percorrer, roda/pinça/`+`/`-` para zoom, clique
+ * ou toque numa estrela para ver os detalhes — e tudo também por teclado
+ * (setas, `+`/`-`, `0` para recentrar).
+ *
+ * Convenções do desenho (as mesmas de um atlas celeste segurado no céu):
+ * - norte (declinação crescente) para cima;
+ * - leste (ascensão reta crescente) para a ESQUERDA — a projeção inverte o
+ *   eixo X de propósito, e os testes de `astro.test.mjs` seguram isso;
+ * - projeção gnomônica: grandes circunferências viram retas, ângulos entre
+ *   estrelas são reais, e pontos atrás do plano tangente devolvem `null`.
+ *
+ * Invariantes:
+ * - o desenho vive num efeito de `[]` e lê estado por refs (`viewRef`,
+ *   `redrawRef`, `dedicatedLabelRef`): qualquer estado novo que o canvas
+ *   precise enxergar precisa entrar por ref, senão ele não redesenha;
+ * - com `prefers-reduced-motion` NÃO existe laço de animação — cada gesto
+ *   provoca um `draw` único, coalescido por quadro (`renderOnce`);
+ * - o mapa pausa quando está fora da tela OU com a aba oculta (dois sinais
+ *   separados num único `state`, porque um `IntersectionObserver` não
+ *   dispara quando a aba some);
+ * - a lista `sr-only` de estrelas é a única representação textual do que o
+ *   canvas desenha: sem ela o mapa é invisível para leitores de tela.
  */
 export function SkyMap({ onOpenCertificate }) {
   const { content } = useContent()
@@ -149,6 +177,12 @@ export function SkyMap({ onOpenCertificate }) {
     redrawRef.current()
   }, [])
 
+  /*
+   * Teclado espelha os gestos: setas arrastam, `+`/`-` dão zoom no centro,
+   * `0` recentra na estrela dedicada. `Shift` triplica o passo (40 → 120 px)
+   * para percorrer o céu sem apertar mil vezes. `preventDefault` nas setas
+   * é o que impede a página de rolar enquanto o canvas está em foco.
+   */
   const handleKeyDown = useCallback(
     (event) => {
       const step = event.shiftKey ? 120 : 40
@@ -271,7 +305,9 @@ export function SkyMap({ onOpenCertificate }) {
       drawStart = performance.now()
     }
 
-    /** Estrela mais próxima do ponto, dentro do raio de tolerância. */
+    /** Estrela mais próxima do ponto, dentro do raio de tolerância.
+     *  A dedicada tem alcance maior (26 px contra 18): é o alvo principal e
+     *  precisa ser acertável mesmo com o halo por cima. */
     const hitStar = (px, py) => {
       const view = viewRef.current
       let closest = null
@@ -293,6 +329,9 @@ export function SkyMap({ onOpenCertificate }) {
       const view = viewRef.current
       const t = reduced ? 0 : (time - start) / 1000
       if (!reduced && drawStart > 0) {
+        // Traçado completo em 1,8 s a partir da primeira vez que o mapa
+        // entrou na tela. Sem movimento reduzido o progresso fica em 1 e a
+        // figura nasce inteira.
         drawProgress.value = Math.min(1, (time - drawStart) / 1800)
       }
       ctx.clearRect(0, 0, width, height)
@@ -311,11 +350,20 @@ export function SkyMap({ onOpenCertificate }) {
       ctx.fillStyle = haze
       ctx.fillRect(0, 0, width, height)
 
+      /*
+       * Um ponto é "visível" com folga: a margem evita cortar estrelas que
+       * estão a poucos pixels de fora — o halo delas ainda aparece. `null`
+       * (projeção inexistente, atrás da esfera) também é invisível.
+       */
       const visible = (point, margin = 80) =>
         point && point.x > -margin && point.y > -margin &&
         point.x < width + margin && point.y < height + margin
 
       // Grade de coordenadas (meridianos e paralelos).
+      // A "caneta" (`pen`) só desenha quando o ponto anterior existia: um
+      // meridiano cruza a zona projetável e volta a ser `null`, e sem levantar
+      // a caneta o `lineTo` ligaria o fim de um pedaço ao começo do outro,
+      // riscando o mapa inteiro na diagonal.
       ctx.strokeStyle = 'rgba(247, 241, 225, 0.07)'
       ctx.lineWidth = 1
       for (const ra of raGrid) {
@@ -338,6 +386,9 @@ export function SkyMap({ onOpenCertificate }) {
       for (const dec of decGrid) {
         ctx.beginPath()
         let pen = false
+        // Paralelos: varridos em torno do centro da vista (±8h). O
+        // `normalizeRaDelta` mantém o valor projetável quando a varredura
+        // atravessa a costura das 0h — sem ele, 24,1h não casaria com 0,1h.
         for (let ra = view.ra - 8; ra <= view.ra + 8; ra += 0.1) {
           const point = project(normalizeRaDelta(ra), dec, view, width, height)
           if (!point) {
@@ -428,7 +479,11 @@ export function SkyMap({ onOpenCertificate }) {
           }
         }
 
-        // Rótulo, evitando sobreposição com os já colocados.
+        // Rótulo. Cada caixa é um retângulo (x, y, largura, altura) que não
+        // pode tocar nenhuma já colocada — teste de sobreposição AABB, feito
+        // na ordem em que as estrelas são desenhadas (da dedicada para fora).
+        // Sobrou colisão ou o texto sairia da borda direita: o rótulo some,
+        // nunca é cortado.
         const label = star.dedicated ? dedicatedLabelRef.current : star.name
         ctx.font = star.dedicated
           ? '600 13px Outfit, sans-serif'
@@ -449,7 +504,11 @@ export function SkyMap({ onOpenCertificate }) {
         }
       }
 
-      // Rótulos da grade, encostados nas bordas do canvas para não serem cortados.
+      // Rótulos da grade, encostados nas bordas do canvas para não serem
+      // cortados. `decSpan`/`raSpan` são a conversão inversa: quanto em
+      // graus (ou horas) cabe do centro até a borda, descontando a folga do
+      // texto. A escala é em pixels por radiano — daí dividir por `DEG`
+      // (graus) e por `RAD_PER_HOUR` (horas).
       ctx.fillStyle = 'rgba(247, 241, 225, 0.6)'
       ctx.font = '10px Outfit, sans-serif'
       const decSpan = Math.max(0.5, (height / 2 - 34) / view.scale / DEG)
@@ -601,6 +660,9 @@ export function SkyMap({ onOpenCertificate }) {
     const onWheel = (event) => {
       event.preventDefault()
       const point = toCanvasPoint(event, canvas)
+      // Exponencial para que deltas grandes (mouse com roda "livre") e
+      // pequenos (trackpad) produzam a mesma sensação de velocidade.
+      // deltaY negativo = rolar para cima = aproximar (fator < 1).
       const factor = Math.exp(-event.deltaY * 0.0015)
       viewRef.current = zoomAt(
         viewRef.current,

@@ -5,6 +5,14 @@ import { useEffect, useState } from 'react'
  *
  * Usa uma transformação (e não a largura) para ficar na GPU: assim a barra
  * não provoca layout a cada quadro.
+ *
+ * Quem importa: `loja/src/App.jsx` (junto com o `Starfield`). Export:
+ * `ScrollProgress`.
+ *
+ * Invariantes: a barra é decorativa para leitor de tela, mas declarada como
+ * `progressbar` com valor entre 0 e 100 — o `aria-valuenow` acompanha o
+ * desenho; e a escala é refeita quando a altura da página muda (fonte ou
+ * imagem que carrega depois), senão o percentual mente.
  */
 export function ScrollProgress() {
   const [progress, setProgress] = useState(0)
@@ -18,6 +26,8 @@ export function ScrollProgress() {
     }
 
     const onScroll = () => {
+      // Guarda contra rajada de eventos: só um cálculo por quadro, e o
+      // próximo só depois do anterior rodar.
       if (raf) return
       raf = requestAnimationFrame(() => {
         update()

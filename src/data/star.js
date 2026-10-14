@@ -24,6 +24,18 @@ export const honoree = {
   personalMessage: '',
 }
 
+/**
+ * Ficha completa da estrela, em dois formatos:
+ *
+ * - `ra`/`dec` "quebrados" (graus, minutos, segundos) são o que a pessoa lê;
+ * - `hoursDecimal`/`decimal` são o que a matemática usa (`equatorialToHorizontal`,
+ *   `project`) — conferidos um contra o outro nos testes de `src/lib/sky.test.mjs`;
+ * - `formatted` é a string já pronta para a tela, com os símbolos tipográficos
+ *   (−, ′, ″). Não monte a formatação no componente: use estes campos.
+ *
+ * Época J2000: as coordenadas valem para 1º de janeiro de 2000 ao meio-dia;
+ * a deriva é de ~50,3″/ano em AR, irrelevante para este presente.
+ */
 export const kausAustralis = {
   commonName: 'Kaus Australis',
   scientificName: 'Epsilon Sagittarii',
@@ -96,6 +108,13 @@ export const constellationLines = [
   ['lam', 'pi'],
 ]
 
+/**
+ * Parágrafos da carta, na ordem em que aparecem.
+ *
+ * São o VALOR PADRÃO: `defaults.js` os copia para `DEFAULTS.carta`, e um
+ * `conteudo.json` em `public/` pode substituir a lista inteira. A primeira
+ * linha é tratada como abertura (sai maior e sem itálico) em `LoveLetter.jsx`.
+ */
 export const letterParagraphs = [
   `Geovanna Beatriz Santos Trindade.`,
   `Existe um pedaço do céu que, todas as noites, se recusa a ser comum. Fica em Sagitário — a constelação do arqueiro — e o seu ponto mais brilhante se chama Kaus Australis. Os catálogos a conhecem como ε Sagittarii. A partir de agora, este lugar também te conhece pelo teu nome.`,

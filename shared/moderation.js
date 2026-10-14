@@ -64,7 +64,7 @@ const TERMOS_BLOQUEADOS = [
   'racista', 'racismo', 'nazista', 'hitler',
   // Drogas e crime
   'cocaina', 'metanfetamina', 'drogail', 'traficante',
-  //Contato e promessa de pagamento fora da loja
+  // Contato e promessa de pagamento fora da loja
   'me chama no zap', 'chama no zap', 'chame no zap', 'zap é', 'zap e',
 ]
 
@@ -73,12 +73,30 @@ const TERMOS_BLOQUEADOS = [
  *
  * Deliberadamente agressivo: no certificado não há motivo legítimo para
  * telefone, endereço de e-mail, site ou @. Uma única ocorrência barra.
+ *
+ * As regex rodam sobre o texto LIMPO (sem normalizar acentos): telefone,
+ * e-mail e URL não têm acento, e testar no original mantém as expressões
+ * legíveis. Os TERMOS_BLOQUEADOS, que dependem de caixa/acento, são os que
+ * passam pela normalização.
  */
 const PADROES_CONTATO = [
+  // Telefone brasileiro nas formas mais comuns: DDD com ou sem parênteses,
+  // espaços ou hífens entre os grupos, e o +55 opcional. Exemplos que casam:
+  // "(11) 98765-4321", "11987654321", "+55 11 3333-4444". Datas e códigos
+  // postais não caem aqui: a regex exige 4-5 dígitos seguidos de mais 4.
   { nome: 'telefone', re: /(?:\+?\d{1,2}[\s.-]?)?\(?\d{2,3}\)?[\s.-]?\d{4,5}[\s.-]?\d{4}/ },
+  // E-mail: parte local @ domínio ponto TLD (2+ letras). Case-insensitive.
   { nome: 'email', re: /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i },
+  // URL: http(s):// ou www., pegando o resto da linha. Só o "www." já é
+  // suficiente para ser redirecionamento.
   { nome: 'site', re: /\b(?:https?:\/\/|www\.)\S+/i },
+  // @ de rede social: no início do texto ou depois de espaço, com 3+ chars.
+  // O @ de um e-mail é pego antes, pelo padrão "email" — a ordem do array
+  // importa, e o loop devolve no primeiro que casa.
   { nome: 'arroba', re: /(^|\s)@[a-z0-9._]{3,}/i },
+  // Chave pix, nas duas formas: a palavra "pix" seguida de hash hex (chave
+  // aleatória/EVM curta) OU um UUID completo (formato oficial de chave pix
+  // aleatória, 8-4-4-4-12 em hex).
   { nome: 'chave pix', re: /\b(?:pix)\b.*\b[a-f0-9]{8,}\b|\b[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\b/i },
 ]
 

@@ -29,7 +29,13 @@ export const PALETTE = {
 /** A4 paisagem, em milímetros. */
 export const PAGE = { width: 297, height: 210 }
 
-/** Pontos por milímetro — usado para converter a medida de texto do pdf-lib. */
+/**
+ * Milímetros por ponto: 25,4 mm ÷ 72 pt ≈ 0,353. Multiplica um tamanho em
+ * pontos para obter milímetros — a ponte entre o corpo da fonte (que o
+ * pdf-lib e a tipografia mantêm em pt) e o sistema de coordenadas em mm
+ * deste arquivo. Não confundir com `MM_TO_PT` de `shared/pdf.js`, que é o
+ * inverso (72 ÷ 25,4) e serve para o caminho contrário.
+ */
 export const MM_PER_PT = 25.4 / 72
 
 /**
@@ -664,6 +670,11 @@ const COR = { factory: null, cache: new Map() }
 
 /**
  * Informa qual fábrica de cor usar (a do pdf-lib, na Edge Function).
+ *
+ * Invariante: chamar ANTES de `drawCertificate`. A fábrica alimenta o cache
+ * interno de `C()`; trocar depois de desenhar deixa o cache com cores no
+ * formato antigo, e o pdf-lib ignora objetos RGB crus sem avisar.
+ *
  * Sem isso, `C()` cai no retorno cru de `hexToRgb`, que só serve para
  * inspecionar valores — nunca para desenhar.
  */

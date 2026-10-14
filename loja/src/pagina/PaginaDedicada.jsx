@@ -104,6 +104,12 @@ export function PaginaDedicada({ codigo }) {
   const abrirCertificado = () => setCertificado(true)
 
   return (
+    /*
+     * Provedor à mão, e não o `ContentProvider` do site pessoal: o conteúdo
+     * vem da API (montado em `montarConteudo`), não do `conteudo.json`. O
+     * `setContent` vira não-op de propósito — nada muda esta página no lugar;
+     * a escrita acontece na rota `/editar`, com token.
+     */
     <ContentContext.Provider value={{ content: conteudo, setContent: () => {}, editable: false }}>
       <Hero onOpenCertificate={abrirCertificado} onOpenFinder={() => setMira(true)} />
       <StarDetails onOpenCertificate={abrirCertificado} />

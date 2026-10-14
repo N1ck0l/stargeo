@@ -1,3 +1,18 @@
+/*
+ * Tema visual da loja — folha de estilo única da SPA.
+ *
+ * Importado só por `loja/src/main.jsx`. Aqui vivem as fontes, o `@theme` do
+ * Tailwind (cores e famílias que viram utilities), os componentes próprios
+ * (`.btn`, `.campo`, `.cartao`, `.pilha`) e as animações herdadas do site
+ * pessoal. O certificado é o único trecho que também existe no PDF — as
+ * fontes são as MESMAS de `src/fonts.css`, porque prévia e folha impressa
+ * precisam sair idênticas.
+ *
+ * Convenções: comentários em português do Brasil; blocos comentados são os
+ * complexos (camadas, keyframes, máscaras, prefers-reduced-motion, print) —
+ * utilities do Tailwind espalhadas no JSX ficam por conta de quem escreve o
+ * componente.
+ */
 @import "tailwindcss";
 
 /*
@@ -236,6 +251,19 @@ body {
 }
 
 /* Animações ---------------------------------------------------------------- */
+/*
+ * Quatro keyframes curtas, todas nomeadas em português e usadas pelas
+ * utilities `.animar-*` logo abaixo:
+ *
+ * - `surgir`      entrada de blocos (o `cubic-bezier` com saída rápida é o
+ *                 mesmo easing das revelações do site pessoal);
+ * - `pulsar-suave` respiração lenta, para ícones/badges que pedem atenção
+ *                 sem piscar;
+ * - `girar`       rotação contínua (40s) — lenta o bastante para não roubar
+ *                 a leitura;
+ * - `astromover`  sobe e desce 6px em ciclo fechado (volta ao `from`), então
+ *                 não há "pulo" no fim do loop.
+ */
 @keyframes surgir {
   from {
     opacity: 0;
@@ -640,6 +668,13 @@ body {
   }
 }
 
+/*
+ * Cópia local da utility `.sr-only` do Tailwind, usada pelo link "Pular para
+ * o conteúdo" do App. As regras são as mesmas da utility — não é uma variante
+ * nossa: ficam aqui fora de camada para o esconder funcionar mesmo se a
+ * utility não for gerada no build, enquanto o `focus:not-sr-only` do App é
+ * quem devolve a visibilidade quando o link ganha o foco.
+ */
 .sr-only {
   position: absolute;
   width: 1px;

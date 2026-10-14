@@ -66,7 +66,14 @@ export function Paginas({ aoExpirar, aoAbrirPagina }) {
     setFiltro((anterior) => ({ ...anterior }))
   }
 
-  /** Publica/despublica sem sair da lista. */
+  /**
+   * Publica/despublica sem sair da lista.
+   *
+   * O `alternando` trava a ação inteira da tabela (não só da linha): dois
+   * cliques seguidos publicariam e despublicariam a mesma página, e o
+   * aviso final diria a metade errada. A mudança entra na linha na hora,
+   * sem recarregar a lista — a resposta do servidor já é o estado novo.
+   */
   async function alternarStatus(pagina) {
     if (alternando) return
     const novo = pagina.status === 'published' ? 'draft' : 'published'
@@ -93,6 +100,13 @@ export function Paginas({ aoExpirar, aoAbrirPagina }) {
     }
   }
 
+  /**
+   * Cria e já abre o editor da página nova.
+   *
+   * O formulário não manda `status`, então o servidor grava `draft` — publicar
+   * continua sendo ato consciente, feito na lista. O caminho natural depois de
+   * criar é escrever o conteúdo antes de deixar o link solto.
+   */
   async function aoCriar(formulario) {
     try {
       const dados = await chamarAdmin('paginaCriar', formulario)
@@ -104,6 +118,8 @@ export function Paginas({ aoExpirar, aoAbrirPagina }) {
       aoAbrirPagina(dados.pagina.code)
     } catch (e) {
       const mensagem = tratarErro(e, aoExpirar)
+      // 401 já foi para o login e não tem texto para o formulário; o resto
+      // vira `Error` porque é o formato que o `FormularioCriar` espera.
       if (mensagem) throw new Error(mensagem)
     }
   }
@@ -241,6 +257,9 @@ export function Paginas({ aoExpirar, aoAbrirPagina }) {
                 </td>
               </tr>
             ))}
+            {/* Duas linhas de lugar único: sem resultado (com aviso do
+                filtro) e carregando (só quando a lista ainda está vazia —
+                depois disso o spinner ficaria piscando por cima dos dados). */}
             {paginas.length === 0 && !carregando && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-ivory/50">
@@ -408,6 +427,8 @@ function FormularioCriar({ aoCriar }) {
             type="text"
             maxLength={11}
             value={codigo}
+            // O código sempre nasce maiúsculo, igual ao gerador do servidor —
+            // o endereço é digitado à mão com mais frequência do que se imagina.
             onChange={(evento) => setCodigo(evento.target.value.toUpperCase())}
             placeholder="SG-XXXX-XXXX"
             className="campo font-mono"

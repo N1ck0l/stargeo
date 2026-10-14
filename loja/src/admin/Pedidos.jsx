@@ -48,6 +48,9 @@ export function Pedidos({ aoExpirar, aoAbrirPagina }) {
           if (pagina.order_id) mapa[pagina.order_id] = pagina.code
         }
         setPaginasPorPedido(mapa)
+        // `offset === 0` = busca nova (substitui); `offset > 0` = "carregar
+        // mais" (acrescenta). O filtro é o dono da lista: o efeito nunca
+        // junta resposta de buscas diferentes.
         setPedidos((anterior) => (filtro.offset === 0 ? dados.pedidos : [...anterior, ...dados.pedidos]))
         setTotal(dados.total ?? 0)
         setErro('')
@@ -87,6 +90,16 @@ export function Pedidos({ aoExpirar, aoAbrirPagina }) {
     setFiltro((anterior) => ({ ...anterior }))
   }
 
+  /**
+   * Reenvia o e-mail do certificado — `reenviarEmail` repassa para a Edge
+   * Function `resend-certificate`.
+   *
+   * É a saída para o selo "e-mail falhou" da linha: o servidor manda de novo
+   * o MESMO PDF que está no Storage (não regenera — a divergência entre o que
+   * foi pago e o que foi entregue seria pior que um e-mail repetido). Só
+   * aparece para pedido pago, e um pedido já entregue sem falha é recusado,
+   * então um clique falso não vira duplicata.
+   */
   async function reenviar(pedido) {
     if (reenviando) return
     setReenviando(pedido.id)
@@ -104,6 +117,15 @@ export function Pedidos({ aoExpirar, aoAbrirPagina }) {
     }
   }
 
+  /**
+   * Cria a página do pedido e já abre o editor dela.
+   *
+   * Só existe para pedido pago SEM página (a checagem é `podeCriar`, na linha)
+   * — a criação pelo webhook é idempotente pelo `order_id`, e esta chamada
+   * reusa a mesma função: se a página já nasceu por lá, devolve a que existe
+   * em vez de criar outra. Depois de criar, o editor abre porque o conteúdo
+   * nasce de template e quase sempre pede retoque.
+   */
   async function criarPagina(pedido) {
     if (criando) return
     setCriando(pedido.id)
@@ -199,6 +221,8 @@ export function Pedidos({ aoExpirar, aoAbrirPagina }) {
           </thead>
           <tbody>
             {pedidos.map((pedido) => {
+              // As duas fontes se encontram aqui: o mapa `order_id → code`
+              // diz se a página já existe, e o status diz se vale criar uma.
               const codigoPagina = paginasPorPedido[pedido.id]
               const podeCriar = pedido.status === 'approved' && !codigoPagina
               return (

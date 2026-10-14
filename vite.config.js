@@ -1,3 +1,21 @@
+/**
+ * Configuração de build do SITE PESSOAL (o presente dedicado).
+ *
+ * Este é o app Vite da raiz — não confundir com `loja/vite.config.js`, que é
+ * um projeto separado com deploy separado (`npm run dev` / `npm run build`
+ * usam este; `npm run dev:loja` / `npm run build:loja` usam o da loja).
+ *
+ * Além do `defineConfig` comum (base, dev server, plugins), este arquivo
+ * registra o plugin `serviceWorkerPlugin`, que só existe por causa do
+ * requisito "funciona offline": ele gera o `sw.js` com a lista real de
+ * arquivos do bundle e escreve o `admin/index.html` como arquivo físico.
+ *
+ * Não edite os limites de cache nem a estratégia do SW sem ler o comentário
+ * de cada bloco: vários deles documentam bugs que já aconteceram (cache
+ * envenenado por 404, worker que se assume no meio do uso, precache 404 em
+ * GitHub Pages).
+ */
+
 import { createHash } from 'node:crypto'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -19,6 +37,8 @@ import { defineConfig } from 'vite'
 function serviceWorkerPlugin() {
   return {
     name: 'stargeo-service-worker',
+    // Só no build: o dev server não gera sw.js, e um SW no modo de
+    // desenvolvimento ficaria servindo bundle antigo por cima do HMR.
     apply: 'build',
     generateBundle(_options, bundle) {
       /*

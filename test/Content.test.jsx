@@ -1,3 +1,9 @@
+/**
+ * Ponte entre o painel de conteúdo (`/admin` → `conteudo.json`) e os
+ * componentes reais: campos editados precisam aparecer em StarDetails,
+ * CertificateModal e SkyMap — e todo campo do `DEFAULTS` precisa ter
+ * consumidor em algum lugar.
+ */
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { ContentProvider } from '../src/lib/content.jsx'
@@ -31,6 +37,8 @@ const renderWith = (content, element) =>
   render(<ContentProvider editable initial={content}>{element}</ContentProvider>)
 
 describe('campos editáveis chegam ao site', () => {
+  // === Componentes individuais ===
+
   it('a seção da estrela mostra título, descrição e nome editados', () => {
     const { container } = renderWith(CUSTOM, <StarDetails onOpenCertificate={() => {}} />)
 
@@ -55,6 +63,8 @@ describe('campos editáveis chegam ao site', () => {
     expect(container.textContent).toContain('Apelido do Painel')
     expect(container.textContent).toContain('Nome Escrito no Painel')
   })
+
+  // === Guarda: todo campo editável tem consumidor ===
 
   it('todo campo editável no painel tem algum lugar onde aparece', () => {
     /*

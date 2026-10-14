@@ -3,6 +3,28 @@ import { kausAustralis } from '../data/star'
 import { useContent } from '../lib/contentContext'
 import { useScroll, useTypewriter } from '../lib/useReveal'
 
+/**
+ * Abertura do presente: estrela com anéis, título, frase digitada e botões.
+ *
+ * Papel na arquitetura: primeira seção (`#inicio`) e, para muita gente, a
+ * única que decide se a pessoa continua. Reúne três efeitos de movimento —
+ * anéis orbitais (CSS), parallax de rolagem (`useScroll`) e máquina de
+ * escrever (`useTypewriter`) — mais as duas chamadas principais: o céu e o
+ * certificado.
+ *
+ * Importado por: `App.jsx`.
+ * Exports: `Hero`.
+ *
+ * Decisões que não podem quebrar:
+ * - `min-h` nas linhas animadas: sem a altura reservada o layout pula a cada
+ *   caractere digitado e a página inteira "respira";
+ * - o typewriter é ocultado do leitor de tela enquanto digita (`aria-hidden`)
+ *   e exposto uma vez, completo, no `.sr-only` — anunciar tecla por tecla é
+ *   spam;
+ * - a chamada "Explore" é `aria-hidden` + `tabIndex={-1}` porque é só
+ *   decoração: o mesmo destino já existe no botão "Ver a estrela no céu";
+ * - `content.mostrarMira !== false` decide se o botão da mira aparece.
+ */
 export function Hero({ onOpenCertificate, onOpenFinder }) {
   const { content } = useContent()
   /*
@@ -18,6 +40,8 @@ export function Hero({ onOpenCertificate, onOpenFinder }) {
   // o que dá a sensação de profundidade sem custo de GPU.
   const starShift = scrollY * 0.28
   const titleShift = scrollY * 0.14
+  // Opacidade some por completo aos 520px de rolagem — antes disso o título
+  // ainda está legível enquanto desliza para fora.
   const fade = Math.max(0, 1 - scrollY / 520)
 
   return (
@@ -30,6 +54,9 @@ export function Hero({ onOpenCertificate, onOpenFinder }) {
         className="relative mb-9 flex size-32 items-center justify-center"
         style={{ transform: `translate3d(0, ${-starShift * 0.25}px, 0)` }}
       >
+        {/* Anel externo gira no sentido horário; o interno, tracejado, é
+            revertido e mais lento (34s) — dois tempos diferentes evitam que
+            os dois alinhem e deem a impressão de estar parado. */}
         <span className="animate-spin-slow absolute inset-0 rounded-full border border-gold/20" />
         <span className="animate-spin-slow absolute inset-3 rounded-full border border-dashed border-gold/15 [animation-direction:reverse] [animation-duration:34s]" />
         <span className="absolute inset-7 rounded-full bg-gold/10 blur-xl" />

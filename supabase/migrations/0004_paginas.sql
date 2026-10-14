@@ -78,6 +78,8 @@ comment on table public.pages is
 create index if not exists pages_created_at_idx
   on public.pages (created_at desc);
 
+-- Apoio a quem procura páginas pelo dono (painel, suporte). Parcial de
+-- propósito: página manual sem `customer_email` não ocupa índice.
 create index if not exists pages_customer_idx
   on public.pages (customer_email)
   where customer_email is not null;
@@ -91,8 +93,12 @@ create index if not exists pages_customer_idx
 -- ---------------------------------------------------------------------------
 create table if not exists public.page_edit_tokens (
   id                  uuid primary key default gen_random_uuid(),
+  -- `on delete cascade`: apagar a página derruba os tokens dela. É o que
+  -- transforma o "token órfão" de `sessaoDe` em caso quase impossível.
   page_id             uuid        not null references public.pages (id) on delete cascade,
   token_hash          text        not null unique,
+  -- Vencido vira lixo: `sessaoDe` apaga na hora em que esbarra nele, e o
+  -- `page-auth` varre o resto a cada login novo.
   expires_at          timestamptz not null,
   created_at          timestamptz not null default now()
 );
@@ -112,6 +118,9 @@ create index if not exists page_edit_tokens_page_idx
 -- ---------------------------------------------------------------------------
 create table if not exists public.admins (
   user_id             uuid primary key references auth.users (id) on delete cascade,
+  -- `citext` como em todo e-mail do projeto: caixa não muda quem é quem.
+  -- Guardado aqui (e não só em `auth.users`) porque é o que o painel exibe
+  -- depois da checagem, sem mais uma consulta no GoTrue.
   email               citext      not null,
   created_at          timestamptz not null default now()
 );

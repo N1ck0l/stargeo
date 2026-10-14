@@ -14,9 +14,26 @@ import { useScroll, useTypewriter } from '../lib/useReveal.js'
  *
  * As animações são as MESMAS do site pessoal: céu por trás, revelação por
  * rolagem, parallax do herói, máquina de escrever e brilho nas bordas.
+ *
+ * Papel na arquitetura: é a rota raiz do roteador em `loja/src/App.jsx`
+ * (`telaPara` devolve `<Home />` para qualquer caminho desconhecido), e é
+ * export default deste arquivo. Todo o resto é interno: `Hero`, `Estrelas`,
+ * `Faq` e cia. não são importados de lugar nenhum.
+ *
+ * Invariantes: os preços e textos de `PRODUTOS` são de EXIBIÇÃO (o cobrado
+ * é decidido pelo servidor no `create-checkout`, e uma divergência aqui não
+ * muda o valor da compra); os 12 `slug` batem com `shared/stars.js`, que é
+ * de onde vêm nome, magnitude e história; e nada aqui pode esconder conteúdo
+ * de quem pediu movimento reduzido — as revelações nascem visíveis nesse
+ * caso (ver `lib/useReveal.js`).
  */
 
-/** Preços de exibição. O valor autoritativo está no banco. */
+/**
+ * Preços de exibição. O valor autoritativo está no banco.
+ *
+ * `eram` é o preço "de" riscado — âncora de desconto, puro texto de vitrine;
+ * `destaque` escolhe o cartão "mais vendido", que só muda moldura e botão.
+ */
 const PRODUTOS = [
   {
     slug: 'certificado-digital',
@@ -118,6 +135,11 @@ function seguirPonteiro(evento) {
   alvo.style.setProperty('--my', `${evento.clientY - caixa.top}px`)
 }
 
+/**
+ * Sequência de seções da vitrine, na ordem em que a dúvida aparece:
+ * o que é (herói), por que confiar, quanto custa, o que escolher,
+ * como funciona, objeções (FAQ) e a última chamada.
+ */
 export default function Home() {
   return (
     <>
@@ -132,6 +154,12 @@ export default function Home() {
   )
 }
 
+/**
+ * Herói: promessa, dois caminhos (ver o certificado / ver o processo) e os
+ * três números que resolvem a primeira objeção — quantas estrelas, quão
+ * longe, quão rápido cai o Pix.
+ */
+
 function Hero() {
   const scrollY = useScroll()
   const { output: titulo, done: tituloPronto } = useTypewriter('Presente com coordenada')
@@ -140,6 +168,9 @@ function Hero() {
    * Parallax: cada camada se move a uma velocidade um pouco diferente, o que
    * dá a sensação de profundidade sem custo de GPU — e some junto com o
    * `fade`, que apaga o herói conforme a pessoa rola para baixo.
+   *
+   * `useScroll` devolve 0 com movimento reduzido, então o `fade` fica em 1:
+   * quem pediu menos movimento vê o herói inteiro, sem apagar.
    */
   const estrelaShift = scrollY * 0.28
   const tituloShift = scrollY * 0.14
@@ -304,6 +335,11 @@ function EstrelaGrande() {
   )
 }
 
+/**
+ * Faixa de garantias: as quatro objeções de quem compra presente
+ * (entrega, visibilidade, desistência, suporte) respondidas antes que a
+ * pessoa precise perguntar.
+ */
 function Confianca() {
   return (
     <section className="border-y border-white/8 bg-white/[0.02]">
@@ -327,6 +363,12 @@ function Confianca() {
   )
 }
 
+/**
+ * Catálogo dos três produtos.
+ *
+ * `id="certificados"` é a âncora do botão "Rolar" do herói — se o id mudar,
+ * a chamada para rolar aponta para o nada.
+ */
 function Produtos() {
   return (
     <section id="certificados" className="espaco-secao">
@@ -357,6 +399,13 @@ function Produtos() {
   )
 }
 
+/**
+ * Cartão de um produto, com o brilho que segue o ponteiro (`.spotlight`).
+ *
+ * As três colunas têm a MESMA altura (`h-full` no `Reveal` + `flex-1` na
+ * lista): como os produtos têm quantidades diferentes de item, sem isso a
+ * linha de botões ficaria desalinhada.
+ */
 function CartaoProduto({ produto }) {
   return (
     <article
@@ -403,7 +452,16 @@ function CartaoProduto({ produto }) {
   )
 }
 
+/**
+ * Catálogo das 12 estrelas com o painel de detalhe ao lado.
+ *
+ * São botões, não links: a seleção troca o painel sem trocar de rota, e
+ * `aria-pressed` diz a quem navega por teclado ou leitor de tela qual está
+ * ativa. O painel é `sticky` para a história acompanhar a rolagem da grade.
+ */
 function Estrelas() {
+  // Começa na primeira do catálogo; o botão do painel leva ao produto com a
+  // escolha já na URL, para a pessoa não ter que escolher de novo.
   const [selecionada, setSelecionada] = useState(STARS[0])
 
   return (
@@ -473,6 +531,13 @@ function Estrelas() {
   )
 }
 
+/**
+ * Os quatro passos, na mesma ordem em que acontecem.
+ *
+ * O terceiro (`O preço vem do servidor`) não é texto de enfeite: é a
+ * promessa que `Produto.jsx` cumpre — o número impresso aqui não é o que a
+ * pessoa paga.
+ */
 function ComoFunciona() {
   const passos = [
     {
@@ -516,6 +581,13 @@ function ComoFunciona() {
   )
 }
 
+/**
+ * Acordeão do FAQ — uma pergunta aberta por vez.
+ *
+ * `aberta` guarda o índice; `-1` é "nenhuma aberta" e serve para fechar a
+ * que está aberta clicando de novo. Começa em `0` porque a primeira pergunta
+ * ("isso é uma estrela de verdade?") é o argumento que segura a venda.
+ */
 function Faq() {
   const [aberta, setAberta] = useState(0)
 
@@ -541,6 +613,9 @@ function Faq() {
                     className="flex w-full items-center justify-between gap-4 py-5 text-left"
                   >
                     <span className="text-ivory/90">{item.pergunta}</span>
+                    {/* Girado 45° quando aberta, a cruz vira `×`: o mesmo
+                        desenho diz "dá para fechar", sem precisar de um
+                        segundo ícone. */}
                     <svg
                       width="16"
                       height="16"
@@ -564,6 +639,10 @@ function Faq() {
   )
 }
 
+/**
+ * Última chamada, sempre para o configurador — não existe página de
+ * catálogo sem produto nesta loja.
+ */
 function ChamadaFinal() {
   return (
     <section className="espaco-secao">

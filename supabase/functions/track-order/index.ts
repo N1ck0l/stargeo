@@ -9,6 +9,14 @@
  *
  * A tabela `orders` não é pública por RLS justamente para esta função ser o
  * único caminho de leitura.
+ *
+ * URL: `https://<ref>.supabase.co/functions/v1/track-order`, chamada pelo
+ * rastreio da loja. Publicada com `--no-verify-jwt` (ver `LOJA.md`) — não há
+ * sessão de ninguém: o par (código, e-mail) É a credencial.
+ *
+ * Sem efeitos colaterais: leitura pura. E o retorno é montado campo a campo
+ * (ver `CAMPOS`), porque a service_role enxerga a linha inteira — é o mapa de
+ * saída, não o RLS, que decide o que o cliente vê.
  */
 import { comHandler, ErroApp, json, lerJson } from '../_shared/http.ts'
 import { admin } from '../_shared/supabase.ts'

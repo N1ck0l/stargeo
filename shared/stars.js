@@ -1,10 +1,12 @@
 /**
  * Catálogo de estrelas que a loja vende.
  *
- * Todos os dados são reais, época J2000, conferidos contra o SIMBAD/ICRS. Não
- * há margem para invenção aqui: um certificado que aponta para uma posição
- * errada é pior do que um certificado bonito. O que muda entre as estrelas é o
- * texto de venda — a astronomia é conferida.
+ * Importado pela loja (`Home.jsx`, `Produto.jsx`, `CertificadoPreview.jsx`),
+ * pelas Edge Functions (`_shared/certificado.ts`, `_shared/pagina.ts`) e pelos
+ * testes. Todos os dados são reais, época J2000, conferidos contra o
+ * SIMBAD/ICRS. Não há margem para invenção aqui: um certificado que aponta
+ * para uma posição errada é pior do que um certificado bonito. O que muda
+ * entre as estrelas é o texto de venda — a astronomia é conferida.
  *
  * Critério de seleção: precisam ser visíveis a olho nu do hemisfério sul
  * (Brasil) em alguma época do ano. As do hemisfério norte absoluto foram
@@ -29,6 +31,9 @@
  * @property {number}  distanceLy  distância em anos-luz
  * @property {string}  story       o gancho de venda, em primeira pessoa
  * @property {string}  bestMonth   melhor época para ver do Brasil
+ * @property {boolean} featured    marca as estrelas principais do catálogo.
+ *                                 Nenhum componente filtra por este campo
+ *                                 hoje — é dado reservado, não comportamento.
  */
 
 /** @type {Star[]} */
@@ -245,6 +250,11 @@ export function getStar(slug) {
 /**
  * Formata ascensão reta em horas para exibição: 18.402866 → "18h 24m 10.32s".
  *
+ * Não confundir com a homônima de `shared/astro.js`: aquela formata com UMA
+ * casa decimal para o mapa do céu; esta, com DUAS, para o certificado e a
+ * página de produto — e só esta aceita sinal negativo (a do mapa nunca recebe
+ * AR negativa, porque sempre passa por normalizeRa antes).
+ *
  * @param {number} hoursDecimal
  * @returns {string}
  */
@@ -259,6 +269,10 @@ export function formatRa(hoursDecimal) {
 
 /**
  * Formata declinação para exibição: -34.3846 → "−34° 23′ 04.62″".
+ *
+ * Mesma relação com `shared/astro.js`: duas casas decimais aqui, uma na
+ * versão do mapa — e aqui positivos não ganham "+" (só o sinal negativo é
+ * impresso, como no resto do certificado).
  *
  * @param {number} decimal
  * @returns {string}

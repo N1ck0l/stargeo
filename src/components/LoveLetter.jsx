@@ -1,6 +1,23 @@
 import { Reveal } from './Reveal'
 import { useContent } from '../lib/contentContext'
 
+/**
+ * Seção da carta.
+ *
+ * Papel na arquitetura: imprime na tela os parágrafos de `content.carta`
+ * (padrão: `letterParagraphs`, de `src/data/star.js`) dentro de um "papel"
+ * com borda dourada brilhante. É a única seção que usa a classe
+ * `shimmer-border` no corpo do texto.
+ *
+ * Importado por: `App.jsx`.
+ * Exports: `LoveLetter`.
+ * Invariantes:
+ * - a entrada de cada parágrafo é escalonada pelo índice (`260 + i * 160 ms`);
+ *   acrescentar muitos parágrafos empurra a assinatura para muito depois —
+ *   por isso ela tem o próprio atraso calculado a partir do tamanho da lista;
+ * - `content.carta` pode não ser array (JSON adulterado): o guard `Array.isArray`
+ *   mantém a seção vazia em vez de quebrar a página.
+ */
 export function LoveLetter() {
   const { content } = useContent()
   const paragrafos = Array.isArray(content.carta) ? content.carta : []

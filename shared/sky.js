@@ -2,6 +2,10 @@
  * Matemática para a "Mira celeste": onde uma estrela está no céu, agora, a
  * partir de um lugar, e para onde o celular está apontando.
  *
+ * Importado pelo site pessoal pelo re-export em `src/lib/sky.js` (usado por
+ * `SkyFinder.jsx`, a mira com câmera e bússola). É este arquivo que responde
+ * "para que lado a pessoa precisa virar o celular".
+ *
  * Tudo em graus ou radianos de forma explícita, e as convenções seguem a
  * astronomia de posição:
  *  - AR em horas, declinação em graus (J2000);
@@ -37,6 +41,10 @@ export function wrap360(degrees) {
  *
  * Baseia-se no GMST do_epochs J2000 mais o deslocamento em longitude. É o
  * que converte "posição no céu" em "posição no céu de agora, daqui".
+ *
+ * A série polinomial abaixo é a de baixa precisão da Astronomical Almanac
+ * (erro de ~0,001°, ou ~1 s de AR): dezenas de vezes mais que o necessário
+ * para guiar um celular, e sem dependência de biblioteca de tempo.
  */
 export function localSiderealTime(date, longitudeDeg) {
   // Dia Juliano.
@@ -74,6 +82,9 @@ export function equatorialToHorizontal(raHours, decDeg, latDeg, lonDeg, date) {
 
   const sinAlt =
     Math.sin(dec) * Math.sin(lat) + Math.cos(dec) * Math.cos(lat) * Math.cos(hourAngle)
+  // O clamp existe por erro de ponto flutuante: sinAlt pode chegar a
+  // 1,0000000000000002, e Math.asin disso devolve NaN — a estrela "some" da
+  // mira num azimute qualquer.
   const altitude = Math.asin(Math.max(-1, Math.min(1, sinAlt)))
 
   const azimuth = Math.atan2(
@@ -129,10 +140,21 @@ export function guidance(target, pointing) {
   // Diferença em azimute: negativo = a estrela está à esquerda.
   const bearing = wrap180(target.azimuth - pointing.azimuth)
   const elevation = target.altitude - pointing.altitude
+  // 6° de tolerância nos dois eixos: o "alinhado" da interface. Mais que isso
+  // e a pessoa acha que está na estrela quando está um palmo de lado; menos, e
+  // o alvo pisca sem parar por causa do tremor natural da mão.
   return { bearing, elevation, aligned: Math.abs(bearing) < 6 && Math.abs(elevation) < 6 }
 }
 
-/** Separação angular entre duas direções de horizonte, em graus. */
+/**
+ * Separação angular entre duas direções de horizonte, em graus.
+ *
+ * Usa hipotenusa das diferenças, não a fórmula esférica exata: para os
+ * ângulos pequenos em que isto tipicamente se mede (duas direções próximas),
+ * o erro da aproximação é desprezível. Hoje não tem consumidor no repo — é
+ * utilidade exportada, mantida para quem precisar comparar duas direções sem
+ * puxar trigonometria extra a cada quadro.
+ */
 export function angularDistance(a, b) {
   const alt = a.altitude - b.altitude
   const az = wrap180(a.azimuth - b.azimuth)
@@ -147,9 +169,15 @@ export function angularDistance(a, b) {
  * vai nascer e se pôr, e qual é a melhor janela da noite.
  *
  * @param horizon  altura mínima para contar como visível (graus). O padrão,
- *                 0°, ignora a atmosfera; 10° é mais honesto a olho nu.
+ *                 8°, é o compromisso entre o horizonte geométrico (0°, que
+ *                 ignora a atmosfera e o relevo) e os ~10° que se recomenda
+ *                 para observação a olho nu — a estrela "existe" a 0°, mas a
+ *                 pessoa não a enxerga.
  */
 export function visibility(raHours, decDeg, latDeg, lonDeg, date, horizon = 8) {
+  // 4 min × 360 passos = exatamente 24 h de janela. Passo maior enganaria a
+  // hora de nascer/pôr em minutos; menor só custa CPU, porque a curva de
+  // altitude é lenta.
   const stepMinutes = 4
   const samples = []
   const start = new Date(date.getTime())
@@ -194,7 +222,10 @@ export function visibility(raHours, decDeg, latDeg, lonDeg, date, horizon = 8) {
     if (samples[i].altitude > peak.altitude) peak = samples[i]
   }
 
-  // Melhor janela: os momentos mais altos do arco.
+  // Melhor janela: os momentos mais altos do arco — acima de 15° (o
+  // "confortável" de novo) ou a 20° do pico, o que vier primeiro. Sem o piso
+  // de 15°, uma noite em que a estrela só passa a 12° geraria uma "melhor
+  // janela" igualmente ruim e a interface prometeria demais.
   const good = samples.slice(arcStart, arcEnd + 1).filter((s) => s.altitude >= Math.max(15, peak.altitude - 20))
   const bestWindow = good.length
     ? { start: good[0].at, end: good[good.length - 1].at }
@@ -205,6 +236,9 @@ export function visibility(raHours, decDeg, latDeg, lonDeg, date, horizon = 8) {
     nowAltitude,
     nowAzimuth: samples[0].azimuth,
     risesAt: samples[arcStart].at,
+    // `setsAt` nulo quando o arco ainda não terminou nas 24 h varridas (a
+    // estrela se põe amanhã de manhã): a interface prefere omitir a hora a
+    // inventar uma.
     setsAt: arcEnd + 1 < samples.length ? samples[arcEnd + 1].at : null,
     peakAltitude: peak.altitude,
     peakAt: peak.at,
@@ -237,7 +271,7 @@ export function visibilityMessage(info) {
   return `Agora ela está abaixo do horizonte. Nasce às ${formatTime(info.risesAt)} e fica mais alta às ${formatTime(info.peakAt)}, a ${info.peakAltitude.toFixed(0)}° — olhe para ${cardinal(info.peakAzimuth)}.`
 }
 
-/** Nome da direção mais próxima, em português. */
+/** Nome da direção mais próxima, em português (8 pontos, a cada 45°). */
 export function cardinal(azimuth) {
   const names = ['norte', 'nordeste', 'leste', 'sudeste', 'sul', 'sudoeste', 'oeste', 'noroeste']
   return names[Math.round(wrap360(azimuth) / 45) % 8]

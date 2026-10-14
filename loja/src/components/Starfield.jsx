@@ -10,6 +10,15 @@ import { useEffect, useRef } from 'react'
  * vez num canvas fora da tela e depois só reaproveitada com `drawImage`.
  *
  * Com `prefers-reduced-motion`, a cena é desenhada uma única vez e nada anima.
+ *
+ * Quem importa: `loja/src/App.jsx`. Export: `Starfield`. É a variante da
+ * loja — o site pessoal tem outro fundo, com mais camadas; este é o mesmo
+ * desenho, enxuto, para não pesar em quem está com o cartão na mão.
+ *
+ * Invariantes: um canvas só, decorativo (`aria-hidden`), sempre POR TRÁS do
+ * conteúdo (z-0; o conteúdo precisa de z-10, ver o comentário no `App` da
+ * loja); a animação pausa com a aba escondida; e nada aqui pode rodar sem
+ * contexto 2D — teste e navegador com canvas bloqueado caem fora sem erro.
  */
 export function Starfield() {
   const canvasRef = useRef(null)
@@ -74,6 +83,8 @@ export function Starfield() {
 
     const seedStars = () => {
       stars.length = 0
+      // Densidade pelo MENOR lado: num celular deitado a tela é larga e o
+      // número não pode disparar só por causa da largura.
       const count = Math.round(Math.min(width, height) * 0.55)
       for (let i = 0; i < count; i += 1) {
         stars.push({
@@ -90,6 +101,8 @@ export function Starfield() {
       }
     }
 
+    // Posição do ponteiro normalizada (−0,5 a 0,5): um só número vira o
+    // deslocamento das camadas, sem depender da largura da janela.
     const onMove = (event) => {
       pointer.x = event.clientX / width - 0.5
       pointer.y = event.clientY / height - 0.5
@@ -251,5 +264,7 @@ export function Starfield() {
     }
   }, [])
 
+  // Decorativo de propósito: estrela de fundo não se navega, não se lê e
+  // não deve aparecer para leitor de tela.
   return <canvas ref={canvasRef} className="scroll-veil" aria-hidden="true" />
 }

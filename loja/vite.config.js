@@ -37,6 +37,8 @@ function achatarHtml() {
   return {
     name: 'stargeo-achatar-html',
     apply: 'build',
+    // `closeBundle` roda depois que todo o bundle já está escrito em disco
+    // (em `generateBundle` o `index.html` ainda não seria arquivo nenhum).
     closeBundle() {
       const saida = resolve(raiz, 'dist-loja')
       const aninhado = resolve(saida, 'loja', 'index.html')

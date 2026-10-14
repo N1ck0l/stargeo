@@ -47,6 +47,8 @@ export function AdminPagina() {
 
   async function aoEntrar(email, senha) {
     const s = await entrarNoPainel(email, senha)
+    // Tudo volta ao estado de primeira visita: quem entrou agora não herda a
+    // aba ou a página aberta de uma sessão anterior (que nem existia).
     setSessao(s)
     setAba('visao')
     setCodigoAberto(null)
@@ -100,6 +102,8 @@ export function AdminPagina() {
           </button>
         </div>
 
+        {/* Editor aberto = tela cheia por cima: a navegação de abas some, e
+            ele próprio traz o botão de voltar para a lista. */}
         {!codigoAberto && (
           <nav className="mt-7 flex flex-wrap gap-2 border-b border-white/10 pb-px">
             {[
@@ -160,6 +164,8 @@ function Login({ aoEntrar }) {
 
   async function submeter(evento) {
     evento.preventDefault()
+    // Enter repetido não manda duas senhas: a segunda tentativa passaria pelo
+    // rate limit do GoTrue sem motivo nenhum.
     if (entrando) return
     setErro('')
     setEntrando(true)

@@ -32,10 +32,14 @@ export function useRota() {
 /** Navega sem recarregar a página. */
 export function navegar(para) {
   if (para === window.location.pathname) {
+    // Mesmo caminho: não empilha histórico (o botão "voltar" não viraria um
+    // loop) e resolve o que a pessoa queria — voltar pro topo.
     window.scrollTo({ top: 0, behavior: 'smooth' })
     return
   }
   window.history.pushState(null, '', para)
+  // `pushState` não dispara `popstate`; o evento é dispatchado à mão para o
+  // `useRota` (que só escuta `popstate`) trocar de tela.
   window.dispatchEvent(new PopStateEvent('popstate'))
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }

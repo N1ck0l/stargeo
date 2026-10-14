@@ -22,7 +22,13 @@
 import { constellationLines, sagittariusStars } from '../../../src/data/star.js'
 import { brightStars } from '../../../src/data/brightStars.js'
 
-/** Estrela da página no formato do site pessoal → folha do certificado. */
+/**
+ * Estrela da página no formato do site pessoal → folha do certificado.
+ *
+ * O `CertificadoPreview` quer número puro em `ra`/`dec`, não o objeto
+ * `{hoursDecimal, formatted}` que os componentes de tela usam — é por isso
+ * que aqui se descacha a parte formatada.
+ */
 export function estrelaDaFolha(estrela) {
   return {
     name: estrela.commonName,

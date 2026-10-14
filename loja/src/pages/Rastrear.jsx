@@ -10,6 +10,15 @@ import { Reveal } from '../components/Reveal.jsx'
  * `SG-AB3K-9ZXM` tem cerca de 40 bits de entropia, e um script de força bruta
  * testaria todas as combinações em minutos num computador comum. Quem tivesse
  * o código veria o nome de quem recebeu o presente — que não é o cliente.
+ *
+ * Papel na arquitetura: rota `/rastrear` (`loja/src/App.jsx`), export
+ * default, e a saída de toda tela de pós-compra — quem não achou o pedido
+ * no navegador vem para cá. A consulta é `rastrear` de `lib/api.js`, sempre
+ * POST, porque código e e-mail não podem virar parâmetro de URL.
+ *
+ * Invariantes: os DOIS campos são obrigatórios, e o servidor (`track-order`)
+ * também exige; a resposta é a mesma para "código inexistente" e "e-mail
+ * errado" — a tela não pode virar um oráculo para adivinhar códigos.
  */
 export default function Rastrear() {
   const [code, setCode] = useState('')
@@ -18,6 +27,14 @@ export default function Rastrear() {
   const [erro, setErro] = useState('')
   const [buscando, setBuscando] = useState(false)
 
+  /**
+   * Consulta e mostra a ficha.
+   *
+   * `rastrear` devolve a falha como `ErroApi`, com a mensagem que o servidor
+   * escolheu — exibir essa mensagem é seguro porque ela nunca diz qual dos
+   * dois campos estava errado. O que NÃO é `ErroApi` (rede fora do ar,
+   * resposta sem JSON) vira o texto genérico do `catch`.
+   */
   async function consultar(evento) {
     evento.preventDefault()
     setErro('')
@@ -51,6 +68,9 @@ export default function Rastrear() {
                 <label htmlFor="codigo" className="rotulo">
                   Código do pedido
                 </label>
+                {/* O código costuma vir copiado do e-mail: sem corretor, sem
+                    autocompletar, e em maiúsculas — o servidor normaliza, mas
+                    não há motivo para deixar a caixa errar. */}
                 <input
                   id="codigo"
                   className="campo font-mono uppercase"
@@ -109,7 +129,17 @@ export default function Rastrear() {
   )
 }
 
+/**
+ * Ficha do pedido encontrado.
+ *
+ * `aria-live="polite"` porque o resultado nasce DEPOIS do clique: sem o
+ * anúncio, quem usa leitor de tela não sabe que a consulta respondeu.
+ * Os rótulos em português (`statusLabel`) vêm do servidor — é ele que
+ * conhece os status do Mercado Pago, e a tela não deve repetir a lista.
+ */
 function Resultado({ pedido }) {
+  // "Pendente" aqui significa "ainda não dá para garantir a entrega" —
+  // qualquer status que não seja aprovado/análise pinta de âmbar.
   const pendente = pedido.status !== 'approved' && pedido.status !== 'in_process'
 
   return (
@@ -130,6 +160,12 @@ function Resultado({ pedido }) {
         </span>
       </div>
 
+      {/*
+        O valor chega em centavos inteiros (`amount_cents`); formatar aqui,
+        em vez de guardar "R$ 49,00" no banco, evita vírgula errada e valor
+        quebrado por arredondamento. A data também é formatada no fuso de
+        quem olha, não no UTC do servidor.
+      */}
       <dl className="mt-6 grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
         {[
           ['Produto', pedido.produto],

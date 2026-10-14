@@ -2,6 +2,22 @@ import { Reveal } from './Reveal'
 import { kausAustralis } from '../data/star'
 import { useContent } from '../lib/contentContext'
 
+/**
+ * Seção "A estrela": ficha técnica em cartões.
+ *
+ * Papel na arquitetura: transforma os dados de `src/data/star.js` (que são
+ * fatos conferidos no SIMBAD) numa grade de `dl` legível, ao lado da chamada
+ * para o certificado. É a prova de que o presente usa coordenadas de verdade.
+ *
+ * Importado por: `App.jsx`.
+ * Exports: `StarDetails`.
+ * Invariantes:
+ * - os rótulos do `facts` são a `key` do `Reveal`: não podem repetir;
+ * - campos ausentes (catálogos, nota de magnitude) são filtrados — nunca podem
+ *   aparecer como "undefined" na tela;
+ * - o atraso dos cartões (`80 + i * 70`) forma a diagonal de entrada; mudar o
+ *   número de fatos muda o ritmo, mas não pode deixar cartões sem animação.
+ */
 export function StarDetails({ onOpenCertificate }) {
   const { content } = useContent()
   // Ver `Hero.jsx`: no site pessoal a estrela é o import, nas páginas de

@@ -1,3 +1,11 @@
+/**
+ * Diálogo do certificado: contrato de modal (ARIA, trava de rolagem do
+ * body, foco preso, Esc, clique no backdrop) e os dados reais exibidos.
+ *
+ * A trava de rolagem é regressão de bug já ocorrido: sem `overflow: hidden`
+ * no body, a página por baixo do overlay continuava rolando no celular. O
+ * foco preso fecha o vazamento de teclado para fora do diálogo.
+ */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CertificateModal } from '../src/components/CertificateModal'
@@ -8,6 +16,8 @@ const renderModal = (props = {}) =>
   render(<CertificateModal open onClose={() => {}} {...props} />)
 
 describe('CertificateModal', () => {
+  // === Modal fechado / presença e acessibilidade ===
+
   it('não renderiza nada quando está fechado', () => {
     const { container } = render(<CertificateModal open={false} onClose={() => {}} />)
     expect(container.firstChild).toBeNull()
@@ -30,10 +40,14 @@ describe('CertificateModal', () => {
     expect(document.body.style.overflow).not.toBe('hidden')
   })
 
+  // === Foco: entrada no diálogo ===
+
   it('move o foco para dentro do diálogo ao abrir', () => {
     renderModal()
     expect(screen.getByRole('dialog').contains(document.activeElement)).toBe(true)
   })
+
+  // === Fechamento: Esc e clique no backdrop ===
 
   it('fecha com a tecla Esc', () => {
     const onClose = vi.fn()
@@ -53,6 +67,8 @@ describe('CertificateModal', () => {
     const onClose = vi.fn()
     const { container } = renderModal({ onClose })
 
+    // O listener de fechamento vive no overlay (raiz do diálogo): clique
+    // dentro do certificado é filho e não pode fechar.
     fireEvent.click(container.firstChild)
     expect(onClose).toHaveBeenCalledTimes(1)
 
@@ -60,6 +76,8 @@ describe('CertificateModal', () => {
     fireEvent.click(document.getElementById('certificate-print'))
     expect(onClose).not.toHaveBeenCalled()
   })
+
+  // === Armadilha de foco (Tab / Shift+Tab) ===
 
   it('mantém o foco preso: Tab no último volta ao primeiro', () => {
     renderModal()
@@ -86,6 +104,8 @@ describe('CertificateModal', () => {
     fireEvent.keyDown(document, { key: 'Tab', shiftKey: true })
     expect(document.activeElement).toBe(last)
   })
+
+  // === Dados exibidos (Kaus Australis) ===
 
   it('exibe os dados reais de Kaus Australis', () => {
     renderModal()

@@ -1,3 +1,21 @@
+/**
+ * Raiz da aplicação: monta a página inteira do presente.
+ *
+ * Papel na arquitetura: é o único componente que conhece a ordem das seções
+ * (Hero → SkyMap → StarDetails → LoveLetter → PersonalMessage) e o estado dos
+ * dois diálogos globais — o certificado e a mira celeste. Todo o conteúdo
+ * editável chega pelo `ContentProvider` envolvendo a árvore.
+ *
+ * Importado por: `src/main.jsx`.
+ * Imports: componentes de `src/components/`, `ContentProvider` de `src/lib/`.
+ * Exports: `App` (default).
+ *
+ * Invariantes:
+ * - `SkyFinder` e `Admin` são `lazy` — o código deles não pode entrar no bundle
+ *   inicial sem que isso seja uma decisão consciente;
+ * - a rota `/admin` abre SÓ o painel, sem o site por baixo;
+ * - nada aqui renderiza sem os dois Suspense terem fallback legível.
+ */
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { CertificateModal } from './components/CertificateModal'
 import { Footer } from './components/Footer'
@@ -63,6 +81,11 @@ export default function App() {
     )
   }
 
+  /*
+   * Ordem e `id` das seções não são livres: o `Navbar` observa exatamente
+   * `#inicio`, `#ceu`, `#estrela`, `#carta` (e `#mensagem`, quando existe)
+   * para marcar o link ativo. Trocar um id aqui silencia o menu.
+   */
   return (
     <ContentProvider>
       <div className="star-bg relative min-h-dvh overflow-x-hidden">

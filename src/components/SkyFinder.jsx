@@ -44,16 +44,39 @@ const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 /**
- * Mira celeste em tela cheia: a câmera ao fundo e a bússola indicando para
- * onde fica Kaus Australis.
+ * Mira celeste — o "aponte para o céu e ache a estrela".
  *
- * É montada só enquanto está aberta (veja App.jsx), então não precisa de
- * efeito para se "reiniciar" — abrir de novo já cria uma instância nova.
+ * Papel na arquitetura: diálogo em tela cheia (portal no fim do `body`) que
+ * combina três fontes de verdade — câmera (vídeo ao fundo), sensores de
+ * orientação (bússola) e matemática de `src/lib/sky.js` (reexport de
+ * `shared/sky.js`) — para apontar onde Kaus Australis está AGORA, a partir do
+ * lugar onde a pessoa está.
  *
- * Cobre a tela inteira e pede câmera, bússola e geolocalização, então precisa
- * se comportar como o que é: um diálogo modal. Sem `role="dialog"`, foco preso,
- * `Esc` e trava de rolagem, o teclado vazava para os botões do site que estão
- * por baixo do overlay e a página de trás continuava rolável.
+ * Importado por: `App.jsx`, mas só via `lazy()` depois do clique no botão.
+ * Exports: `SkyFinder`.
+ *
+ * Fluxo de permissão (não pode ser reordenado sem pensar):
+ * 1. `intro` → pessoa lê o aviso e clica "Abrir a mira";
+ * 2. `DeviceOrientationEvent.requestPermission()` (só existe no iOS ≥ 12);
+ * 3. `getUserMedia` da câmera traseira — CÂMERA É OPCIONAL, sem ela a mira
+ *    continua funcionando sobre um fundo escuro;
+ * 4. `getCurrentPosition` — sem latitude não há altura da estrela, e o
+ *    fallback é escolher uma das `FALLBACK_CITIES`;
+ * 5. `active`.
+ *
+ * Invariantes:
+ * - `streamRef` é parado no cleanup e TAMBÉM quando uma promessa resolve com
+ *   a tela já fechada (`closedRef`) — o indicador de câmera do sistema não
+ *   pode ficar aceso;
+ * - `wrap180` em todo cálculo de diferença de azimute: sem ele, 350° − 10°
+ *   viraria "340° à direita" em vez de "20° à esquerda";
+ * - os avisos de erro (`sensorMissing`) só aparecem quando NENHUM dado chega
+ *   em 3,5 s — a permissão concedida não é sinal de que o sensor funciona.
+ *
+ * É montada só enquanto está aberta, então não precisa de efeito para se
+ * "reiniciar" — abrir de novo já cria uma instância nova. Como cobre a tela
+ * inteira, comporta-se como diálogo modal de verdade: `role="dialog"`,
+ * `aria-modal`, foco preso, `Esc` para sair e trava de rolagem do fundo.
  */
 export function SkyFinder({ onClose }) {
   const videoRef = useRef(null)
@@ -69,6 +92,11 @@ export function SkyFinder({ onClose }) {
   const estrela = content.estrela ?? kausAustralis
   const celestes = content.skyFigura?.stars ?? sagittariusStars
 
+  /*
+   * `stage` tem três valores: 'intro' (aviso antes de pedir permissão),
+   * 'starting' (permissões em andamento, botão desabilitado) e 'active'
+   * (sensores ligados, mira em uso).
+   */
   const [stage, setStage] = useState('intro')
   const [error, setError] = useState('')
   const [fix, setFix] = useState(null)
@@ -161,9 +189,17 @@ export function SkyFinder({ onClose }) {
     if (stage !== 'active') return
     let mounted = true
 
+    /*
+     * `alpha` = rotação em torno do eixo vertical (0 = norte magnético),
+     * `beta` = inclinação frente/costa, `gamma` = inclinação lateral. É
+     * `alpha` que define para que azimute o aparelho está virado; a conversão
+     * completa para (altura, azimute) da câmera vive em `devicePointing`.
+     */
     const onOrientation = (event) => {
       if (event.alpha === null || !mounted) return
       setPointing(devicePointing(event.alpha, event.beta ?? 0, event.gamma ?? 0))
+      // Só o Android publica a precisão da bússola; no iOS `accuracy` fica nulo
+      // e a qualidade aparece como "desconhecida" — não como "ruim".
       if (typeof event.webkitCompassAccuracy === 'number') setAccuracy(event.webkitCompassAccuracy)
       // Chegou dado de verdade: o aviso de sensor ausente não se aplica.
       setSensorMissing(false)
@@ -199,6 +235,9 @@ export function SkyFinder({ onClose }) {
         setPlaceName('sua localização')
         setShowCities(false)
       },
+      // Recusa, timeout ou API ausente: tudo cai na mesma escolha de cidades.
+      // `enableHighAccuracy: false` basta (a posição da estrela muda ~1° a
+      // cada 4 min); `maximumAge` aceita uma posição de até 10 minutos atrás.
       () => setShowCities(true),
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 },
     )
@@ -343,9 +382,12 @@ export function SkyFinder({ onClose }) {
     [skyStars, celestes],
   )
 
-  // O azimute do alvo vira deslocamento horizontal na tela.
+  // O azimute do alvo vira deslocamento horizontal na tela. Dividir por
+  // `fov / 2` converte graus em fração do meio-campo; o `clamp` impede que a
+  // seta saia do retículo quando a estrela está atrás do aparelho.
   const arrowShift = guide ? Math.max(-1, Math.min(1, guide.bearing / (fov / 2))) : 0
 
+  // Cardeais em português e em azimute: Norte 0°, Leste 90°, Sul 180°, Oeste 270°.
   const compassPoints = { N: 0, L: 90, S: 180, O: 270 }
 
   /*
@@ -434,11 +476,17 @@ export function SkyFinder({ onClose }) {
         </div>
       ) : (
         <>
-          {/* Bússola */}
+          {/* Bússola. `offset` é a diferença para o norte magnético, já
+              embrulhada em (-180, 180] — um cardeal "atrás" do aparelho não
+              pode aparecer do outro lado da fita. A faixa tem a largura do
+              campo de visão, então graus saem direto em porcentagem:
+              50% + offset / fov × 100. */}
           <div className="relative z-10 flex justify-center pt-2" aria-hidden="true">
             <div className="relative h-10 w-[min(90vw,520px)] overflow-hidden">
               {Object.entries(compassPoints).map(([label, angle]) => {
                 const offset = wrap180(angle - (pointing?.azimuth ?? 0))
+                // Fora de ±60° do centro: esconde, para a fita não encher de
+                // letras coladas nas bordas.
                 if (Math.abs(offset) > 60) return null
                 return (
                     <span
@@ -477,6 +525,12 @@ export function SkyFinder({ onClose }) {
                   </svg>
                 </div>
 
+                {/*
+                  Instruções em texto, para quem não vê (ou não entende) a seta.
+                  `role="status"` faz o leitor de tela anunciar a mudança sem
+                  roubar o foco. Os limiares de 4° vêm de `guidance()`: dentro
+                  disso já se está "ali".
+                */}
                 <p className="mt-6 max-w-sm text-center text-lg" role="status">
                   {guide.aligned ? (
                     <span className="font-serif text-2xl text-gold">Ali está a sua estrela ✦</span>
@@ -513,7 +567,13 @@ export function SkyFinder({ onClose }) {
                 className="pointer-events-none relative mx-auto mt-6 aspect-square w-full max-w-[min(100%,26vh)]"
                 aria-hidden="true"
               >
-                {/* Céu de fundo: as estrelas mais brilhantes, sem nome. */}
+                {/* Céu de fundo: as estrelas mais brilhantes, sem nome.
+                    O eixo X vem do bearing (diferença de azimute para o
+                    aparelho) e o Y da ALTITUDE RELATIVA à do aparelho — é ela
+                    que diz se a estrela está acima ou abaixo da linha do meio.
+                    Ambos em graus ÷ fov = porcentagem do quadro.
+                    O raio cai com a magnitude: `9 − mag × 1,8`, preso entre
+                    2 e 6 px — mais brilhante, ponto maior. */}
                 {skyBackdrop.map((star) => (
                   <span
                     key={`sky-${star.ra}-${star.dec}`}

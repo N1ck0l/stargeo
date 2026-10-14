@@ -86,7 +86,13 @@ function carregarTtf(url) {
   return trabalho
 }
 
-/** Converte `#rrggbb` para a cor do pdf-lib. */
+/**
+ * Converte `#rrggbb` para a cor do pdf-lib.
+ *
+ * Exportada porque `certificate.js` não conhece o pdf-lib: quem chama
+ * registra esta função como fábrica via `definirFabricaDeCor`, e o desenho
+ * continua falando só em hex.
+ */
 export function cor(hex) {
   const h = hex.replace('#', '')
   return rgb(

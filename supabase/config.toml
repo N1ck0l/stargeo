@@ -2,32 +2,57 @@
 #
 # Gerada para o CLI. Só o que importa para este projeto está aqui; o resto usa
 # o padrão.
+#
+# Vale para o stack LOCAL (`supabase start` / `functions serve`). Em produção
+# o que decide é o `supabase functions deploy --no-verify-jwt` de `LOJA.md` e
+# as variáveis de `supabase secrets set`.
 
+# Nome do projeto local: vira o prefixo dos containers e volumes que o CLI
+# cria (stargeo-db, stargeo-rest e companhia).
 project_id = "stargeo"
 
 [api]
 enabled = true
-# Schemas expostos pelo Data API. `orders` NÃO entra aqui de propósito: ele é
-# lido só pelas Edge Functions, com a service_role.
+# Schemas expostos pelo Data API. Expor `public` não vira leitura de `orders`:
+# a tabela não tem política de RLS (ver `0001_loja.sql`), então o `anon` não
+# enxerga nenhuma linha, mesmo com a chave pública em mãos.
 schemas = ["public", "storage_graphql"]
+# Esquemas procurados quando um nome chega sem qualificação. `extensions` é
+# onde o Supabase instala as extensões (`citext`, `pgcrypto`), então funções e
+# tipos delas funcionam sem escrever o esquema na frente.
 extra_search_path = ["public", "extensions"]
+# Teto de linhas por resposta REST — trava de fábrica contra consulta mal
+# escrita que tente puxar a tabela inteira num GET.
 max_rows = 1000
 
 [db]
+# Porta local do Postgres (127.0.0.1:54322). Nada a ver com a porta 5432 da
+# instalação do sistema — é o CLI do Supabase que a escolhe.
 port = 54322
-# `citext` é usado na coluna de e-mail dos pedidos, para que o rastreio
-# funcione com "Ana@exemplo.com" e "ana@exemplo.com".
+# Postgres 17. O `citext` (e-mail sem distinção de caixa, usado em
+# `orders.customer_email` e `pages.customer_email`) já acompanha esta versão —
+# `0001_loja.sql` só precisa do `create extension`.
 major_version = 17
 
 [db.migrations]
+# Vazio = o CLI aplica tudo que está em `supabase/migrations/`, em ordem de
+# nome de arquivo. Só se preenche se as migrations viverem fora da pasta.
 schema_paths = []
 
 [storage]
 enabled = true
+# Teto por arquivo. Sobra folga para o PDF (~24 KB) e impede que o bucket
+# vire disco de arquivo do projeto.
 file_size_limit = "50MiB"
 
 # ---------------------------------------------------------------------------
 # Edge Functions
+#
+# As quatro funções abaixo têm seção para FIXAR o `verify_jwt` de cada uma.
+# `get-page`, `page-auth`, `page-update` e `admin-api` ficaram de fora: no
+# deploy elas levam `--no-verify-jwt` (ver `LOJA.md`), e a proteção de cada
+# uma está no próprio código — código da página, token de edição e lista
+# branca de `admins`.
 # ---------------------------------------------------------------------------
 [functions.create-checkout]
 # Chamada pelo navegador durante o checkout. Precisa do JWT desligado porque

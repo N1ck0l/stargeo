@@ -6,6 +6,9 @@
  * um presente, então o acesso é o par (código, e-mail) que a pessoa já tem —
  * trocado por um segredo com validade, para não ser eterno nem recorrente de
  * digitar.
+ *
+ * Quem usa: `page-auth` (emite) e `page-update` (confere). Efeito colateral:
+ * a validação em si pode apagar token vencido (ver `sessaoDe`).
  */
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import { ErroApp } from './http.ts'
@@ -26,7 +29,12 @@ export async function sha256Hex(valor: string): Promise<string> {
   return [...new Uint8Array(digesto)].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-/** Lê o token do header `Authorization: Bearer …` ou do campo `token` do corpo. */
+/**
+ * Lê o token do header `Authorization: Bearer …` ou do campo `token` do corpo.
+ *
+ * O header tem precedência: é por ele que um `page-update` que já está com a
+ * sessão aberta fala sem repetir o corpo inteiro só para autenticar.
+ */
 export function lerToken(request: Request, corpo?: Record<string, unknown> | null): string | null {
   const autorizacao = request.headers.get('authorization') ?? ''
   const cabecalho = autorizacao.toLowerCase().startsWith('bearer ')
@@ -43,6 +51,9 @@ export function lerToken(request: Request, corpo?: Record<string, unknown> | nul
  * Falha com 401 nas três saídas possíveis — hash desconhecido, token vencido
  * e token órfão (página apagada) — porque distinguir diria ao portador se o
  * hash existe.
+ *
+ * Efeito colateral: token vencido é APAGADO na mesma chamada, em vez de ficar
+ * no banco esperando alguém varrer a tabela.
  */
 export async function sessaoDe(
   db: SupabaseClient,

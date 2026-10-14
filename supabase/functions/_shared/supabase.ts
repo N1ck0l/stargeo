@@ -1,5 +1,10 @@
 /**
  * Cliente Supabase e leitura de configuração das Edge Functions.
+ *
+ * Importado por TODAS as funções — é o único lugar que toca a service_role e
+ * as variáveis de ambiente. Quem precisa de uma chave que o navegador nunca
+ * deve ver (`SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`,
+ * `MERCADO_PAGO_ACCESS_TOKEN`) passa por aqui.
  */
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import { ErroApp } from './http.ts'
@@ -24,6 +29,9 @@ export function admin(): SupabaseClient {
     )
   }
 
+  // Sem sessão para persistir nem token para renovar: cada invocação é um
+  // processo novo que vive poucos segundos — guardar estado aqui só geraria
+  // cliente "logado" que não existe na chamada seguinte.
   return createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   })

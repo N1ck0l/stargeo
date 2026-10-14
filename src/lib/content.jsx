@@ -30,6 +30,9 @@ export function ContentProvider({ children, editable = false, initial = DEFAULTS
   useEffect(() => {
     if (editable) return
     let cancelled = false
+    // `BASE_URL` faz o caminho funcionar também quando o site é publicado em
+    // subpasta. `no-cache` é obrigatório: um `conteudo.json` em cache faria o
+    // presente antigo aparecer depois de uma nova publicação.
     fetch(`${import.meta.env.BASE_URL}conteudo.json`, { cache: 'no-cache' })
       .then((response) => (response.ok ? response.json() : null))
       .then((data) => {

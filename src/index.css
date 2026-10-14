@@ -1,6 +1,26 @@
+/*
+ * Folha de estilo global do site — Tailwind v4.
+ *
+ * Papel na arquitetura: define o tema (fontes e cores), os utilitários
+ * próprios do projeto (`.reveal`, `.certificate-paper`, `.nav-link`, …) e as
+ * regras globais de acessibilidade (foco, movimento reduzido, impressão).
+ * Importada por `src/main.jsx`, que também importa `fonts.css`.
+ *
+ * Invariantes que não podem quebrar:
+ * - `.certificate-paper` / `.certificate-light` são só variáveis: o certificado
+ *   escuro e claro são o mesmo documento com valores trocados;
+ * - todo o bloco `@media print` gira em torno de `#certificate-print`;
+ * - `@media (prefers-reduced-motion: reduce)` no fim do arquivo desliga TUDO o
+ *   que anima — qualquer animação nova precisa entrar nessa lista.
+ */
 @import "tailwindcss";
 @import "./fonts.css";
 
+/*
+ * Tokens do tema. No Tailwind v4 estes nomes viram utilitários de verdade:
+ * `--color-gold` dá `text-gold`, `bg-gold`, `border-gold/50` etc., e
+ * `--font-serif` dá `font-serif`. Trocar um valor aqui muda o site inteiro.
+ */
 @theme {
   --font-display: "Cinzel", serif;
   --font-serif: "Cormorant Garamond", serif;
@@ -80,6 +100,11 @@ canvas:focus-visible {
   background-color: #07061a;
 }
 
+/*
+ * Fundo do site: três brilhos radiais sobre o azul-noite. É o que dá a
+ * sensação de nebulosa sem imagem nenhuma — e por isso não pode virar
+ * `background-image` em componente, senão some em `/admin` e nos fallbacks.
+ */
 .star-bg {
   background:
     radial-gradient(1200px 600px at 20% -10%, rgba(91, 54, 168, 0.35), transparent 55%),
@@ -88,6 +113,7 @@ canvas:focus-visible {
     #07061a;
 }
 
+/* Fio dourado que separa os títulos das seções. */
 .gold-line {
   background: linear-gradient(90deg, transparent, #e8c872, transparent);
   height: 1px;
@@ -129,6 +155,11 @@ canvas:focus-visible {
   --cert-frame-soft: rgba(138, 106, 28, 0.22);
 }
 
+/*
+ * Mapeamento das classes `cert-*` para as variáveis do tema. Não há cor
+ * fixa em lugar nenhum: é isto que faz a versão escura e a clara serem o
+ * mesmo documento.
+ */
 .cert-kicker {
   color: var(--cert-accent);
 }
@@ -157,6 +188,11 @@ canvas:focus-visible {
   background: linear-gradient(90deg, transparent, var(--cert-accent), transparent);
 }
 
+/*
+ * Três micro-animações infinitas do site: cintilar, flutuar e pulsar o halo
+ * dos botões. Todas entram na lista de `prefers-reduced-motion` no fim do
+ * arquivo — quem acrescentar uma nova precisa acrescentá-la lá também.
+ */
 @keyframes twinkle {
   0%,
   100% {
@@ -346,6 +382,16 @@ canvas:focus-visible {
   position: relative;
 }
 
+/*
+ * O truque do anel é o `mask-composite`: dois `linear-gradient` empilhados,
+ * o de cima recortado pela caixa de conteúdo (`content-box`) e o de baixo
+ * pela caixa inteira; compor com `exclude` (e `xor` na sintaxe antiga do
+ * Safari, via `-webkit-mask-composite`) deixa visível só o anel de 1px do
+ * padding. Sem isso o gradiente pintaria o cartão por dentro.
+ *
+ * `pointer-events: none` porque o pseudo-elemento cobre o cartão inteiro e
+ * engoliria os cliques nos filhos.
+ */
 .shimmer-border::before {
   content: "";
   position: absolute;
@@ -530,6 +576,8 @@ canvas:focus-visible {
   }
 }
 
+/* Margem da folha na impressão: 12 mm em todo lado, já contando com a
+   margem interna do `@media print` do certificado. */
 @page {
   margin: 12mm;
 }

@@ -76,6 +76,9 @@ insert into public.stars (
    'A quinta estrela mais brilhante do céu, e a primeira de todas a ser fotografada, em 1850. Foi a estrela em torno da qual a primeira tentativa de encontrar vida extraterrestre se orientou — e continua sendo alvo de buscas.',
    false)
 
+-- Reexecutar não duplica (o `slug` é a PK) nem reescreve o que o admin já
+-- tenha mudado no catálogo (destaque, ativação, texto): o seed só preenche
+-- linha que ainda não existe.
 on conflict (slug) do nothing;
 
 -- ---------------------------------------------------------------------------
@@ -83,6 +86,13 @@ on conflict (slug) do nothing;
 --
 -- Três níveis, como na referência de mercado: digital, com mapa impresso e
 -- premium. Os preços são de exemplo — troque pelos seus antes de publicar.
+--
+-- Ordem das colunas do INSERT, para ler os valores que vêm em seguida:
+--   price_cents       venda, em centavos (4900 = R$ 49,00)
+--   compare_at_cents  preço "de", o que sai riscado — maior que o de venda
+--   badge             rótulo da vitrine (mais_vendido | premium | novo)
+--   star_slugs        estrelas do kit, na ordem em que a vitrine sugere
+--   sort_order        posição na vitrine (NULL = escondido)
 -- ---------------------------------------------------------------------------
 insert into public.products (
   slug, name, tagline, description, price_cents, compare_at_cents,
@@ -112,4 +122,6 @@ insert into public.products (
    '["Tudo do Certificado + Mapa Impresso", "Guia de observação personalizado para a sua cidade", "Mapa celeste em 4K (600 dpi)", "Narrativa em áudio da história da estrela", "Tela de céu personalizada", "Envio prioritário"]'::jsonb,
    '{kaus-australis,alpha-centauri,sirius,antares,vega,spica,pollux,regulus,canopus,achernar,fomalhaut,atria}', 3)
 
+-- Mesma proteção de cima, e é aí que ela importa: um segundo `db reset` não
+-- devolve o preço de exemplo por cima do preço que o admin já ajustou.
 on conflict (slug) do nothing;

@@ -1,3 +1,18 @@
+/**
+ * Testes da moderação, em Node puro (sem framework).
+ *
+ * Roda como parte de `npm test` — o primeiro dos scripts soltos, antes do
+ * Vitest. Não usa Vitest de propósito: este arquivo encerra o processo com
+ * `process.exit`, e o runner de testes não se sairia bem com isso.
+ *
+ * Estrutura: três blocos — pedidos que DEVEM passar, casos que DEVEM barrar
+ * (cada um com um patch sobre o mesmo pedido base) e os limites de tamanho.
+ * Qualquer `check` que falhe incrementa o contador e o processo sai com 1,
+ * o que derruba o `npm test` na sequência.
+ *
+ * Rodar isolado: `node shared/moderation.test.mjs`.
+ */
+
 import { validarPedido, validarTexto, normalizar, explicarErros } from './moderation.js'
 
 let falhas = 0
@@ -6,6 +21,8 @@ const check = (nome, ok, detalhe = '') => {
   else { console.log('FALHA', nome, detalhe); falhas += 1 }
 }
 
+// Pedido mínimo que sempre passa; os casos de "deve barrar" aplicam um patch
+// por cima, um campo de cada vez, para isolar a regra testada.
 const base = {
   honoreeName: 'Geovanna Beatriz Santos Trindade',
   fromName: 'Com amor, sempre',
@@ -21,6 +38,8 @@ check('acentos e emojis', validarPedido({ ...base, message: 'Você merecia ⭐ t
 // "Merda" é cidade do Rio Grande do Sul e apelido comum; está fora da lista
 // de propósito. Um filtro que barra isso barra gente comprando de verdade.
 check('palavra inocente que soa forte', validarPedido({ ...base, message: 'Cidade de Merda, amei!' }).ok)
+// Rede de proteção contra falso positivo: uma frase corriqueira com nota 10
+// não pode cair em nenhuma das listas.
 check('palavra $|urao daily', validarPedido({ ...base, message: 'Uma ideia excelente, nota 10!' }).ok)
 
 console.log('\n--- deve barrar ---')

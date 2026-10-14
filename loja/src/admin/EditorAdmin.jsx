@@ -54,6 +54,14 @@ export function EditorAdmin({ codigo, aoFechar, aoExpirar }) {
     }
   }, [codigo, aoExpirar])
 
+  /**
+   * Espalha a linha devolvida pelo servidor nos dezenas de `useState`.
+   *
+   * A carta vira um `textarea` com `\n\n` entre os parágrafos — é o inverso
+   * (e o mesmo contrato) do que `contarParagrafos` conta ao salvar. Chamar
+   * depois de CADA gravação importa: o servidor limpa e valida os textos, e
+   * a tela tem que mostrar o que ficou gravado, não o que foi digitado.
+   */
   function montar(linha) {
     const conteudo = linha.conteudo
     setPagina(linha)
@@ -77,6 +85,16 @@ export function EditorAdmin({ codigo, aoFechar, aoExpirar }) {
     setSalvoEm(null)
   }
 
+  /**
+   * Salva o pacote inteiro, e não só o campo que mudou.
+   *
+   * O `paginaAtualizar` aceita qualquer subconjunto, mas mandar tudo evita a
+   * pergunta "o que a pessoa alterou?" — o formulário é a fonte visível da
+   * tela, então o que está nele é o que deve ficar gravado. Os limites de
+   * tamanho e a moderação rodam no servidor (`validarConteudo` + `limpar`);
+   * aqui só o cheque dos 12 parágrafos, para o erro aparecer no campo certo
+   * antes da ida e volta.
+   */
   async function aoSalvar(evento) {
     evento.preventDefault()
     if (salvando) return
@@ -160,6 +178,9 @@ export function EditorAdmin({ codigo, aoFechar, aoExpirar }) {
               {pagina.status === 'published' ? 'Publicada' : 'Rascunho'}
             </span>
             {pagina.status === 'published' && (
+              // `<a>` de verdade e não `Link`: a página pública é outro
+              // mundo (sem o painel no meio), e abrir em nova aba deixa o
+              // formulário como estava.
               <a
                 href={`/p/${codigo}`}
                 target="_blank"

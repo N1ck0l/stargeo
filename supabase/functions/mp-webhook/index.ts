@@ -17,6 +17,21 @@
  * Idempotência: o Mercado Pago reenvia quando não recebe 200 em 5 segundos.
  * Como os passos 3 e 4 são repetíveis (upsert no Storage, update no banco), o
  * reenvio apenas refaz o trabalho.
+ *
+ * URL: `https://<ref>.supabase.co/functions/v1/mp-webhook`, a que se cadastra
+ * no painel do Mercado Pago (passo 4 do roteiro em `LOJA.md`). Publicada com
+ * `--no-verify-jwt`: o Mercado Pago não tem JWT nosso — o que ele manda é a
+ * assinatura HMAC do header `x-signature`, conferida no passo 1.
+ *
+ * Efeitos colaterais, quando o pagamento está aprovado: grava em `orders`,
+ * sobe dois PDFs no bucket privado, registra `certificate_drafts`, cria a
+ * linha em `pages` e dispara e-mail pelo Resend.
+ *
+ * Regra das respostas: 200 quando o evento foi tratado e não há nada a fazer
+ * AGORA — pagamento não aprovado, texto barrado, estrela sumida ou e-mail
+ * falho (quase tudo marcado em `email_error`, para o painel resolver); 5xx
+ * quando o reenvio AJUDA, isto é, em falha transitória de infra (PDF,
+ * consulta ao Mercado Pago, banco).
  */
 import { comHandler, ErroApp, idRequisicao, json } from '../_shared/http.ts'
 import { admin } from '../_shared/supabase.ts'
@@ -89,6 +104,9 @@ Deno.serve(
     }
 
     // --- 3. Registra o status do pagamento ------------------------------
+    // Sem try/catch de propósito: se esta gravação falhar, o erro sobe para o
+    // `comHandler`, que responde 500 — e o Mercado Pago reenvia, repetindo
+    // exatamente este passo.
     const novoStatus = traduzirStatus(pagamento.status)
     await db
       .from('orders')
@@ -195,6 +213,8 @@ async function entregar(
     }
   }
 
+  // Trilha do arquivo gerado: caminho e hash, um por pedido (`order_id` é
+  // unique). Hoje nada lê esta tabela — fica como registro de que o PDF saiu.
   await db.from('certificate_drafts').upsert({
     order_id: pedidoId,
     storage_path: caminho,

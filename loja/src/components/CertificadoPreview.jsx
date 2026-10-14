@@ -14,6 +14,15 @@ import { formatDec, formatRa } from '../../../shared/stars.js'
  * `quebrar`), e não estimada por contagem de caracteres — a estimativa tinha
  * sido calibrada para a largura errada e a prévia mostrava seis linhas de
  * mensagem onde o papel levava quatro.
+ *
+ * Quem importa: `pages/Produto.jsx` (prévia do configurador),
+ * `pagina/ModalCertificado.jsx` (a mesma folha no modal) e
+ * `test/loja.test.jsx`. Export: `CertificadoPreview`.
+ *
+ * Invariantes: todo número que existe aqui existe também em
+ * `shared/certificate.js` — se os dois lados divergirem, a prévia mente.
+ * O nome NUNCA é cortado (só encolhe, até o piso de 20 pt), o texto não
+ * sai da moldura, e a folha continua A4 paisagem em milímetros.
  */
 
 /** Corpo de fonte (em pt) convertido para o tamanho que o CSS entende.
@@ -24,6 +33,11 @@ import { formatDec, formatRa } from '../../../shared/stars.js'
  * pilha estourava para fora da folha. */
 const corpo = (size) => `${size * MM_PER_PT}mm`
 
+/*
+ * As duas pontes de unidade: a medição da quebra acontece em pixels (canvas),
+ * a folha é em milímetros e o corpo da fonte vem em pontos — 96 dpi para a
+ * primeira conversão, 72 dpi para a segunda.
+ */
 const PX_POR_MM = 96 / 25.4
 const PX_POR_PT = 96 / 72
 
@@ -191,6 +205,12 @@ export function CertificadoPreview({ estrela, honoreeName, message, fromName, de
     dados: 8,
   }
 
+  /*
+   * Ordem de leitura, de cima para baixo — a mesma do PDF. A mensagem só
+   * entra na lista se houver mensagem: com ela sempre presente, a altura
+   * dela empurraria todos os blocos para baixo, e o rodapé invadiria a
+   * zona de dados.
+   */
   const ordem = ['titulo', 'marca', 'selo', 'estrelaSimbolo', 'estrela', 'bayer', 'dedicatoria', 'nome']
   if (mensagemLinhas.length > 0) ordem.push('mensagem')
 
@@ -229,6 +249,9 @@ export function CertificadoPreview({ estrela, honoreeName, message, fromName, de
         rotulo: '#f3e6b8',
       }
 
+  // Os mesmos seis campos do rodapé do PDF, na mesma ordem, formatados com
+  // as funções de `shared/stars.js` (ascensão reta e declinação em notação
+  // astronômica, não em graus crus).
   const estrelas = [
     ['Constelação', estrela.constellationLatin],
     ['Tipo espectral', estrela.spectralType],

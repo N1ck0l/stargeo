@@ -39,14 +39,14 @@ insert into public.pages (
   mostrar_mensagem,
   mostrar_mira
 ) values (
-  'SG-GEOV-ANNA',
-  'published',
-  'ε-SGR-GBT-2026',
-  'demo@stargeo.com',
-  'kaus-australis',
+  'SG-GEOV-ANNA',           -- a URL: /p/SG-GEOV-ANNA
+  'published',              -- no ar desde o seed, sem passar pelo painel
+  'ε-SGR-GBT-2026',         -- registro impresso (0005): não acompanha o code
+  'demo@stargeo.com',       -- par do login de edição (0004) — placeholder
+  'kaus-australis',         -- a estrela do site original
   'Geovanna Beatriz Santos Trindade',
-  null,
-  '2026-10-11',
+  null,                     -- sem assinatura: o texto todo está na carta
+  '2026-10-11',             -- '11 de outubro de 2026' no site; dataEmPortugues reconverte
 
   'a luz mais brilhante de Sagitário',
   'Uma estrela real, a ε Sagittarii, escolhida para você.',
@@ -65,8 +65,8 @@ insert into public.pages (
     'Com todo o meu amor, sob a mesma noite.'
   ],
 
-  '',
-  true,
-  true
+  '',                        -- mensagem pessoal vazia: o conteúdo está na carta
+  true,                      -- mostrar_mensagem: default da plataforma
+  true                       -- mostrar_mira: idem (a seção do Mira aparece)
 )
 on conflict (code) do nothing;

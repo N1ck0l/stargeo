@@ -27,6 +27,9 @@ export class ErrorBoundary extends Component {
   }
 
   handleReset() {
+    // Limpa o erro e volta a renderizar os filhos. Se a causa persistir, o
+    // mesmo erro aparece de novo — é por isso que existe também o botão de
+    // recarregar a página inteira.
     this.setState({ error: null })
   }
 

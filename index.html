@@ -1,8 +1,23 @@
+<!--
+  HTML raiz do SITE PESSOAL (o presente dedicado) — NÃO da loja, que tem o
+  seu próprio `loja/index.html` e seu próprio build.
+
+  Este é o entry do Vite da raiz: o React monta em `#root`, e tudo que está
+  em `<head>` (meta, OG, preloads de fonte) precisa funcionar sem JavaScript,
+  porque é o que as redes sociais e o buscador leem. As animações de entrada
+  dependem de JS — daí o `<noscript>` no corpo, que devolve a página a um
+  estado legível.
+-->
 <!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!--
+      Título, description e OG abaixo são ESTÁTICOS: este site é uma
+      dedicação a uma pessoa só, não um SPA multi-rota. Se um dia virar
+      produto genérico, terão de virar variáveis por página.
+    -->
     <meta
       name="description"
       content="Uma estrela em Sagitário dedicada a Geovanna Beatriz Santos Trindade: Kaus Australis (ε Sagittarii)."

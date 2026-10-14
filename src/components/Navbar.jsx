@@ -28,6 +28,10 @@ export function Navbar({ onOpenCertificate, onOpenFinder }) {
     : LINKS_BASE
 
   // Marca o destino de rolagem que estiver no centro da tela.
+  //
+  // `rootMargin: -45%/-45%` estreita a área observada a uma faixa de 10% na
+  // metade da janela: só o que estiver naquele "fio" conta como seção atual.
+  // Sem isso, duas seções vizinhas entrariam juntas e o link piscaria.
   useEffect(() => {
     const sections = LINKS_BASE.map((link) => document.getElementById(link.id)).filter(Boolean)
     if (temMensagem) {
@@ -38,6 +42,9 @@ export function Navbar({ onOpenCertificate, onOpenFinder }) {
 
     const observer = new IntersectionObserver(
       (entries) => {
+        // `entries` só traz as seções que mudaram neste callback: a que mais
+        // cobre a faixa central vira a ativa. O desempate por `intersectionRatio`
+        // evita que o link fique oscilando quando duas entram juntas.
         const visible = entries
           .filter((entry) => entry.isIntersecting)
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio)
@@ -185,6 +192,11 @@ export function Navbar({ onOpenCertificate, onOpenFinder }) {
         </nav>
       )}
 
+      {/*
+        O cabeçalho só mostra a marca "STARGEO"; quem usa leitor de tela ouve
+        a dedicação logo na primeira navegação. Fica no fim do header para não
+        embaralhar a ordem de leitura dos links.
+      */}
       <p className="sr-only">Dedicatória a {content.nome}</p>
     </header>
   )

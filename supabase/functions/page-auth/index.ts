@@ -15,6 +15,14 @@
  *
  * O bruto do token só existe na resposta: o banco guarda SHA-256
  * (`page_edit_tokens`), e o token expira em 30 dias mesmo sem uso.
+ *
+ * URL: `https://<ref>.supabase.co/functions/v1/page-auth`, chamada por
+ * `loja/src/lib/pagina.js`. Publicada com `--no-verify-jwt` (ver `LOJA.md`):
+ * esta função é o login, então não pode depender de um.
+ *
+ * Efeitos colaterais: grava o hash em `page_edit_tokens` e apaga os tokens
+ * vencidos daquela página no mesmo passo (a tabela não acumula histórico de
+ * quem já não edita).
  */
 import { comHandler, ErroApp, json, lerJson } from '../_shared/http.ts'
 import { admin } from '../_shared/supabase.ts'
@@ -27,6 +35,8 @@ import {
 } from '../_shared/pagina.ts'
 
 const RE_CODIGO = /^SG-[A-Z0-9]{4}-[A-Z0-9]{4}$/
+// Forma, não existência: o endereço precisa bater com `pages.customer_email`
+// — validar de mais aqui só afastaria alguém com e-mail legítimo.
 const RE_EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
 Deno.serve(
@@ -91,6 +101,8 @@ Deno.serve(
 
     const bruto = gerarToken()
     const hash = await sha256Hex(bruto)
+    // 30 dias CONTADOS DE AGORA (`VALIDADE_DIAS`): cada login novo empurra o
+    // vencimento, então nada aqui é "vitalício para sempre".
     const expiraEm = new Date(Date.now() + VALIDADE_DIAS * 86_400_000).toISOString()
 
     // Tokens vencidos da página saem no mesmo passo: a tabela não pode

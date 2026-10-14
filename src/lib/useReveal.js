@@ -1,3 +1,15 @@
+/**
+ * Hooks de movimento da página: revelação por rolagem, parallax e máquina de
+ * escrever. Nenhum deles guarda estado global — cada chamada é independente.
+ *
+ * Papel na arquitetura: camada fina entre a animação e a preferência de
+ * movimento reduzido do sistema. Todo hook daqui consulta
+ * `prefers-reduced-motion` e, quando o pedido é por menos movimento, entrega
+ * o resultado FINAL de imediato em vez de animar.
+ *
+ * Importado por: `Reveal.jsx`, `Hero.jsx`.
+ * Exports: `useReveal`, `useScroll`, `useTypewriter`.
+ */
 import { useEffect, useRef, useState } from 'react'
 
 /** Respeita a preferência de movimento reduzido do sistema. */
@@ -15,6 +27,10 @@ function prefersReducedMotion() {
  * Usado para as animações de entrada das seções. Se a pessoa pediu movimento
  * reduzido, o elemento já nasce marcado como visível e a animação simplesmente
  * não acontece.
+ *
+ * Devolve `[ref, visible]`: a ref vai no elemento e `visible` controla a
+ * classe `is-visible` (o estado inicial é `true` quando não há o que animar).
+ * `once = true` desconecta observador depois da primeira revelação.
  */
 export function useReveal({ threshold = 0.15, once = true } = {}) {
   const ref = useRef(null)

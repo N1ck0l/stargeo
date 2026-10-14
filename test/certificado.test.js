@@ -1,3 +1,13 @@
+/**
+ * Certificado em PDF: a matemática de distribuição vertical compartilhada
+ * entre o PDF e a prévia HTML, e a geração real do arquivo com fontes lidas
+ * do disco.
+ *
+ * Motivo: o layout é a parte frágil do certificado — texto longo já saiu
+ * para fora da folha e o bloco de dados desceu em cima do rodapé. Os casos
+ * cobrem o pior que a moderação deixa passar (nome em 2 linhas + mensagem
+ * no limite de 600 caracteres).
+ */
 import { describe, it, expect } from 'vitest'
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -6,6 +16,8 @@ import { buildCertificatePdf } from '../shared/pdf.js'
 import { LIMITES } from '../shared/moderation.js'
 import { MARGIN, MM_PER_PT, PAGE, alturaDe, distribuirBlocos } from '../shared/certificate.js'
 
+// Faixa útil vertical em milímetros: topo logo abaixo da borda superior,
+// chão acima da margem inferior, mais o espaço reservado ao bloco de dados.
 const topo = PAGE.height - MARGIN - 10
 const base = MARGIN + 26
 const dadosAltura = 8
@@ -39,6 +51,7 @@ const casos = [
   ['extremo apertado', 2, 6],
 ]
 
+// === Unidade: distribuição de blocos na faixa útil ===
 describe('distribuirBlocos (matemática compartilhada PDF ↔ prévia)', () => {
   it('cabe inteiro na faixa útil, com o bloco de dados acima do rodapé', () => {
     for (const [nome, nNome, nMensagem] of casos) {
@@ -82,6 +95,7 @@ describe('distribuirBlocos (matemática compartilhada PDF ↔ prévia)', () => {
   })
 })
 
+// === Integração: geração real do PDF (A4 paisagem, fontes do disco) ===
 describe('PDF (geração real, fontes lidas do disco)', () => {
   /*
    * Texto longo do caso extremo.

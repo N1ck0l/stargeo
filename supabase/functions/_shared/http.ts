@@ -48,7 +48,11 @@ export function corsHeaders(request: Request): Record<string, string> {
   }
 }
 
-/** Responde JSON com os headers de CORS. */
+/** Responde JSON com os headers de CORS.
+ *
+ * `status` é o código HTTP; o corpo é sempre JSON, então quem consome (o front
+ * da loja) não precisa checar content-type em nenhuma resposta.
+ */
 export function json(request: Request, corpo: unknown, status = 200): Response {
   return new Response(JSON.stringify(corpo), { status, headers: corsHeaders(request) })
 }
@@ -87,6 +91,10 @@ export type Handler = (request: Request) => Promise<Response> | Response
  *
  * Sem isto, uma exceção vira a página de erro padrão do Deno — HTML, com
  * stack trace — para quem comprou.
+ *
+ * Também responde o `OPTIONS` do preflight de CORS aqui: toda função é
+ * chamada do navegador da loja, e sem a resposta vazia com os headers o
+ * navegador trava antes de mandar o corpo.
  */
 export function comHandler(handler: Handler, nome: string): Handler {
   return async (request: Request): Promise<Response> => {
@@ -126,6 +134,8 @@ export async function lerJson(request: Request, limiteBytes = 16 * 1024): Promis
     throw new ErroApp('corpo_grande', 'Dados demais enviados.', 413)
   }
   try {
+    // Corpo vazio vira `{}`: dá para chamar uma função que só lê headers sem
+    // se preocupar em mandar `{}` na mão.
     return JSON.parse(bruto || '{}')
   } catch {
     throw new ErroApp('json_invalido', 'Não foi possível ler os dados enviados.', 400)

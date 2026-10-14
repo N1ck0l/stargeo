@@ -1,5 +1,8 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 
+/** Largura da folha A4 em paisagem (297 mm) a 96 dpi — é o denominador do fator de escala. */
+const LARGURA_FOLHA_PX = 1122.52
+
 /**
  * Escala a folha A4 em PAISAGEM para caber na largura disponível.
  *
@@ -17,9 +20,11 @@ import { useLayoutEffect, useRef, useState } from 'react'
  *
  * Mora em componente próprio porque a prévia aparece em dois lugares: a
  * página do produto e o modal do certificado na página dedicada.
+ *
+ * Quem importa: `pages/Produto.jsx` e `pagina/ModalCertificado.jsx`. Export:
+ * `Escala`. Invariante: o `aspect-ratio` interno é 297/210 — trocar a folha
+ * para retrato sem mexer aqui deixa uma caixa com a proporção errada.
  */
-const LARGURA_FOLHA_PX = 1122.52
-
 export function Escala({ children }) {
   const caixa = useRef(null)
   const [fator, setFator] = useState(1)

@@ -10,6 +10,14 @@
  * Autenticação: `Authorization: Bearer <token>` do `page-auth`. Campos fora
  * da lista branca são ignorados, não erro — o front pode mandar o objeto
  * inteiro que a página devolveu.
+ *
+ * URL: `https://<ref>.supabase.co/functions/v1/page-update`, chamada por
+ * `loja/src/lib/pagina.js`. Publicada com `--no-verify-jwt` (ver `LOJA.md`):
+ * o token de edição é a única chave que abre isto.
+ *
+ * Efeitos colaterais: UPDATE em `pages`, apenas nas colunas de conteúdo que o
+ * cliente alcança. Sem trava de concorrência: quem grava por último manda — a
+ * edição é de uma pessoa só, e histórico de versões não é o produto aqui.
  */
 import { comHandler, ErroApp, json, lerJson } from '../_shared/http.ts'
 import { admin } from '../_shared/supabase.ts'
@@ -73,6 +81,8 @@ Deno.serve(
     const { data, error } = await db
       .from('pages')
       .update(colunas)
+      // O WHERE vem da SESSÃO, nunca do corpo: o cliente não escolhe qual
+      // página escreve — só a dona do token aceita o update.
       .eq('id', sessao.pageId)
       .select('*')
       .single()

@@ -4,6 +4,18 @@ import { Link } from '../lib/Link.jsx'
 // cálculo por render só serviria para gerar um número idêntico.
 const ANO = new Date().getFullYear()
 
+/**
+ * Rodapé da loja: marca, a frase que resume o produto (não é posse, é
+ * dedicação), os atalhos de compra e a saída de ajuda.
+ *
+ * Quem importa: `loja/src/App.jsx`. Export default `Footer`.
+ *
+ * Invariantes: os três links de produto batem com os `slug` de
+ * `pages/Home.jsx`; o aviso de arrependimento (7 dias) é obrigatório em
+ * venda fora do estabelecimento físico e não pode sair dali; e o contato
+ * por e-mail fica visível, sem formulário — quem reclama aqui é gente
+ * mandando e-mail do celular.
+ */
 export default function Footer() {
   return (
     <footer className="safe-bottom relative z-10 mt-16 border-t border-white/8">

@@ -10,6 +10,9 @@
 --
 -- `certificate_id` anulável: quando nulo (todo pedido e qualquer página sem
 -- registro próprio), o certificado continua exibindo o `code`, como sempre.
+--
+-- Tudo aqui é idempotente (`if not exists` / `if exists`): rodar a migration
+-- de novo não reclama nem apaga o registro que o admin já tenha preenchido.
 -- ============================================================================
 
 alter table public.pages

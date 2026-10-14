@@ -7,6 +7,15 @@ import { Component } from 'react'
  * ser bonita, é a pessoa conseguir sair de lá: um botão que recarrega e um
  * e-mail para falar que algo quebrou, porque quem compra aqui é gente comum
  * e vai achar que a loja aplicou golpe.
+ *
+ * Quem importa: `loja/src/main.jsx`, que envolve a `<App />` inteira.
+ * Export: `ErroDeTela` — classe, porque `componentDidCatch` não existe em
+ * componente function.
+ *
+ * Invariantes: esta tela não pode depender de nada da loja (sem rota, sem
+ * API, sem CSS novo) — se ela falhar, não sobra por onde a pessoa sair;
+ * o stack trace fica escondido num `<details>` fechado; e sempre há saída,
+ * nos dois sentidos (e-mail e recarregar).
  */
 export class ErroDeTela extends Component {
   constructor(props) {

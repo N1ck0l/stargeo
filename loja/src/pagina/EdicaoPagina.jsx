@@ -16,8 +16,9 @@ import { Link } from '../lib/Link.jsx'
  * `page-update` ignora tentativa de mudança mesmo que o formulário tente.
  */
 export function EdicaoPagina({ codigo }) {
-  // Sem sessão guardada a tela já nasce no login; com sessão, o efeito
-  // revalida e só então libura o editor.
+  // Três fases: `login` (sem sessão), `validando` (sessão local na mão,
+  // esperando o servidor confirmar) e `editor`. Sem sessão guardada a tela já
+  // nasce no login; com sessão, o efeito revalida e só então libura o editor.
   const [fase, setFase] = useState(() => (lerSessao(codigo) ? 'validando' : 'login'))
   const [codigoAnterior, setCodigoAnterior] = useState(codigo)
   if (codigoAnterior !== codigo) {
@@ -383,6 +384,16 @@ function contarParagrafos(texto) {
     .filter(Boolean).length
 }
 
+/*
+ * Sessão do cliente no navegador.
+ *
+ * A chave é POR CÓDIGO (`stargeo:edicao:SG-XXXX-XXXX`): quem edita duas
+ * páginas em aberto não troca o token da uma pela outra. O token é de vida
+ * curta e o `expiraEm` é conferido na leitura — vencido, a tela volta para o
+ * login sem mandar um token velho para o servidor. Guardar em `localStorage`
+ * existe para o F5 do meio da edição não deslogar; sem storage (modo privado
+ * rígido) o `catch` mantém a sessão só em memória, que é o suficiente.
+ */
 function chaveLocal(codigo) {
   return `stargeo:edicao:${codigo}`
 }

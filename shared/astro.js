@@ -1,6 +1,11 @@
 /**
  * Utilidades astronômicas usadas pelo mapa do céu.
  *
+ * Importado pelo site pessoal através do re-export em `src/lib/astro.js`
+ * (usado por `SkyMap.jsx`). Vive em `shared/` porque a matemática celeste é a
+ * mesma em qualquer fronte — se um dia a loja desenhar o próprio mapa, é
+ * deste arquivo que ela lê, e não de uma segunda cópia.
+ *
  * A projeção adotada é a **gnomônica** (plano tangente ao centro visível),
  * a mesma usada nos atlas celestes impressos: preserva os ângulos reais entre
  * as estrelas e não distorce a figura do bule de chá de Sagitário.
@@ -86,7 +91,9 @@ export function project(raHours, decDeg, view, width, height) {
   const b = cosDec0 * sinDec - sinDec0 * cosDra
   const c = sinDec0 * sinDec + cosDec0 * cosDra
 
-  // Atrás da esfera visível: fora do alcance da projeção.
+  // Atrás da esfera visível: fora do alcance da projeção. A folga de 0,05
+  // (em vez de 0) também protege os pontos quase no limbo, onde a/c explode
+  // e a estrela voaria para fora da tela em um único quadro.
   if (c <= 0.05) return null
 
   return {
@@ -199,7 +206,14 @@ export function formatDec(decDeg) {
   return `${sign}${degrees}° ${pad(arcmin)}′ ${arcsec.toFixed(1).padStart(4, '0')}″`
 }
 
-/** Raio do disco da estrela a partir da magnitude (quanto menor, maior e mais brilhante). */
+/**
+ * Raio do disco da estrela a partir da magnitude (quanto menor, maior e mais brilhante).
+ *
+ * Reta linear 6,2 − 1,15×mag, recortada em [1,6 ; 5] px: as mais brilhantes
+ * (mag ≤ ~1) todas saturam no teto de 5 px — Sirius não precisa ser um buraco
+ * na tela —, e as mais fracas batem no piso de 1,6 px para continuarem
+ * visíveis sem virarem ruído.
+ */
 export function magnitudeRadius(mag) {
   return clamp(6.2 - 1.15 * mag, 1.6, 5)
 }

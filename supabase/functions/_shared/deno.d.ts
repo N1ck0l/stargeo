@@ -15,12 +15,25 @@
  */
 declare namespace Deno {
   interface Env {
+    /**
+     * `undefined` quando a variável não existe — é por isso que todo acesso a
+     * segredo passa por `variavel()` em `_shared/supabase.ts`, que transforma
+     * a ausência em erro cedo, e não em `Bearer undefined` no meio da noite.
+     */
     get(key: string): string | undefined
+    /** Só existe no runtime local; as Edge Functions em produção não persistem. */
     set(key: string, value: string): void
     has(key: string): boolean
   }
 
   const env: Env
 
+  /**
+   * Ponto de entrada de cada Edge Function: registra o handler HTTP que o
+   * Deno chama para toda requisição a `functions/v1/<nome>`.
+   *
+   * Toda função passa o retorno de `comHandler(...)` — é ele que devolve JSON
+   * no lugar da página de erro HTML do Deno.
+   */
   function serve(handler: (request: Request) => Response | Promise<Response>, options?: unknown): void
 }

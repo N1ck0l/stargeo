@@ -35,5 +35,10 @@ on conflict (id) do nothing;
 --
 -- Sem isto, o padrão do Supabase pode deixar o bucket legível, e valeria
 -- exatamente o vazamento que o bucket privado existe para evitar.
+--
+-- O `revoke` é na tabela `storage.objects`, que é UMA para todos os buckets do
+-- projeto — ou seja, vale para `certificados` e para qualquer bucket futuro.
+-- Um dia precisar de upload público noutro bucket é um `grant select/insert`
+-- pontual, com o escopo apertado, e nunca um `grant all` de volta.
 -- ---------------------------------------------------------------------------
 revoke all on storage.objects from anon, authenticated;

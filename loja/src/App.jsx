@@ -1,3 +1,22 @@
+/**
+ * Casca da loja — árvore única da SPA.
+ *
+ * A loja é um app React separado (build própria em `dist-loja`, publicada na
+ * Netlify) e este é o componente raiz: monta o céu fixo, o cabeçalho, a área
+ * de conteúdo e o rodapé, e escolhe a TELA a partir do caminho do histórico.
+ *
+ * Quem importa: `main.jsx` (o único ponto de entrada, dentro da fronteira de
+ * erro). Exporta `default App`.
+ *
+ * Rotas internas, todas em `telaPara` abaixo: `/` (home), `/produto/:slug`,
+ * `/obrigado`, `/rastrear`, `/admin`, `/p/:code` (página dedicada) e
+ * `/p/:code/editar`. Não existe rota 404 — caminho desconhecido cai na home.
+ *
+ * Invariantes: a troca de tela é toda SPA (`lib/rota.js` + `lib/Link.jsx`);
+ * os poucos `<a>` que existem são o link de pular conteúdo (rolagem interna)
+ * e os de "ver página" (nova aba, de propósito). O cabeçalho fica em `z-40` e
+ * o `main` em `z-10` porque o `Starfield` é um canvas fixo atrás de tudo.
+ */
 import { useEffect, useState } from 'react'
 import { useRota } from './lib/rota.js'
 import { Link } from './lib/Link.jsx'

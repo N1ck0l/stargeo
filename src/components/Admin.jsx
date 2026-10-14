@@ -16,6 +16,14 @@ import { useContent } from '../lib/contentContext'
 
 const PALAVRA = 'stargeo'
 
+/**
+ * Campo de texto único do painel: `textarea` quando `rows > 1`, senão `input`.
+ *
+ * Controlado de ponta a ponta — o valor e a mudança vêm de fora (`content`),
+ * então não há estado duplicado a sincronizar. `hint` é a linha de apoio que
+ * explica o comportamento do campo (o que acontece quando fica vazio, por
+ * exemplo).
+ */
 function Campo({ label, value, onChange, placeholder, rows = 1, hint }) {
   return (
     <label className="block">
@@ -42,6 +50,21 @@ function Campo({ label, value, onChange, placeholder, rows = 1, hint }) {
   )
 }
 
+/**
+ * Tela de edição completa.
+ *
+ * Importado por: `App.jsx`, só quando o caminho é `/admin`, e sempre via
+ * `lazy()`. Exports: `Admin`.
+ *
+ * Duas telas dentro de um componente: a do "trinco" (`PALAVRA`) e a do
+ * editor. Ambas são puramente locais — o estado vive no `ContentProvider`,
+ * que na página de admin nasce com `editable` e NÃO busca o `conteudo.json`,
+ * para o painel editar os padrões em vez de sobrescrever o que já está salvo.
+ *
+ * O botão "Voltar ao padrão" substitui o objeto inteiro por `DEFAULTS` e
+ * também o texto da carta (`setCartaTexto`), que é o único campo mantido em
+ * estado local do componente — ele vira e volta entre string e array.
+ */
 export function Admin() {
   const { content, setContent } = useContent()
   const [liberado, setLiberado] = useState(false)

@@ -9,6 +9,14 @@
  *
  * Página em `draft` responde 404 como se não existisse: rascunho não é uma
  * categoria pública. O admin lê rascunho pelo `admin-api`.
+ *
+ * Função: `https://<ref>.supabase.co/functions/v1/get-page`, chamada por
+ * `loja/src/lib/pagina.js` com `{code}`. Publicada com `--no-verify-jwt`
+ * (ver `LOJA.md`) — não há sessão de ninguém aqui: o código É a credencial.
+ *
+ * Sem efeitos colaterais: leitura pura. E o que sai daqui é montado à mão,
+ * campo a campo — o anon não tem política de leitura em `pages` para segurar
+ * o resto, então quem escreve a resposta é quem decide o que é público.
  */
 import { comHandler, ErroApp, json, lerJson } from '../_shared/http.ts'
 import { admin } from '../_shared/supabase.ts'
@@ -43,6 +51,9 @@ Deno.serve(
       .from('pages')
       .select(SELECAO_PAGINA)
       .eq('code', codigo)
+      // As duas condições juntas: código existe E está publicado. Qualquer uma
+      // que falhe devolve null do `maybeSingle`, e o 404 é sempre o mesmo —
+      // não se vê diferença entre "não existe" e "está em rascunho".
       .eq('status', 'published')
       .maybeSingle()
 

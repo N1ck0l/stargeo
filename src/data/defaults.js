@@ -32,7 +32,16 @@ export const DEFAULTS = {
   // Mensagem pessoal (a parte escrita por você)
   mensagemPessoal: honoree.personalMessage ?? '',
 
-  // Ligações
+  // Ligações. `false` esconde a seção/botão; qualquer outro valor conta como
+  // `true` (o painel grava booleano, mas um JSON à mão pode trazer string).
+  // Consumidos por `Navbar`/`Hero` (`mostrarMira`) e por `PersonalMessage`.
   mostrarMensagem: true,
   mostrarMira: true,
 }
+
+/*
+ * Campos OPCIONAIS que este arquivo não declara e que a loja pode trazer no
+ * `conteudo.json`: `estrela` (ficha de outra estrela) e `sky`/`skyFigura`
+ * (outra constelação). Todos os consumidores usam `??` com o import de
+ * `star.js` — sem eles o site continua exatamente como está.
+ */

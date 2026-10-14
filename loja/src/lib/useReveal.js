@@ -1,3 +1,22 @@
+/**
+ * Hooks de movimento da loja — rolagem, revelação e máquina de escrever.
+ *
+ * São três, e fazem o trabalho por trás das classes `.reveal`, `.type-cursor`
+ * e do parallax do `index.css`:
+ *
+ * - `useReveal` — observa um elemento e avisa quando ele entra na tela
+ *   (o motor de `<Reveal>`, que anima as seções da home e do produto);
+ * - `useScroll` — offset vertical da rolagem (parallax do `Home`);
+ * - `useTypewriter` — escreve um texto letra a letra (título da home).
+ *
+ * Quem importa: `pages/Home.jsx` e `components/Reveal.jsx` desta SPA. (O site
+ * pessoal tem o seu OWN `src/lib/useReveal.js` — são arquivos irmãos, não
+ * compartilhados, porque a loja publica separado.)
+ *
+ * Invariante: `prefers-reduced-motion` é consultado ANTES de criar observer
+ * ou timer. Quem pediu menos movimento recebe o conteúdo inteiro e imediato —
+ * animação decorativa nunca esconde informação.
+ */
 import { useEffect, useRef, useState } from 'react'
 
 /** Respeita a preferência de movimento reduzido do sistema. */

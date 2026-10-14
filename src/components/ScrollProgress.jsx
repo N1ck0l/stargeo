@@ -17,6 +17,8 @@ export function ScrollProgress() {
       setProgress(scrollable > 0 ? Math.min(1, window.scrollY / scrollable) : 0)
     }
 
+    // Uma barra de rolagem dispara dezenas de eventos por segundo; o `raf`
+    // vira um "só um cálculo por quadro" — as chamadas seguintes viram nada.
     const onScroll = () => {
       if (raf) return
       raf = requestAnimationFrame(() => {

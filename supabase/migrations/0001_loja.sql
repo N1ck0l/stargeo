@@ -47,7 +47,11 @@ create table if not exists public.stars (
   distance_ly         double precision not null check (distance_ly > 0),
   best_month          text        not null,
   story               text        not null,
+  -- Destaque da vitrine (o "mais procurado" da home).
   featured            boolean     not null default false,
+  -- `active` é o que a política de leitura do RLS filtra lá embaixo e o que o
+  -- `create-checkout` confere antes de vender: estrela desligada some da
+  -- oferta sem apagar o catálogo (página antiga continua de pé).
   active              boolean     not null default true,
   created_at          timestamptz not null default now()
 );
@@ -71,6 +75,8 @@ create table if not exists public.products (
   price_cents         integer     not null check (price_cents >= 0),
   -- Preço "de", em centavos, para o riscado. NULL = não há preço anterior.
   compare_at_cents    integer     check (compare_at_cents is null or compare_at_cents > price_cents),
+  -- Rótulo da vitrine. O `check` fecha a lista: badge fora do catálogo não
+  -- existe, mesmo que o front mande string qualquer.
   badge               text        check (badge is null or badge in ('mais_vendido', 'premium', 'novo')),
   -- O que o cliente recebe, em JSONB. Flexível porque muda por produto, e
   -- nunca é consultado por filtro — só lido inteiro.
@@ -95,6 +101,8 @@ comment on column public.products.price_cents is
 comment on column public.products.star_slugs is
   'Slugs das estrelas oferecidas neste produto, em ordem de sugestão.';
 
+-- Índice parcial de propósito: a vitrine só lista produto ativo, então as
+-- linhas apagadas da oferta não precisam entrar no índice nem na busca.
 create index if not exists products_active_sort_idx
   on public.products (sort_order)
   where active;
@@ -141,6 +149,11 @@ create trigger products_star_slugs_validas
 -- Alfanumérico, sem 0/O e 1/I/L: o código é ditado ao telefone com frequência,
 -- e esses caracteres geram confusão. Formato: SG-XXXX-XXXX, em que os quatro
 -- caracteres vêm de um alfabeto sem ambiguidade.
+--
+-- `random()` do Postgres, não `pgcrypto`: a barra deste código é o ESPAÇO —
+-- 31^8 ≈ 8,5×10¹¹, uns 40 bits — e não a imprevisibilidade do gerador. Quem
+-- quiser endurecer troca o corpo da função por `gen_random_bytes`, sem mudar
+-- formato nem o `default` da coluna.
 -- ---------------------------------------------------------------------------
 create or replace function public.gen_order_code()
 returns text
@@ -221,14 +234,23 @@ create table if not exists public.orders (
   product_name        text        not null,   -- cópia do nome no momento da compra
 
   -- Entrega
-  certificate_url     text,            -- caminho no Storage, preenchido pelo webhook
-  certificate_path    text,
+  --
+  -- Os dois caminhos recebem o MESMO valor do webhook, mas só
+  -- `certificate_path` é lido depois: é dele que o reenvio do painel monta o
+  -- link assinado.
+  certificate_url     text,            -- preenchido pelo webhook junto com certificate_path
+  certificate_path    text,            -- o que resend-certificate lê para reenviar
+  -- Marcado quando o e-mail saiu. É a prova que o painel usa para recusar o
+  -- reenvio de pedido já entregue (409 `ja_entregue`).
   delivered_at        timestamptz,
   email_error         text,            -- última falha de envio, para o admin reenviar
 
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
 
+  -- Só o TAMANHO aqui. O filtro de termos e de contato (telefone, e-mail,
+  -- chave Pix) roda no servidor, em `shared/moderation.js`, na criação do
+  -- pedido e de novo na entrega — banco não julga conteúdo.
   constraint orders_message_length check (message is null or length(message) <= 2000),
   constraint orders_from_length check (from_name is null or length(from_name) <= 120)
 );
@@ -320,6 +342,10 @@ alter table public.certificate_drafts enable row level security;
 --
 -- Em `stars` e `products` só leitura pública: a vitrine precisa mostrar preço e
 -- nome, e isso não é segredo. Todo o resto do schema fica fechado.
+--
+-- As duas políticas filtram com `using (active)`: estrela ou produto desligado
+-- some da vitrine para todo mundo SEM apagar a linha — pedido e página antigos
+-- continuam de pé e legíveis pelas funções.
 
 create policy "stars sao publicas para leitura"
   on public.stars for select to anon, authenticated

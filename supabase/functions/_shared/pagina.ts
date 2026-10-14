@@ -130,6 +130,9 @@ export function colunasDoConteudo(conteudo: ConteudoPagina): Record<string, unkn
     titulo_carta: limpar(conteudo.tituloCarta),
     carta: (conteudo.carta ?? []).map((p) => limpar(p)).filter(Boolean),
     mensagem_pessoal: limpar(conteudo.mensagemPessoal),
+    // Ausente conta como `true`: o default da coluna é mostrar, e o front só
+    // some a seção quando o cliente explicitamente desliga (ou apaga o texto,
+    // caso do `page-update`).
     mostrar_mensagem: conteudo.mostrarMensagem !== false,
     mostrar_mira: conteudo.mostrarMira !== false,
   }
@@ -179,7 +182,15 @@ export function validarConteudo(conteudo: Partial<ConteudoPagina>): Array<{ camp
   return erros
 }
 
-/** Lê uma linha de `pages` com todos os campos de conteúdo. */
+/**
+ * Lê uma linha de `pages` com todos os campos de conteúdo.
+ *
+ * Lista explícita em vez de `*`: a linha é passada adiante para o `get-page`
+ * e para o `page-auth`, e é mais fácil garantir o que sai daqui olhando a
+ * lista do que lembrando de remover coluna por coluna. O `customer_email`
+ * entra porque o login precisa conferir o par (código, e-mail) — mas o
+ * `get-page` simplesmente não o devolve na resposta.
+ */
 export const SELECAO_PAGINA = [
   'id', 'code', 'certificate_id', 'status', 'order_id', 'customer_email', 'star_slug',
   'honoree_name', 'from_name', 'dedication_date',

@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { enviarEmail } from '../supabase/functions/_shared/certificado.ts'
 
 /**
+ * Template de e-mail de entrega do certificado (`enviarEmail`, código
+ * compartilhado da Edge Function do Supabase).
+ *
  * O bug que este arquivo impede de voltar.
  *
  * O e-mail do certificado lê o nome da estrela de um lado e a linha do pedido
@@ -83,6 +86,8 @@ afterEach(() => {
 })
 
 describe('enviarEmail', () => {
+  // === Corpo e assunto: nomes, saudação e botão ===
+
   it('põe o nome da estrela e a constelação no corpo', async () => {
     await enviarEmail(db, PEDIDO, ESTRELA, 'caminho/certificado.pdf')
 
@@ -122,6 +127,8 @@ describe('enviarEmail', () => {
     expect(enviado.corpo.html).not.toContain('<script>alert(1)</script>')
     expect(enviado.corpo.html).toContain('&lt;script&gt;')
   })
+
+  // === Página dedicada: link só quando publicada ===
 
   it('publica o link da página dedicada quando ela está no ar', async () => {
     paginaPublicada = { code: PEDIDO.code }
