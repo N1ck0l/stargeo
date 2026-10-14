@@ -159,7 +159,7 @@ de 95 para **151 verificações**.
 | `/admin` | painel Supabase Auth (conta + linha em `admins`), sem senha no código |
 | Conteúdo | páginas no banco (`pages`); seed Geovanna `SG-GEOV-ANNA` publicada |
 | Loja e páginas | prontas e verificadas; Mercado Pago ainda em ambiente de teste |
-| E-mail | saindo do endereço pessoal (`EMAIL_FROM` com Gmail); domínio próprio da marca pendente |
+| E-mail | **bloqueado**: o Resend recusa remetente Gmail (403 `gmail.com domain is not verified`) — testado em 14/10, só sai com domínio verificado; template novo confirmado via remetente de cortesia |
 
 ### Fluxo para mudar um texto
 
