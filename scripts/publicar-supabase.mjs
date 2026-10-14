@@ -21,7 +21,7 @@
  *
  * `--so-migrations` ou `--so-funcoes` fazem só uma das partes.
  */
-import { execFileSync } from 'node:child_process'
+import { execSync } from 'node:child_process'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
@@ -93,11 +93,14 @@ if (fazerFuncoes) {
     .map((d) => d.name)
 
   console.log(`Funções: ${funcoes.join(', ')}`)
-  execFileSync(
-    'npx',
-    ['--yes', 'supabase@2', 'functions', 'deploy', ...funcoes, '--project-ref', ref, '--use-api'],
-    { cwd: raiz, stdio: 'inherit', shell: process.platform === 'win32', env: { ...process.env, SUPABASE_ACCESS_TOKEN: token } },
-  )
+  // Uma string só, com shell: no Windows o `npx` é um `.cmd`, que o Node não
+  // executa sem shell — e lista de argumentos + shell gera o aviso DEP0190.
+  // Nada aqui vem de fora: nomes de pasta (`[a-z-]`) e o ref do projeto.
+  execSync(`npx --yes supabase@2 functions deploy ${funcoes.join(' ')} --project-ref ${ref} --use-api`, {
+    cwd: raiz,
+    stdio: 'inherit',
+    env: { ...process.env, SUPABASE_ACCESS_TOKEN: token },
+  })
 }
 
 console.log('Pronto.')
