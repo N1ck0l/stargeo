@@ -204,9 +204,10 @@ describe('configurador', () => {
 
   it('escolher outra estrela no explorador muda o cartão e a prévia', async () => {
     // Sem Supabase (testes), o catálogo cai nas 12 curadas; a lista chega
-    // pela busca, assíncrona. Começa em Sirius (o padrão sem `?estrela=`).
+    // pela busca, assíncrona. Começa na Atria (o padrão sem `?estrela=`).
     const { container } = render(<Produto slug="certificado-digital" />)
-    expect(container.textContent).toContain('α Canis Majoris')
+    expect(container.textContent).toContain('α Trianguli Australis')
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'vega' } })
     fireEvent.click(await screen.findByRole('button', { name: /^Vega/ }))
     expect(container.textContent).toContain('α Lyrae')
     expect(window.location.search).toContain('estrela=vega')

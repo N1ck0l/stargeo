@@ -9,6 +9,7 @@ import { Reveal } from '../components/Reveal.jsx'
 import { criarCheckout, ErroApi, irParaPagamento } from '../lib/api.js'
 import { Link } from '../lib/Link.jsx'
 import { buscarEstrela, comoSeVe, normalizar, reais } from '../lib/catalogo.js'
+import { ocasiaoPorSlug, SUGESTOES_GERAIS } from '../lib/ocasioes.js'
 
 /**
  * Produtos que têm página. O PREÇO não mora aqui: ele é o da faixa da estrela
@@ -84,8 +85,11 @@ export default function Produto({ slug }) {
    * na hora (`shared/stars.js`); qualquer outra das ~118 mil, e o preço e o
    * estado de TODAS, chegam do banco logo depois.
    */
-  const estrelaInicial = new URLSearchParams(window.location.search).get('estrela') || 'sirius'
-  const [estrela, setEstrela] = useState(() => normalizar(getStar(estrelaInicial) ?? getStar('sirius')))
+  const estrelaInicial = new URLSearchParams(window.location.search).get('estrela') || 'atria'
+  // Veio de uma ocasião da home (`?ocasiao=aniversario`): sugestões dela.
+  const ocasiao = ocasiaoPorSlug(new URLSearchParams(window.location.search).get('ocasiao'))
+  const sugestoes = ocasiao?.sugestoes ?? SUGESTOES_GERAIS
+  const [estrela, setEstrela] = useState(() => normalizar(getStar(estrelaInicial) ?? getStar('atria')))
   useEffect(() => {
     let vivo = true
     buscarEstrela(estrelaInicial)
@@ -344,6 +348,27 @@ export default function Produto({ slug }) {
                 contador={{ atual: mensagem.length, max: 600 }}
               />
 
+              {/* Para quem trava na folha em branco: um toque usa a frase, e
+                  ela continua editável no campo acima. */}
+              <div className="mt-3">
+                <p className="text-xs text-ivory/50">
+                  {ocasiao ? `Sugestões para ${ocasiao.titulo.toLowerCase()}` : 'Sem inspiração? Comece por uma destas'} — e
+                  mude o que quiser:
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {sugestoes.map((texto) => (
+                    <button
+                      key={texto}
+                      type="button"
+                      onClick={() => setMensagem(texto)}
+                      className="rounded-xl border border-white/12 px-3 py-2 text-left text-xs leading-snug text-ivory/75 transition hover:border-gold/50 hover:text-ivory"
+                    >
+                      “{texto}”
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <Campo
                   rotulo="Data da dedicação"
@@ -398,13 +423,42 @@ export default function Produto({ slug }) {
               </p>
             )}
 
+            {/* Resumo antes de pagar: o que é, para quem, quando chega e
+                quanto custa — sem surpresa na tela do Mercado Pago. */}
+            <section aria-labelledby="resumo-titulo" className="cartao">
+              <h2 id="resumo-titulo" className="font-display text-lg text-ivory">
+                Resumo do pedido
+              </h2>
+              <dl className="mt-4 space-y-2.5 text-sm">
+                {[
+                  ['Estrela', `${estrela.name} · ${estrela.constellation}`],
+                  ['Dedicada a', paraQuem.trim() || '—'],
+                  ['Formato', 'Certificado digital em PDF A4 (versões escura e clara) + página da estrela'],
+                  ['Entrega', 'Logo após a confirmação do pagamento, na página da estrela e no seu e-mail'],
+                ].map(([rotulo, valor]) => (
+                  <div key={rotulo} className="flex justify-between gap-4">
+                    <dt className="shrink-0 text-ivory/50">{rotulo}</dt>
+                    <dd className="text-right text-ivory/85">{valor}</dd>
+                  </div>
+                ))}
+                <div className="flex justify-between gap-4 border-t border-white/10 pt-3">
+                  <dt className="text-ivory/70">Total</dt>
+                  <dd className="font-display text-xl text-gold">{preco}</dd>
+                </div>
+              </dl>
+            </section>
+
             <div className="flex flex-wrap items-center gap-4">
               <button type="submit" className="btn btn-primary animate-pulse-glow" disabled={enviando || indisponivel}>
                 {enviando ? 'Abrindo o pagamento…' : `Finalizar · ${preco}`}
               </button>
               <p className="text-xs text-ivory/45">
                 Você paga no Mercado Pago, por Pix ou cartão em até 12x. A estrela fica reservada para
-                você por 30 minutos enquanto paga.
+                você por 30 minutos enquanto paga.{' '}
+                <Link para="/politicas" className="underline decoration-white/30 hover:text-gold">
+                  Entrega, reembolso e privacidade
+                </Link>
+                .
               </p>
             </div>
           </div>

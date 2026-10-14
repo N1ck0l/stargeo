@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { CONSTELACOES } from '../../../shared/constelacoes.js'
-import { buscarEstrela, buscarEstrelas, comoSeVe, estrelaAleatoria, reais, useFaixas } from '../lib/catalogo.js'
+import { buscarEstrela, buscarEstrelas, buscarVitrine, comoSeVe, estrelaAleatoria, reais, useFaixas } from '../lib/catalogo.js'
 
 /**
  * Explorar o catálogo — ~118 mil estrelas do Hipparcos.
@@ -40,6 +40,8 @@ export function ExploradorDeEstrelas({ selecionada, aoEscolher, titulo = 'Buscar
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
   const [sorteando, setSorteando] = useState(false)
+  // A última resposta foi a vitrine (amostra de cada faixa), não uma busca.
+  const [emVitrine, setEmVitrine] = useState(false)
   const pedido = useRef(0)
 
   const constelacaoDigitada = constelacaoDoTexto(texto)
@@ -51,16 +53,22 @@ export function ExploradorDeEstrelas({ selecionada, aoEscolher, titulo = 'Buscar
     const espera = setTimeout(
       () => {
         setCarregando(true)
-        buscarEstrelas({
-          texto: constelacaoDigitada ? '' : texto,
-          sigla: constelacaoDigitada?.sigla ?? (sigla || null),
-          faixa: faixa || null,
-          visivelBrasil: soBrasil,
-          limite: POR_PAGINA,
-          deslocamento: pagina * POR_PAGINA,
-        })
+        // Sem nada escolhido: a vitrine com todas as faixas de preço.
+        const vitrine = !texto && !sigla && !faixa && !constelacaoDigitada && pagina === 0
+        const consulta = vitrine
+          ? buscarVitrine({ visivelBrasil: soBrasil })
+          : buscarEstrelas({
+              texto: constelacaoDigitada ? '' : texto,
+              sigla: constelacaoDigitada?.sigla ?? (sigla || null),
+              faixa: faixa || null,
+              visivelBrasil: soBrasil,
+              limite: POR_PAGINA,
+              deslocamento: pagina * POR_PAGINA,
+            })
+        consulta
           .then((r) => {
             if (numero !== pedido.current) return
+            setEmVitrine(vitrine)
             setResultado((anterior) => (pagina > 0 ? { estrelas: [...anterior.estrelas, ...r.estrelas], total: r.total } : r))
             setErro('')
           })
@@ -195,7 +203,13 @@ export function ExploradorDeEstrelas({ selecionada, aoEscolher, titulo = 'Buscar
         })}
       </ul>
 
-      {resultado.estrelas.length < resultado.total && (
+      {emVitrine && (
+        <p className="mt-3 text-center text-xs text-ivory/50">
+          Uma amostra de cada faixa. Busque um nome, escolha uma constelação ou uma faixa para ver todas.
+        </p>
+      )}
+
+      {!emVitrine && resultado.estrelas.length < resultado.total && (
         <button
           type="button"
           onClick={() => setPagina((p) => p + 1)}

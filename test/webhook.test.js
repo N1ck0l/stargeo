@@ -327,6 +327,18 @@ describe('mp-webhook', () => {
     expect(estado.banco.chamadas).toContainEqual({ nome: 'liberar_estrela', args: { p_slug: 'kaus-australis', p_order: 'pedido-1' } })
   })
 
+  it('estorno devolve a estrela ao catálogo e tira a página do ar', async () => {
+    estado.pagamento = pagamento({ status: 'refunded' })
+    estado.banco.tabelas.pages = [{ id: 'pagina-1', order_id: 'pedido-1', status: 'published' }]
+
+    await webhook(evento())
+
+    expect(estado.banco.pedido().status).toBe('refunded')
+    expect(estado.banco.chamadas).toContainEqual({ nome: 'devolver_estrela', args: { p_slug: 'kaus-australis', p_order: 'pedido-1' } })
+    expect(estado.banco.tabelas.pages[0].status).toBe('draft')
+    expect(enviarEmail).not.toHaveBeenCalled()
+  })
+
   it('pagamento pendente grava o status e não entrega', async () => {
     estado.pagamento = pagamento({ status: 'in_process' })
 

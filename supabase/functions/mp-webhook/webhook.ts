@@ -139,6 +139,13 @@ export const webhook = comHandler(async (request) => {
     if (novoStatus === 'cancelled') {
       await db.rpc('liberar_estrela', { p_slug: pedido.star_slug, p_order: pedidoId }).throwOnError()
     }
+    // Estornado (desistência em 7 dias, chargeback): a estrela volta ao
+    // catálogo e a página sai do ar — é o que a política promete.
+    if (novoStatus === 'refunded' || novoStatus === 'charged_back') {
+      await db.rpc('devolver_estrela', { p_slug: pedido.star_slug, p_order: pedidoId }).throwOnError()
+      await db.from('pages').update({ status: 'draft' }).eq('order_id', pedidoId).throwOnError()
+      console.log(`[webhook ${id}] pedido ${pedidoId} estornado: estrela devolvida, página despublicada`)
+    }
     // Pix pendente, cartão em análise: nada a entregar ainda.
     // 200 porque o evento foi tratado, só não exige ação.
     console.log(`[webhook ${id}] pagamento ${pagamento.id} em ${pagamento.status}; sem entrega`)

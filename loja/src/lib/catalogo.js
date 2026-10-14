@@ -113,6 +113,32 @@ export async function buscarEstrelas({ texto = '', sigla = null, faixa = null, v
   return { estrelas: linhas.map(normalizar), total: Number(linhas[0]?.total ?? 0) }
 }
 
+/**
+ * A vitrine de abertura: as mais brilhantes livres de CADA faixa, das mais
+ * caras às mais acessíveis — a pessoa vê de cara que há estrelas de R$ 49 a
+ * R$ 249, em vez de só a faixa de cima (que é o que "as mais brilhantes" daria).
+ */
+export async function buscarVitrine({ porFaixa = 2, visivelBrasil = true } = {}) {
+  const ordem = FAIXAS_PADRAO.map((f) => f.slug)
+  const partes = await Promise.all(
+    ordem.map((faixa) => buscarEstrelas({ faixa, visivelBrasil, limite: porFaixa })),
+  )
+  return {
+    estrelas: partes.flatMap((p) => p.estrelas),
+    total: partes.reduce((soma, p) => soma + p.total, 0),
+  }
+}
+
+/**
+ * Estado (disponível ou não) de algumas estrelas, por slug — para os
+ * destaques da home não oferecerem uma estrela que já tem dono.
+ */
+export async function estadoDasEstrelas(slugs) {
+  if (!configurado || !slugs.length) return {}
+  const linhas = await rest(`stars?slug=in.(${slugs.map(encodeURIComponent).join(',')})&select=slug,status`)
+  return Object.fromEntries(linhas.map((l) => [l.slug, l.status]))
+}
+
 /** Uma estrela pelo slug, com preço e estado; `null` se não existir. */
 export async function buscarEstrela(slug) {
   if (!slug) return null

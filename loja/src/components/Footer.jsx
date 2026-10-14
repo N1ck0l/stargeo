@@ -87,6 +87,11 @@ export default function Footer() {
                   Perguntas frequentes
                 </Link>
               </li>
+              <li>
+                <Link para="/politicas" className="text-ivory/70 transition hover:text-gold">
+                  Entrega, reembolso e privacidade
+                </Link>
+              </li>
             </ul>
           </nav>
         </div>
@@ -97,10 +102,12 @@ export default function Footer() {
           7 dias de arrependimento por lei, e a pessoa tem que achar isso.
         */}
         <div className="mt-10 flex flex-col gap-3 border-t border-white/8 pt-6 text-xs text-ivory/45 md:flex-row md:items-center md:justify-between">
-          <p>© {ANO} Stellara · Documento simbólico, com dados astronômicos conferidos.</p>
+          <p>© {ANO} Stellara · Homenagem simbólica, com dados astronômicos do catálogo Hipparcos.</p>
           <p>
-            7 dias para arrependimento ·{' '}
-            <span className="text-gold/70">nickolasfelipe225@gmail.com</span>
+            <Link para="/politicas#arrependimento" className="transition hover:text-gold">
+              7 dias para arrependimento
+            </Link>{' '}
+            · <span className="text-gold/70">nickolasfelipe225@gmail.com</span>
           </p>
         </div>
       </div>

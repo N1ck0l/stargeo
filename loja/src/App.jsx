@@ -18,7 +18,7 @@
  * e os de "ver página" (nova aba, de propósito). O cabeçalho fica em `z-40` e
  * o `main` em `z-10` porque o `Starfield` é um canvas fixo atrás de tudo.
  */
-import { useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { useRota } from './lib/rota.js'
 import { Link } from './lib/Link.jsx'
 import Home from './pages/Home.jsx'
@@ -26,7 +26,9 @@ import Produto from './pages/Produto.jsx'
 import Rastrear from './pages/Rastrear.jsx'
 import Obrigado from './pages/Obrigado.jsx'
 import Editar from './pages/Editar.jsx'
-import Catalogo from './pages/Catalogo.jsx'
+// Páginas que ninguém precisa na abertura: carregam quando alguém entra nelas.
+const Catalogo = lazy(() => import('./pages/Catalogo.jsx'))
+const Politicas = lazy(() => import('./pages/Politicas.jsx'))
 import { PaginaDedicada } from './pagina/PaginaDedicada.jsx'
 import { EdicaoPagina } from './pagina/EdicaoPagina.jsx'
 import { AdminPagina } from './admin/AdminPagina.jsx'
@@ -52,6 +54,7 @@ function telaPara(caminho) {
 
   if (limpo === '/rastrear') return <Rastrear />
   if (limpo === '/estrelas') return <Catalogo />
+  if (limpo === '/politicas') return <Politicas />
   if (limpo === '/obrigado') return <Obrigado />
   // Acesso do cliente à própria página: só resolve o código e passa para
   // `/p/:code/editar`, que é onde o login de verdade (e-mail + token) mora.
@@ -109,7 +112,7 @@ export default function App() {
           reaproveitaria a árvore e o `animation` não dispararia.
         */}
         <div key={caminho} className="animate-fade-in">
-          {telaPara(caminho)}
+          <Suspense fallback={<div className="min-h-[60vh]" aria-busy="true" />}>{telaPara(caminho)}</Suspense>
         </div>
       </main>
 

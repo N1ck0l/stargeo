@@ -21,6 +21,7 @@ describe('explorador de estrelas', () => {
   it('lista estrelas livres com preço e escolhe uma', async () => {
     let escolhida = null
     render(<ExploradorDeEstrelas aoEscolher={(e) => (escolhida = e)} />)
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'antares' } })
     fireEvent.click(await screen.findByRole('button', { name: /^Antares/ }))
     expect(escolhida.slug).toBe('antares')
     expect(escolhida.precoCentavos).toBeGreaterThan(0)
@@ -43,12 +44,27 @@ describe('explorador de estrelas', () => {
   })
 })
 
+describe('vitrine de abertura', () => {
+  it('sem busca, mostra estrelas de mais de uma faixa de preço', async () => {
+    render(<ExploradorDeEstrelas aoEscolher={() => {}} />)
+    expect(await screen.findByText(/Uma amostra de cada faixa/)).toBeTruthy()
+    const precos = new Set(
+      (await screen.findAllByRole('button', { pressed: false }))
+        .map((b) => b.textContent.match(/R\$ \d+/)?.[0])
+        .filter(Boolean),
+    )
+    // Modo sem banco: as curadas são lendárias (R$ 249) e nomeadas (R$ 149).
+    expect(precos.size).toBeGreaterThan(1)
+  })
+})
+
 describe('página do catálogo', () => {
   it('explica as cinco faixas e leva ao produto com a estrela escolhida', async () => {
     render(<Catalogo />)
     for (const faixa of ['Lendária', 'Nomeada', 'Brilhante', 'Visível', 'Profunda']) {
       expect(screen.getAllByText(faixa).length).toBeGreaterThan(0)
     }
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'vega' } })
     fireEvent.click(await screen.findByRole('button', { name: /^Vega/ }))
     expect(window.location.pathname).toBe('/produto/certificado-digital')
     expect(window.location.search).toBe('?estrela=vega')

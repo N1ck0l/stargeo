@@ -1,10 +1,12 @@
 import { STARS, getStar } from '../../../shared/stars.js'
 import { Folha } from '../components/Folha.jsx'
 import { TabelaDeFaixas } from '../components/TabelaDeFaixas.jsx'
+import { Vitrine } from '../components/Vitrine.jsx'
+import { OCASIOES } from '../lib/ocasioes.js'
 import { SimboloOficial } from '../components/SimboloOficial.jsx'
 import { Link } from '../lib/Link.jsx'
-import { reais, useFaixas } from '../lib/catalogo.js'
-import { useState } from 'react'
+import { estadoDasEstrelas, reais, useFaixas } from '../lib/catalogo.js'
+import { useEffect, useState } from 'react'
 import { Reveal } from '../components/Reveal.jsx'
 import { useScroll, useTypewriter } from '../lib/useReveal.js'
 
@@ -48,20 +50,44 @@ const PRODUTO = {
   nome: 'Certificado Digital',
   resumo: 'O essencial, na hora',
   inclui: [
-    'Certificado em PDF de alta resolução',
-    'Mapa do céu da constelação',
-    'Código de registro único',
-    'Entrega por e-mail em minutos',
-    'Acesso ao app Mira celeste',
+    'Certificado em PDF, A4 — versão escura e versão clara para imprimir',
+    'Nome de quem recebe, sua dedicatória, a data e a sua assinatura',
+    'O mapa do céu real em volta da estrela',
+    'Uma página da estrela para compartilhar, com o mapa e a Mira celeste',
+    'Estrela exclusiva e código de registro único',
+    'Pronto logo após a confirmação do pagamento',
   ],
 }
 
+/**
+ * A folha de exemplo do herói. Nome, mensagem e assinatura INVENTADOS — é um
+ * exemplo de personalização, rotulado como tal para leitores de tela, não um
+ * cliente.
+ */
+const EXEMPLO = {
+  estrela: getStar('vega'),
+  nome: 'Helena Martins',
+  mensagem: 'Para lembrar que, mesmo longe, a gente olha para o mesmo céu.',
+  assinatura: 'Com amor, Rafael',
+  data: '12 de junho de 2026',
+}
+
+/** Os três jeitos de ver a folha (`Vitrine`): na tela, na parede, no papel. */
+const MODOS_VITRINE = [
+  ['tela', 'Na tela'],
+  ['moldura', 'Emoldurado'],
+  ['impressao', 'Para imprimir'],
+]
+
+/** Hoje, por extenso — a data de exemplo da prévia. */
+const DATA_DE_HOJE = new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
+
 const CONFianca = [
-  { titulo: 'Entrega em minutos', texto: 'O certificado sai por e-mail assim que o pagamento cai.' },
+  { titulo: 'Pronto em minutos', texto: 'Confirmado o pagamento, a página da estrela e o PDF ficam prontos.' },
   { titulo: 'Estrela exclusiva', texto: 'Cada estrela vai para uma pessoa só — depois, sai do catálogo.' },
   { titulo: 'Homenagem simbólica', texto: 'Estrela real, nome simbólico — e isso vem escrito no próprio certificado.' },
-  { titulo: '7 dias para desistir', texto: 'Não gostou? Devolvemos, sem pergunta.' },
-  { titulo: 'Suporte de verdade', texto: 'Uma pessoa responde, em português, no mesmo dia.' },
+  { titulo: 'Pagamento seguro', texto: 'Pix ou cartão pelo Mercado Pago. Os dados do cartão nunca passam por nós.' },
+  { titulo: '7 dias para desistir', texto: 'Direito de arrependimento, como garante o Código de Defesa do Consumidor.' },
 ]
 
 const FAQ = [
@@ -88,7 +114,22 @@ const FAQ = [
   {
     pergunta: 'Como recebo?',
     resposta:
-      'Por e-mail, em PDF, quase imediatamente depois da confirmação do pagamento. Com Pix, a confirmação costuma levar menos de um minuto. Você também pode baixar de novo pelo link, que fica valendo por 30 dias.',
+      'Assim que o pagamento é confirmado (com Pix, costuma ser na hora), a página da sua estrela fica pronta: lá você vê o certificado, baixa o PDF nas versões escura e clara e pega o link para enviar a quem vai receber. O link também vai para o e-mail da compra.',
+  },
+  {
+    pergunta: 'Vocês enviam o certificado impresso?',
+    resposta:
+      'Ainda não: o certificado é digital, em PDF A4 de alta resolução, pensado para imprimir em casa ou numa gráfica rápida e caber nas molduras de papelaria. A versão clara gasta pouca tinta e fica muito bonita em papel fosco.',
+  },
+  {
+    pergunta: 'E se o pagamento não for aprovado?',
+    resposta:
+      'Nada é cobrado. A estrela fica reservada para você por 30 minutos enquanto paga; se o pagamento não acontecer, ela volta ao catálogo e você pode tentar de novo.',
+  },
+  {
+    pergunta: 'O que vocês fazem com os meus dados?',
+    resposta:
+      'Só o necessário para fazer e entregar o certificado: seu nome, seu e-mail e o texto que você escreve. Os dados do cartão ficam com o Mercado Pago. Os detalhes estão em Políticas, no rodapé.',
   },
   {
     pergunta: 'Posso escrever uma mensagem?',
@@ -140,6 +181,7 @@ export default function Home() {
       <Hero />
       <Certificado />
       <Estrelas />
+      <Ocasioes />
       <ComoFunciona />
       <Manifesto />
       <Confianca />
@@ -196,39 +238,38 @@ function Hero() {
           <Reveal
             as="h1"
             delay={220}
-            className="font-display mt-5 text-4xl leading-[1.1] text-ivory sm:text-5xl lg:text-6xl"
+            className="font-display mt-5 text-[2.15rem] leading-[1.12] text-ivory sm:text-5xl lg:text-[3.4rem]"
           >
-            Transforme uma homenagem
-            <br />
-            <span className="gold-text">em algo inesquecível</span>
+            Alguns sentimentos merecem um lugar{' '}
+            <span className="gold-text">entre as estrelas</span>
           </Reveal>
 
-          <Reveal as="p" delay={360} className="mt-6 max-w-lg text-lg leading-relaxed text-ivory/75">
-            Dedique uma estrela real a quem você ama. As coordenadas vêm do catálogo Hipparcos, da
-            Agência Espacial Europeia — e o certificado fica pronto em minutos.
+          <Reveal as="p" delay={360} className="mt-6 max-w-lg text-base leading-relaxed text-ivory/75 sm:text-lg">
+            Dedique uma estrela real a alguém especial e receba um certificado personalizado — com o
+            nome, a sua dedicatória e o céu onde ela brilha. Fica pronto em minutos, para guardar,
+            imprimir e emoldurar.
           </Reveal>
 
           <Reveal delay={500} className="mt-9 flex flex-wrap gap-4">
             {/*
-              Âncora nativa, não `Link`: o destino é uma seção DESTA tela, e
-              a rolagem suave do navegador resolve sem trocar de rota. O
-              caminho de compra começa na seção do certificado, não aqui —
-              o herói apresenta, a seção vende.
+              O principal vai DIRETO à personalização: quem já decidiu não
+              precisa rolar a página inteira. O secundário fica na página,
+              descendo até o certificado (âncora nativa, rolagem suave).
             */}
-            <a href="#certificados" className="btn btn-primary animate-pulse-glow">
+            <Link para="/produto/certificado-digital" className="btn btn-primary animate-pulse-glow">
               Criar minha homenagem
-            </a>
-            <a href="#como-funciona" className="btn btn-secundario">
-              Como funciona
+            </Link>
+            <a href="#certificados" className="btn btn-secundario">
+              Conhecer a experiência
             </a>
           </Reveal>
 
           <Reveal delay={640}>
             <dl className="mt-12 grid max-w-lg grid-cols-3 gap-6">
               {[
-                ['118 mil', 'estrelas no catálogo'],
+                ['118 mil', 'estrelas reais no catálogo'],
                 ['1', 'pessoa por estrela'],
-                ['~1 min', 'para receber por Pix'],
+                ['Minutos', 'do pagamento ao certificado'],
               ].map(([valor, rotulo]) => (
                 <div key={rotulo}>
                   <dt className="font-display text-2xl text-gold">{valor}</dt>
@@ -248,7 +289,27 @@ function Hero() {
             style={{ background: 'radial-gradient(circle, rgba(216,182,106,0.25), transparent 70%)' }}
             aria-hidden="true"
           />
-          <EstrelaGrande />
+          {/* A estrela da marca ao fundo e, à frente, O PRODUTO: uma folha de
+              exemplo, levemente inclinada, como um presente sobre a mesa. Na
+              primeira dobra a pessoa já vê o que vai receber. */}
+          <div className="relative mx-auto max-w-md">
+            <div className="opacity-60 sm:opacity-80">
+              <EstrelaGrande />
+            </div>
+            <div className="absolute inset-x-[17%] top-[7%] origin-bottom -rotate-[3deg] overflow-hidden rounded-[3px] shadow-[0_30px_80px_rgba(0,0,0,0.65),0_0_0_1px_rgba(216,182,106,0.35)] transition-transform duration-700 hover:rotate-0">
+              <Folha
+                estrela={EXEMPLO.estrela}
+                honoreeName={EXEMPLO.nome}
+                message={EXEMPLO.mensagem}
+                fromName={EXEMPLO.assinatura}
+                dedicationDate={EXEMPLO.data}
+                code="SG-XXXX-XXXX"
+              />
+            </div>
+            <p className="sr-only">
+              Exemplo de certificado: a estrela {EXEMPLO.estrela.name} dedicada a {EXEMPLO.nome}.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -411,6 +472,7 @@ function Confianca() {
  */
 function Certificado() {
   const [nome, setNome] = useState('')
+  const [modo, setModo] = useState('tela')
   const faixas = useFaixas()
   const aPartirDe = Math.min(...faixas.map((f) => f.precoCentavos))
 
@@ -449,13 +511,15 @@ function Certificado() {
                 <span className="text-sm text-ivory/50">a partir de</span>
                 <span className="font-display text-3xl text-ivory">{reais(aPartirDe)}</span>
               </div>
-              <p className="mt-1 text-xs text-ivory/45">à vista no Pix ou em até 12x no cartão</p>
+              <p className="mt-1 text-xs text-ivory/45">
+                O preço depende da estrela · Pix ou cartão em até 12x
+              </p>
 
               <Link para={`/produto/${PRODUTO.slug}`} className="btn btn-primary mt-6 w-full">
                 Montar o meu certificado
               </Link>
               <p className="mt-3 text-center text-xs text-ivory/45">
-                Pix, cartão ou boleto · pagamento pelo Mercado Pago
+                Certificado digital — não enviamos impresso. Pagamento seguro pelo Mercado Pago.
               </p>
             </div>
           </Reveal>
@@ -475,13 +539,41 @@ function Certificado() {
               maxLength={80}
             />
 
-            <div className="shimmer-border mx-auto mt-4 max-w-[26rem] overflow-hidden rounded-2xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
-              <Folha estrela={getStar('antares')} honoreeName={nome} code="SG-XXXX-XXXX" />
+            {/* Como vai ser na vida real: na tela, na parede, no papel. */}
+            <div role="group" aria-label="Como ver o certificado" className="mt-4 flex justify-center gap-1.5">
+              {MODOS_VITRINE.map(([valor, rotulo]) => (
+                <button
+                  key={valor}
+                  type="button"
+                  onClick={() => setModo(valor)}
+                  aria-pressed={modo === valor}
+                  className={`rounded-full border px-3.5 py-1.5 text-xs transition ${
+                    modo === valor
+                      ? 'border-gold/70 bg-gold/15 text-gold'
+                      : 'border-white/12 text-ivory/70 hover:border-white/30'
+                  }`}
+                >
+                  {rotulo}
+                </button>
+              ))}
+            </div>
+
+            <div className="mx-auto mt-4 max-w-[26rem]">
+              <Vitrine
+                modo={modo}
+                estrela={getStar('antares')}
+                honoreeName={nome}
+                message={nome ? 'Que esta estrela te lembre, todas as noites, do quanto você é amada.' : ''}
+                fromName={nome ? 'Com amor' : ''}
+                dedicationDate={DATA_DE_HOJE}
+                code="SG-XXXX-XXXX"
+              />
             </div>
 
             <p className="mt-3 text-xs leading-relaxed text-ivory/45">
-              A prévia usa as mesmas medidas e as mesmas fontes do PDF que você vai receber. O
-              código de registro só é real depois da compra.
+              É a mesma folha do PDF que você recebe, com as mesmas medidas e fontes. Na compra você
+              escolhe a estrela e escreve a sua própria dedicatória; o código de registro só existe
+              depois do pagamento.
             </p>
           </Reveal>
         </div>
@@ -499,9 +591,22 @@ function Certificado() {
  * ativa. O painel é `sticky` para a história acompanhar a rolagem da grade.
  */
 function Estrelas() {
-  // Começa na primeira do catálogo; o botão do painel leva ao produto com a
+  // Começa numa estrela livre; o botão do painel leva ao produto com a
   // escolha já na URL, para a pessoa não ter que escolher de novo.
-  const [selecionada, setSelecionada] = useState(STARS[0])
+  const [selecionada, setSelecionada] = useState(getStar('sirius'))
+  // Estado de cada destaque no banco: estrela dedicada não é oferecida (a
+  // Kaus Australis, por exemplo, é o presente que deu origem à Stellara).
+  const [estados, setEstados] = useState({})
+  useEffect(() => {
+    let vivo = true
+    estadoDasEstrelas(STARS.map((e) => e.slug))
+      .then((r) => vivo && setEstados(r))
+      .catch(() => {})
+    return () => {
+      vivo = false
+    }
+  }, [])
+  const dedicada = (slug) => estados[slug] === 'dedicada'
 
   return (
     <section id="estrelas" className="espaco-secao border-t border-white/8">
@@ -541,7 +646,7 @@ function Estrelas() {
                   <span className="block font-serif text-base leading-tight text-ivory">{estrela.name}</span>
                   <span className="mt-1 block text-xs text-gold/70">{estrela.bayer}</span>
                   <span className="mt-2 block text-[11px] text-ivory/45">
-                    mag. {estrela.magnitude.toFixed(2)}
+                    {dedicada(estrela.slug) ? 'Já dedicada' : `mag. ${estrela.magnitude.toFixed(2)}`}
                   </span>
                 </button>
               )
@@ -568,9 +673,18 @@ function Estrelas() {
               ))}
             </dl>
 
-            <Link para={`/produto/certificado-digital?estrela=${selecionada.slug}`} className="btn btn-primary mt-7 w-full">
-              Dedicá-la a alguém
-            </Link>
+            {dedicada(selecionada.slug) ? (
+              <p className="mt-7 rounded-xl border border-white/10 px-4 py-3 text-center text-sm text-ivory/65">
+                Esta estrela já foi dedicada a alguém — cada uma é de uma pessoa só.{' '}
+                <Link para="/estrelas" className="text-gold hover:underline">
+                  Ver as que estão livres
+                </Link>
+              </p>
+            ) : (
+              <Link para={`/produto/certificado-digital?estrela=${selecionada.slug}`} className="btn btn-primary mt-7 w-full">
+                Dedicá-la a alguém
+              </Link>
+            )}
           </Reveal>
         </div>
       </div>
@@ -592,16 +706,16 @@ function ComoFunciona() {
       texto: 'Busque entre 118 mil estrelas por nome ou constelação — ou deixe o céu escolher por você.',
     },
     {
-      titulo: 'Escreva o nome',
-      texto: 'A prévia mostra o certificado exatamente como vai sair, em tempo real.',
+      titulo: 'Personalize',
+      texto: 'O nome de quem recebe, a sua dedicatória, a data e a assinatura. A prévia mostra a folha exatamente como vai sair.',
     },
     {
-      titulo: 'Pague do seu jeito',
-      texto: 'Pix, cartão ou boleto. O preço vem do servidor — nunca da sua tela.',
+      titulo: 'Pague com segurança',
+      texto: 'Pix ou cartão em até 12x, pelo Mercado Pago. A estrela fica reservada para você enquanto paga.',
     },
     {
-      titulo: 'Receba por e-mail',
-      texto: 'Em minutos você tem o PDF para imprimir, guardar ou emoldurar.',
+      titulo: 'Receba e presenteie',
+      texto: 'Logo após a confirmação, a página da estrela fica pronta, com o PDF para baixar e o link para enviar a quem você ama.',
     },
   ]
 
@@ -623,6 +737,41 @@ function ComoFunciona() {
             </Reveal>
           ))}
         </ol>
+      </div>
+    </section>
+  )
+}
+
+/**
+ * Para cada história: o momento do presente leva ao configurador já com
+ * sugestões de dedicatória daquela ocasião (`?ocasiao=`). Ajuda quem chega
+ * sem saber o que escrever — sem empurrar data nem urgência.
+ */
+function Ocasioes() {
+  return (
+    <section id="ocasioes" className="espaco-secao border-t border-white/8">
+      <div className="pilha">
+        <Reveal className="mx-auto max-w-2xl text-center">
+          <p className="font-display text-xs tracking-[0.3em] text-gold uppercase">Para cada história</p>
+          <h2 className="font-display mt-4 text-3xl text-ivory sm:text-4xl">Qual é o momento?</h2>
+          <p className="mt-4 leading-relaxed text-ivory/70">
+            Escolha a ocasião e a gente sugere algumas dedicatórias para começar — você muda o que
+            quiser.
+          </p>
+        </Reveal>
+        <ul className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {OCASIOES.map((o, i) => (
+            <Reveal as="li" key={o.slug} delay={i * 60}>
+              <Link
+                para={`/produto/certificado-digital?ocasiao=${o.slug}`}
+                className="cartao group block h-full transition hover:border-gold/50"
+              >
+                <span className="font-serif text-lg text-ivory transition group-hover:text-gold">{o.titulo}</span>
+                <span className="mt-2 block text-sm leading-relaxed text-ivory/60">{o.frase}</span>
+              </Link>
+            </Reveal>
+          ))}
+        </ul>
       </div>
     </section>
   )
