@@ -26,7 +26,7 @@ export default function Footer() {
           <div className="md:col-span-2">
             <div className="flex items-center gap-2.5">
               <Simbolo size={24} className="text-gold" />
-              <span className="font-display tracking-[0.06em] text-ivory">Stellara</span>
+              <span className="font-display tracking-[0.16em] text-ivory uppercase">Stellara</span>
             </div>
             <p className="mt-1 text-[11px] tracking-[0.28em] text-gold/70 uppercase">A star of your own</p>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-ivory/60">

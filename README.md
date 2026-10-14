@@ -50,6 +50,26 @@ netlify/
 test/              vitest: componentes, e-mail, webhook, reenvio, prévia
 ```
 
+## Marca
+
+A logo oficial fica em [`marca/`](marca/) — SVG vetorial, com o texto já em
+curvas (abre igual em qualquer programa, sem precisar das fontes):
+
+| Arquivo | Uso |
+| --- | --- |
+| `stellara-simbolo.svg` | Símbolo isolado, dourado com facetas |
+| `stellara-horizontal.svg` | Símbolo + STELLARA + slogan, em linha |
+| `stellara-vertical.svg` | Símbolo em cima, nome e slogan embaixo |
+| `*-mono-marfim.svg` | Uma cor, para fundo escuro |
+| `*-mono-noite.svg` | Uma cor, para papel claro e impressão |
+| `stellara-simbolo-reduzido.svg` | Até ~48 px: favicon, cabeçalho, rodapé |
+
+Tudo sai de `npm run marca` (`scripts/gerar-marca.mjs`), que também gera o
+`favicon.svg` e a geometria do símbolo do site — mudou a marca, rode de novo
+em vez de editar os SVGs. `marca/index.html` mostra todas as versões lado a
+lado. Paleta: azul-noite `#090B20`, dourado `#D8B66A`, marfim `#F6F1E7`;
+tipografia: Playfair Display (nome) e Montserrat (slogan e textos).
+
 ## Pontos que valem saber antes de mexer
 
 - **Preço vive no banco** (`products.price_cents`). O checkout lê no servidor;

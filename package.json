@@ -11,7 +11,8 @@
     "typecheck": "tsc -p tsconfig.functions.json",
     "test": "node shared/astro.test.mjs && node shared/sky.test.mjs && node shared/moderation.test.mjs && vitest run",
     "verificar": "npm run lint && npm run typecheck && npm test",
-    "publicar:supabase": "node scripts/publicar-supabase.mjs"
+    "publicar:supabase": "node scripts/publicar-supabase.mjs",
+    "marca": "node scripts/gerar-marca.mjs"
   },
   "dependencies": {
     "@pdf-lib/fontkit": "^1.1.1",

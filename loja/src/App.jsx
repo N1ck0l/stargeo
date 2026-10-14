@@ -162,7 +162,7 @@ function Cabecalho({ caminho }) {
       <div className="pilha flex h-16 items-center justify-between gap-4">
         <Link para="/" className="flex items-center gap-2.5" aria-label="Stellara, página inicial">
           <Simbolo size={28} className="animate-shimmer text-gold" />
-          <span className="font-display text-lg tracking-[0.06em] text-ivory">Stellara</span>
+          <span className="font-display text-lg tracking-[0.16em] text-ivory uppercase">Stellara</span>
         </Link>
 
         <nav className="hidden items-center gap-7 md:flex" aria-label="Principal">
