@@ -1,25 +1,26 @@
 
-import { useState } from 'react'
-import { STARS, getStar } from '../../../shared/stars.js'
+import { useEffect, useState } from 'react'
+import { getStar } from '../../../shared/stars.js'
 import { validarPedido, explicarErros } from '../../../shared/moderation.js'
 import { Folha } from '../components/Folha.jsx'
+import { ExploradorDeEstrelas } from '../components/ExploradorDeEstrelas.jsx'
 import { MiniCeuSobDemanda } from '../components/MiniCeuSobDemanda.jsx'
 import { Reveal } from '../components/Reveal.jsx'
 import { criarCheckout, ErroApi, irParaPagamento } from '../lib/api.js'
 import { Link } from '../lib/Link.jsx'
-import { usePreco } from '../lib/preco.js'
+import { buscarEstrela, comoSeVe, normalizar, reais } from '../lib/catalogo.js'
 
 /**
- * Produtos que têm página. `preco` é só a RESERVA enquanto o banco não
- * responde: o botão mostra o `price_cents` de `products` (via `usePreco`), o
- * mesmo valor que o `create-checkout` cobra.
+ * Produtos que têm página. O PREÇO não mora aqui: ele é o da faixa da estrela
+ * escolhida (brilho e nome), lido do banco — o mesmo que o `create-checkout`
+ * cobra.
  *
  * Por enquanto só existe UM produto de verdade (o digital): slug fora desta
  * lista cai na tela "Certificado não encontrado" abaixo. Os outros níveis
  * ficam desligados no banco até virarem produto real — ver migration 0007.
  */
 const PRODUTOS = {
-  'certificado-digital': { nome: 'Certificado Digital', preco: 49 },
+  'certificado-digital': { nome: 'Certificado Digital' },
 }
 
 const MESES = [
@@ -76,14 +77,38 @@ function dataEmPortugues(iso) {
  */
 export default function Produto({ slug }) {
   const produto = PRODUTOS[slug]
-  const { preco } = usePreco(slug, { preco: produto?.preco ?? '' })
 
-  // A estrela pode vir pela URL: `/produto/...?estrela=sirius`, que é como a
-  // home leva alguém direto ao produto com a estrela já escolhida.
-  const estrelaInicial = new URLSearchParams(window.location.search).get('estrela')
-  const [estrelaSlug, setEstrelaSlug] = useState(
-    () => getStar(estrelaInicial)?.slug ?? STARS[0].slug,
-  )
+  /*
+   * A estrela pode vir pela URL (`?estrela=antares`): é como a home e o
+   * catálogo trazem alguém com a estrela já escolhida. As 12 curadas aparecem
+   * na hora (`shared/stars.js`); qualquer outra das ~118 mil, e o preço e o
+   * estado de TODAS, chegam do banco logo depois.
+   */
+  const estrelaInicial = new URLSearchParams(window.location.search).get('estrela') || 'sirius'
+  const [estrela, setEstrela] = useState(() => normalizar(getStar(estrelaInicial) ?? getStar('sirius')))
+  useEffect(() => {
+    let vivo = true
+    buscarEstrela(estrelaInicial)
+      .then((e) => {
+        if (vivo && e) setEstrela(e)
+      })
+      .catch(() => {})
+    return () => {
+      vivo = false
+    }
+  }, [estrelaInicial])
+
+  function escolherEstrela(nova) {
+    setEstrela(nova)
+    const params = new URLSearchParams(window.location.search)
+    params.set('estrela', nova.slug)
+    window.history.replaceState(null, '', `${window.location.pathname}?${params}`)
+  }
+
+  // Cada estrela é exclusiva: dedicada (ou reservada por outro pagamento em
+  // curso) não dá para comprar.
+  const indisponivel = Boolean(estrela.status) && estrela.status !== 'disponivel'
+  const preco = reais(estrela.precoCentavos)
   const [paraQuem, setParaQuem] = useState('')
   const [assinatura, setAssinatura] = useState('')
   const [mensagem, setMensagem] = useState('')
@@ -99,12 +124,6 @@ export default function Produto({ slug }) {
   const [tocou, setTocou] = useState({})
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
-
-  /*
-   * `getStar` é uma busca em `Map` — mais barata que comparar dependências de
-   * hook. A validação abaixo também roda direto, pelo mesmo motivo.
-   */
-  const estrela = getStar(estrelaSlug)
 
   /*
    * A validação roda com a MESMA função do servidor (`shared/moderation.js`).
@@ -164,6 +183,10 @@ export default function Produto({ slug }) {
 
     // Validação local primeiro: evita gastar uma ida ao servidor (e criar um
     // pedido que ninguém vai pagar) quando dá para saber na hora.
+    if (indisponivel) {
+      setErro('Esta estrela já tem dono. Escolha outra no catálogo acima — são milhares livres.')
+      return
+    }
     if (!validacao.ok) {
       setTocou({ honoreeName: true, fromName: true, message: true, customerName: true, customerEmail: true })
       setErro(explicarErros(validacao.erros))
@@ -178,7 +201,7 @@ export default function Produto({ slug }) {
     try {
       const resposta = await criarCheckout({
         productSlug: slug,
-        starSlug: estrelaSlug,
+        starSlug: estrela.slug,
         honoreeName: paraQuem,
         fromName: assinatura || undefined,
         message: mensagem || undefined,
@@ -211,6 +234,11 @@ export default function Produto({ slug }) {
           ? falha.message
           : 'Não foi possível iniciar o pagamento. Verifique a conexão e tente de novo.',
       )
+      // Outra pessoa pegou a estrela no meio do caminho: o estado novo vem do
+      // banco, e a tela passa a mostrá-la como indisponível.
+      if (falha instanceof ErroApi && falha.codigo === 'estrela_indisponivel') {
+        buscarEstrela(estrela.slug).then((e) => e && setEstrela(e)).catch(() => {})
+      }
       setEnviando(false)
     }
   }
@@ -255,49 +283,51 @@ export default function Produto({ slug }) {
             </Secao>
 
             <Secao numero="2" titulo="Qual estrela?">
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {STARS.map((item) => (
-                  <button
-                    key={item.slug}
-                    type="button"
-                    onClick={() => {
-                      setEstrelaSlug(item.slug)
-                      const params = new URLSearchParams(window.location.search)
-                      params.set('estrela', item.slug)
-                      // `replaceState` e não `push`: trocar de estrela não
-                      // deve encher o histórico com o mesmo caminho — voltar
-                      // tem que sair da página.
-                      window.history.replaceState(null, '', `${window.location.pathname}?${params}`)
-                    }}
-                    aria-pressed={item.slug === estrelaSlug}
-                    className={`rounded-xl border p-3 text-left transition ${
-                      item.slug === estrelaSlug
-                        ? 'border-gold/70 bg-gold/10'
-                        : 'border-white/10 bg-white/[0.03] hover:border-white/25'
-                    }`}
-                  >
-                    <span className="block font-serif text-sm leading-tight text-ivory">{item.name}</span>
-                    <span className="mt-1 block text-[11px] text-gold/70">{item.bayer}</span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="cartao mt-5 flex flex-col gap-5 sm:flex-row sm:items-start">
+              {/* A escolhida: história, céu real em volta e o preço da faixa. */}
+              <div className="cartao flex flex-col gap-5 sm:flex-row sm:items-start">
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-serif text-lg text-ivory">{estrela.name}</h3>
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <h3 className="font-serif text-xl text-ivory">{estrela.name}</h3>
+                    <span className="text-sm text-gold">{preco}</span>
+                  </div>
                   <p className="mt-1 text-xs text-gold/80">
-                    {estrela.bayer} · {estrela.constellation} · {estrela.distanceLy} anos-luz
+                    {estrela.bayer} · {estrela.constellation}
+                    {estrela.distanceLy
+                      ? ` · ${estrela.distanceLy.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} anos-luz`
+                      : ''}
+                    {` · ${comoSeVe(estrela.magnitude)}`}
                   </p>
                   <p className="mt-3 text-sm leading-relaxed text-ivory/70">{estrela.story}</p>
+                  {indisponivel ? (
+                    <p
+                      role="alert"
+                      className="mt-4 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs text-amber-100"
+                    >
+                      Esta estrela já foi dedicada a alguém. Cada estrela da Stellara é única — escolha outra
+                      abaixo.
+                    </p>
+                  ) : (
+                    <p className="mt-4 text-xs text-ivory/50">
+                      Exclusiva: depois de dedicada, ela sai do catálogo e ninguém mais recebe esta estrela.
+                    </p>
+                  )}
                 </div>
-                {/* O mesmo mapa do pé da folha: a constelação real de cada
-                    estrela, que muda junto com a escolha. */}
+                {/* O mesmo mapa do pé da folha: a constelação real, que muda
+                    junto com a escolha. */}
                 <figure className="mx-auto w-32 shrink-0 text-center sm:mx-0">
                   <MiniCeuSobDemanda key={estrela.slug} estrela={estrela} className="animate-fade-in aspect-square w-32" />
                   <figcaption className="mt-2 text-[10px] leading-snug tracking-wide text-ivory/50">
                     O céu de {estrela.constellation}, como sai na folha
                   </figcaption>
                 </figure>
+              </div>
+
+              <div className="mt-6">
+                <ExploradorDeEstrelas
+                  selecionada={estrela.slug}
+                  aoEscolher={escolherEstrela}
+                  titulo="Escolher outra estrela"
+                />
               </div>
             </Secao>
 
@@ -369,11 +399,12 @@ export default function Produto({ slug }) {
             )}
 
             <div className="flex flex-wrap items-center gap-4">
-              <button type="submit" className="btn btn-primary animate-pulse-glow" disabled={enviando}>
-                {enviando ? 'Abrindo o pagamento…' : `Finalizar · R$ ${preco}`}
+              <button type="submit" className="btn btn-primary animate-pulse-glow" disabled={enviando || indisponivel}>
+                {enviando ? 'Abrindo o pagamento…' : `Finalizar · ${preco}`}
               </button>
               <p className="text-xs text-ivory/45">
-                Você paga no Mercado Pago: Pix, cartão em até 12x ou boleto.
+                Você paga no Mercado Pago, por Pix ou cartão em até 12x. A estrela fica reservada para
+                você por 30 minutos enquanto paga.
               </p>
             </div>
           </div>

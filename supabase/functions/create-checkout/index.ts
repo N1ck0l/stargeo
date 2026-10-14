@@ -89,28 +89,39 @@ Deno.serve(
       throw new ErroApp('produto_inexistente', 'Esse produto não está disponível.', 404)
     }
 
-    // A estrela precisa existir E estar na lista do produto. Sem essa segunda
-    // condição, daria para comprar o kit básico e pedir Sirius nele.
-    // Sem `starSlug` no corpo, cai na primeira estrela do produto (a lista é a
-    // ordem de sugestão da vitrine). O último `??` é defesa contra produto
-    // cadastrado com `star_slugs` vazio — o gatilho de 0001 confere os slugs
-    // que existem, mas não obriga a lista a ter um.
-    let starSlug = corpo.starSlug ?? produto.star_slugs[0] ?? 'kaus-australis'
-
-    const { data: estrela } = await db
+    /*
+     * A estrela. Com o catálogo completo (0010), o produto vale para todas
+     * (`star_slugs` vazio) e o PREÇO vem da faixa da estrela — brilho e nome
+     * —, lido aqui do banco, nunca do navegador. Uma lista não vazia em
+     * `star_slugs` ainda restringe, para um kit futuro de estrelas escolhidas.
+     */
+    if (!corpo.starSlug) {
+      throw new ErroApp('estrela_ausente', 'Escolha uma estrela para continuar.')
+    }
+    const { data: estrela, error: erroEstrela } = await db
       .from('stars')
-      .select('slug, name, constellation')
-      .eq('slug', starSlug)
+      .select('slug, name, constellation, status, reserved_until, faixas(price_cents)')
+      .eq('slug', String(corpo.starSlug))
       .eq('active', true)
       .maybeSingle()
 
+    if (erroEstrela) {
+      throw new ErroApp('estrela_erro', 'Não foi possível carregar a estrela.', 500, erroEstrela.message)
+    }
     if (!estrela) {
       throw new ErroApp('estrela_inexistente', 'Essa estrela não está disponível.', 404)
     }
-    if (!produto.star_slugs.includes(estrela.slug)) {
+    const listaDoProduto: string[] = produto.star_slugs ?? []
+    if (listaDoProduto.length > 0 && !listaDoProduto.includes(estrela.slug)) {
       throw new ErroApp('estrela_fora_do_produto', 'Esse produto não inclui essa estrela.', 422)
     }
-    starSlug = estrela.slug
+    const reservaVencida = estrela.status === 'reservada' && new Date(String(estrela.reserved_until)).getTime() < Date.now()
+    if (estrela.status !== 'disponivel' && !reservaVencida) {
+      throw new ErroApp('estrela_indisponivel', ESTRELA_INDISPONIVEL, 409)
+    }
+    const faixa = estrela.faixas as unknown as { price_cents: number } | null
+    const precoCentavos = faixa?.price_cents ?? produto.price_cents
+    const starSlug = estrela.slug
 
     // --- 4. Grava o pedido ---------------------------------------------
     const insercao = {
@@ -118,7 +129,7 @@ Deno.serve(
       // Snapshot do nome e do preço: se o produto mudar de nome ou de preço
       // depois, o pedido antigo continua dizendo o que foi comprado.
       product_name: produto.name,
-      amount_cents: produto.price_cents,
+      amount_cents: precoCentavos,
       customer_email: String(corpo.customerEmail).trim().toLowerCase(),
       customer_name: limpar(corpo.customerName ?? ''),
       // CPF só com dígitos: máscara é coisa de formulário, e o banco guarda o
@@ -143,7 +154,25 @@ Deno.serve(
       throw new ErroApp('pedido_falhou', 'Não foi possível registrar seu pedido.', 500, erroPedido?.message)
     }
 
-    // --- 5. Preferência de pagamento ------------------------------------
+    // --- 5. Reserva a estrela -------------------------------------------
+    // Atômica no banco (`reservar_estrela`, migration 0010): entre duas
+    // compras simultâneas da mesma estrela, só uma reserva vence. A reserva
+    // dura um pouco mais que o prazo do pagamento, para o Pix pago no último
+    // minuto ainda encontrar a estrela guardada.
+    const { data: reservou, error: erroReserva } = await db.rpc('reservar_estrela', {
+      p_slug: starSlug,
+      p_order: pedido.id,
+      p_minutos: PRAZO_PAGAMENTO_MIN + 10,
+    })
+    if (erroReserva) {
+      throw new ErroApp('reserva_falhou', 'Não foi possível reservar a estrela.', 500, erroReserva.message)
+    }
+    if (!reservou) {
+      await db.from('orders').update({ status: 'cancelled' }).eq('id', pedido.id)
+      throw new ErroApp('estrela_indisponivel', ESTRELA_INDISPONIVEL, 409)
+    }
+
+    // --- 6. Preferência de pagamento ------------------------------------
     try {
       const preferencia = await criarPreferencia({
         itens: [
@@ -151,7 +180,7 @@ Deno.serve(
             titulo: `Certificado de ${estrela.name}`,
             descricao: produto.name,
             quantidade: 1,
-            precoUnitario: produto.price_cents,
+            precoUnitario: precoCentavos,
           },
         ],
         // O e-mail vem do objeto já normalizado que foi inserido: ler de
@@ -159,6 +188,7 @@ Deno.serve(
         payerEmail: insercao.customer_email,
         payerName: insercao.customer_name,
         externalReference: pedido.id,
+        expiraEmMinutos: PRAZO_PAGAMENTO_MIN,
       })
 
       return json(request, {
@@ -174,10 +204,21 @@ Deno.serve(
       // `pending` é correto: o pagamento nunca vai acontecer, e a limpeza
       // automática de pendentes pega depois.
       console.error(`[checkout ${id}] preferência falhou para o pedido ${pedido.id}:`, erro)
+      // Sem pagamento possível, a estrela não pode ficar presa na reserva.
+      await db.rpc('liberar_estrela', { p_slug: starSlug, p_order: pedido.id })
       throw erro
     }
   }, 'create-checkout'),
 )
+
+/**
+ * Minutos para pagar. Curto de propósito: a estrela fica RESERVADA nesse
+ * tempo e some da vitrine — um prazo longo prenderia estrelas de quem desistiu.
+ * É também por isso que o boleto (dias para compensar) sai do checkout.
+ */
+const PRAZO_PAGAMENTO_MIN = 30
+
+const ESTRELA_INDISPONIVEL = 'Essa estrela acabou de ser escolhida por outra pessoa. Escolha outra — são milhares esperando.'
 
 /**
  * Valida uma data em ISO (YYYY-MM-DD).

@@ -26,6 +26,7 @@ import Produto from './pages/Produto.jsx'
 import Rastrear from './pages/Rastrear.jsx'
 import Obrigado from './pages/Obrigado.jsx'
 import Editar from './pages/Editar.jsx'
+import Catalogo from './pages/Catalogo.jsx'
 import { PaginaDedicada } from './pagina/PaginaDedicada.jsx'
 import { EdicaoPagina } from './pagina/EdicaoPagina.jsx'
 import { AdminPagina } from './admin/AdminPagina.jsx'
@@ -50,6 +51,7 @@ function telaPara(caminho) {
   const limpo = caminho.replace(/\/+$/, '') || '/'
 
   if (limpo === '/rastrear') return <Rastrear />
+  if (limpo === '/estrelas') return <Catalogo />
   if (limpo === '/obrigado') return <Obrigado />
   // Acesso do cliente à própria página: só resolve o código e passa para
   // `/p/:code/editar`, que é onde o login de verdade (e-mail + token) mora.
@@ -172,8 +174,11 @@ function Cabecalho({ caminho }) {
           >
             Certificados
           </Link>
-          <Link para="/#estrelas" className="nav-link text-sm text-ivory/80 transition hover:text-gold">
-            Estrelas
+          <Link
+            para="/estrelas"
+            className={`nav-link text-sm text-ivory/80 transition hover:text-gold ${limpo === '/estrelas' ? 'is-active' : ''}`}
+          >
+            Catálogo
           </Link>
           <Link
             para="/rastrear"
@@ -215,8 +220,8 @@ function Cabecalho({ caminho }) {
           <Link para="/" onClick={() => setMenuAberto(false)} className="text-sm text-ivory/85">
             Certificados
           </Link>
-          <Link para="/#estrelas" onClick={() => setMenuAberto(false)} className="text-sm text-ivory/85">
-            Estrelas
+          <Link para="/estrelas" onClick={() => setMenuAberto(false)} className="text-sm text-ivory/85">
+            Catálogo
           </Link>
           <Link para="/rastrear" onClick={() => setMenuAberto(false)} className="text-sm text-ivory/85">
             Rastrear pedido

@@ -140,7 +140,8 @@ function misturar(a, b, t) {
  * @typedef {object} DadosCertificado
  * @property {string} honoreeName
  * @property {string} starName
- * @property {string} [slug]            estrela do catálogo — liga o mapa do céu
+ * @property {string} [slug]            estrela do catálogo
+ * @property {string} [sigla]           constelação ("Sgr") — destaca as linhas dela no mapa
  * @property {number} [ra]              horas (centro do mapa, se não houver slug)
  * @property {number} [dec]             graus
  * @property {string} bayer
@@ -396,7 +397,14 @@ function dadosAstronomicos(texto, dados, p) {
     ['ASCENSÃO RETA', dados.raFormatted],
     ['DECLINAÇÃO', dados.decFormatted],
     ['MAGNITUDE', formatar(dados.magnitude)],
-    ['DISTÂNCIA', `${Number(dados.distanceLy).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} anos-luz`],
+    // Estrela fraca muitas vezes não tem paralaxe confiável: sem número, em vez
+    // de um "0 anos-luz" ou um chute.
+    [
+      'DISTÂNCIA',
+      Number(dados.distanceLy) > 0
+        ? `${Number(dados.distanceLy).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} anos-luz`
+        : 'não medida',
+    ],
   ]
   campos.forEach(([rotulo, valor], i) => {
     const x = i % 2 === 0 ? 26 : 70
@@ -424,6 +432,10 @@ function mapaDoCeu(add, texto, dados, p, { cx, cy, r }) {
 
   // Linhas da constelação e estrelas, do tamanho do brilho.
   const ceu = projetarCeu(dados, { cx, cy, r })
+  // As constelações vizinhas bem apagadas; a da estrela, em destaque.
+  for (const [x1, y1, x2, y2] of ceu.linhasVizinhas) {
+    add({ tipo: 'linha', x1, y1, x2, y2, cor: p.moldura, espessura: 0.14, opacidade: 0.22 })
+  }
   for (const [x1, y1, x2, y2] of ceu.linhas) {
     add({ tipo: 'linha', x1, y1, x2, y2, cor: p.destaque, espessura: 0.22, opacidade: 0.6 })
   }

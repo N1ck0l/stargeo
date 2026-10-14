@@ -134,7 +134,12 @@ export const webhook = comHandler(async (request) => {
     .throwOnError()
 
   if (!ehAprovado(pagamento.status)) {
-    // Pix pendente, boleto não pago, cartão recusado: nada a entregar ainda.
+    // Recusado ou cancelado: a estrela reservada por ESTE pedido volta ao
+    // catálogo (a função só solta a reserva dele, nunca a de outro).
+    if (novoStatus === 'cancelled') {
+      await db.rpc('liberar_estrela', { p_slug: pedido.star_slug, p_order: pedidoId }).throwOnError()
+    }
+    // Pix pendente, cartão em análise: nada a entregar ainda.
     // 200 porque o evento foi tratado, só não exige ação.
     console.log(`[webhook ${id}] pagamento ${pagamento.id} em ${pagamento.status}; sem entrega`)
     return json(request, { recebido: true, entregue: false, status: novoStatus })
@@ -156,13 +161,26 @@ export const webhook = comHandler(async (request) => {
     return json(request, { recebido: true, entregue: false, motivo: 'valor_divergente' })
   }
 
-  // --- 4. Reserva a entrega -------------------------------------------
+  // --- 4. A estrela passa a ser DESTE pedido ----------------------------
+  // Cada estrela é exclusiva. Se a reserva venceu e outra pessoa comprou a
+  // mesma estrela no meio tempo, não há como entregar: fica a pendência para
+  // o admin (reembolso ou troca de estrela), e o Mercado Pago recebe 200.
+  const { data: dedicou } = await db
+    .rpc('dedicar_estrela', { p_slug: pedido.star_slug, p_order: pedidoId })
+    .throwOnError()
+  if (!dedicou) {
+    console.error(`[webhook ${id}] pedido ${pedidoId} pago, mas a estrela ${pedido.star_slug} já é de outro pedido`)
+    await marcarPendencia(db, pedidoId, 'Estrela já dedicada a outro pedido — reembolsar ou trocar a estrela')
+    return json(request, { recebido: true, entregue: false, motivo: 'estrela_ja_dedicada' })
+  }
+
+  // --- 5. Reserva a entrega -------------------------------------------
   if (!(await reservarEntrega(db, pedidoId))) {
     console.log(`[webhook ${id}] pedido ${pedidoId} com entrega em andamento noutro evento`)
     return json(request, { recebido: true, entregue: false, motivo: 'entrega_em_andamento' })
   }
 
-  // --- 5. Entrega ------------------------------------------------------
+  // --- 6. Entrega ------------------------------------------------------
   try {
     return await entregar(request, db, pedido, id, String(pedidoId))
   } finally {

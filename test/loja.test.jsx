@@ -202,12 +202,23 @@ describe('configurador', () => {
     expect(container.textContent).toContain('Beatriz Souza')
   })
 
-  it('trocar de estrela muda a prévia', () => {
-    // Os dados astronômicos da folha são os do catálogo novo — mesma fonte
-    // (`shared/stars.js`) que alimenta o PDF.
+  it('escolher outra estrela no explorador muda o cartão e a prévia', async () => {
+    // Sem Supabase (testes), o catálogo cai nas 12 curadas; a lista chega
+    // pela busca, assíncrona. Começa em Sirius (o padrão sem `?estrela=`).
     const { container } = render(<Produto slug="certificado-digital" />)
-    fireEvent.click(screen.getByRole('button', { name: /Sirius/ }))
     expect(container.textContent).toContain('α Canis Majoris')
+    fireEvent.click(await screen.findByRole('button', { name: /^Vega/ }))
+    expect(container.textContent).toContain('α Lyrae')
+    expect(window.location.search).toContain('estrela=vega')
+    window.history.pushState(null, '', '/')
+  })
+
+  it('mostra o preço da faixa da estrela no botão de finalizar', async () => {
+    window.history.pushState(null, '', '/produto/certificado-digital?estrela=sirius')
+    render(<Produto slug="certificado-digital" />)
+    // Sirius é lendária (nome próprio e magnitude ≤ 1,5): R$ 249 na faixa padrão.
+    expect(screen.getByRole('button', { name: /Finalizar · R\$ 249/ })).toBeTruthy()
+    window.history.pushState(null, '', '/')
   })
 
   // --- Moderação: contador do limite de 600 caracteres ---

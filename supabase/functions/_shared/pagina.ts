@@ -208,9 +208,12 @@ export const SELECAO_PAGINA = [
  * pula a linha. Nada é inventado: o que não temos não aparece.
  */
 export function estrelaParaPagina(estrela: Record<string, unknown>): Record<string, unknown> {
-  const distanceLy = Number(estrela.distance_ly ?? 0)
+  // Estrela fraca pode não ter paralaxe confiável: distância desconhecida
+  // vai como null (a página escreve "não medida"), nunca como 0.
+  const distanceLy = estrela.distance_ly == null ? null : Number(estrela.distance_ly)
   return {
     slug: estrela.slug,
+    sigla: estrela.sigla ?? null,
     commonName: estrela.name,
     bayer: estrela.bayer,
     constellation: estrela.constellation,
@@ -227,7 +230,7 @@ export function estrelaParaPagina(estrela: Record<string, unknown>): Record<stri
     magnitude: Number(estrela.magnitude),
     distanceLy,
     // 1 ano-luz = 0.3066 pc. Mesma conversão usada no certificado.
-    distancePc: Math.round(distanceLy * 0.3066 * 10) / 10,
+    distancePc: distanceLy == null ? null : Math.round(distanceLy * 0.3066 * 10) / 10,
     bestSeason: estrela.best_month ?? '',
     note: '',
     story: estrela.story ?? '',

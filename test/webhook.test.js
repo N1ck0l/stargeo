@@ -69,7 +69,7 @@ function condicao(texto) {
   throw new Error(`condição não suportada no falso: ${texto}`)
 }
 
-function criarBanco({ pedido, estrela, falharUpdateDe = null }) {
+function criarBanco({ pedido, estrela, falharUpdateDe = null, estrelaDeOutro = false }) {
   const tabelas = {
     orders: [{ ...pedido }],
     stars: estrela ? [{ ...estrela }] : [],
@@ -144,7 +144,19 @@ function criarBanco({ pedido, estrela, falharUpdateDe = null }) {
     return construtor
   }
 
-  return { db: { from: de }, pedido: () => tabelas.orders[0], tabelas }
+  /*
+   * As funções de exclusividade (migration 0010). `estrelaDeOutro` simula a
+   * reserva que venceu e outra pessoa comprou a mesma estrela no meio tempo.
+   */
+  const chamadas = []
+  const rpc = (nome, args) => {
+    chamadas.push({ nome, args })
+    const resultado = { data: nome === 'dedicar_estrela' ? !estrelaDeOutro : null, error: null }
+    const r = { throwOnError: () => r, then: (ok, falha) => Promise.resolve(resultado).then(ok, falha) }
+    return r
+  }
+
+  return { db: { from: de, rpc }, pedido: () => tabelas.orders[0], tabelas, chamadas }
 }
 
 // ---------------------------------------------------------------------------
@@ -288,6 +300,31 @@ describe('mp-webhook', () => {
 
     expect(resposta.status).toBe(500)
     expect(enviarEmail).not.toHaveBeenCalled()
+  })
+
+  it('estrela exclusiva: aprovado dedica a estrela a ESTE pedido antes de entregar', async () => {
+    await webhook(evento())
+    expect(estado.banco.chamadas).toContainEqual({ nome: 'dedicar_estrela', args: { p_slug: 'kaus-australis', p_order: 'pedido-1' } })
+  })
+
+  it('estrela que já é de outro pedido: não entrega e deixa a pendência para o admin', async () => {
+    estado.banco = criarBanco({ pedido: PEDIDO, estrela: ESTRELA, estrelaDeOutro: true })
+
+    const resposta = await webhook(evento())
+
+    expect(resposta.status).toBe(200)
+    expect(await resposta.json()).toMatchObject({ entregue: false, motivo: 'estrela_ja_dedicada' })
+    expect(enviarEmail).not.toHaveBeenCalled()
+    expect(estado.banco.pedido().email_error).toMatch(/já dedicada a outro pedido/)
+  })
+
+  it('pagamento recusado devolve a estrela ao catálogo', async () => {
+    estado.pagamento = pagamento({ status: 'rejected' })
+
+    await webhook(evento())
+
+    expect(estado.banco.pedido().status).toBe('cancelled')
+    expect(estado.banco.chamadas).toContainEqual({ nome: 'liberar_estrela', args: { p_slug: 'kaus-australis', p_order: 'pedido-1' } })
   })
 
   it('pagamento pendente grava o status e não entrega', async () => {

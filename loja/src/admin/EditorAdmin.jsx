@@ -39,7 +39,10 @@ export function EditorAdmin({ codigo, aoFechar, aoExpirar }) {
 
   useEffect(() => {
     let vivo = true
-    Promise.all([chamarAdmin('paginaAbrir', { code: codigo }), chamarAdmin('estrelas')])
+    // A lista de estrelas tem só as de nome próprio (o catálogo inteiro tem
+    // ~118 mil): a da página entra junto por `incluir`, mesmo sem nome.
+    chamarAdmin('paginaAbrir', { code: codigo })
+      .then(async (aberta) => [aberta, await chamarAdmin('estrelas', { incluir: aberta.pagina?.star_slug })])
       .then(([aberta, lista]) => {
         if (!vivo) return
         setEstrelas(lista.estrelas ?? [])

@@ -64,7 +64,12 @@ export async function criarPreferencia(opcoes: {
   payerEmail: string
   payerName?: string
   externalReference: string
+  /** Prazo para pagar; depois disso o link e o Pix deixam de valer. */
+  expiraEmMinutos?: number
 }): Promise<Preferencia> {
+  const expira = opcoes.expiraEmMinutos
+    ? new Date(Date.now() + opcoes.expiraEmMinutos * 60_000).toISOString().replace('Z', '-00:00')
+    : null
   const payload = {
     items: opcoes.itens.map((item) => ({
       title: item.titulo,
@@ -91,7 +96,12 @@ export async function criarPreferencia(opcoes: {
        * da API: "bank_transfer: Pix, SPEI, PSE e Yape"). Excluí-lo esconderia o
        * Pix do checkout — no Brasil, o meio preferido de pagamento.
        */
-      excluded_payment_types: [{ id: 'marketplace' }],
+      /*
+       * `ticket` (boleto) também sai: cada estrela é exclusiva e fica
+       * reservada só durante o prazo curto de pagamento, e boleto leva dias
+       * para compensar — a reserva venceria antes do dinheiro chegar.
+       */
+      excluded_payment_types: [{ id: 'marketplace' }, { id: 'ticket' }],
       /*
        * Parcelamento no cartão: até 12x, o teto do Checkout Pro no Brasil.
        * `installments` é o MÁXIMO oferecido; o checkout já abre em 1x
@@ -116,6 +126,12 @@ export async function criarPreferencia(opcoes: {
       failure: `${variavel('PUBLIC_SITE_URL')}/obrigado`,
     },
     auto_return: 'approved',
+    // O prazo vale para o link (`expiration_date_*`) e para o Pix gerado
+    // (`date_of_expiration`): pagar depois que a reserva da estrela venceu
+    // não é possível.
+    ...(expira
+      ? { expires: true, expiration_date_from: new Date().toISOString().replace('Z', '-00:00'), expiration_date_to: expira, date_of_expiration: expira }
+      : {}),
     binary_mode: false,
   }
 

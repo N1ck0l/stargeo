@@ -44,8 +44,8 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link para="/#estrelas" className="text-ivory/70 transition hover:text-gold">
-                  As 12 estrelas
+                <Link para="/estrelas" className="text-ivory/70 transition hover:text-gold">
+                  Catálogo de estrelas
                 </Link>
               </li>
               <li>

@@ -17,6 +17,10 @@ import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   plugins: [react()],
+  // Os testes NÃO leem o `.env` da raiz: com ele, a loja falaria com o
+  // Supabase de produção no meio do teste. `test/` não tem `.env`, então o
+  // ambiente é o mesmo do CI — o catálogo cai nas 12 estrelas curadas.
+  envDir: 'test',
   resolve: {
     // As Edge Functions (e o `shared/pdf.js`, que só o servidor usa) importam
     // pacotes npm com o prefixo `npm:`, que o Deno exige mas o Node não entende.

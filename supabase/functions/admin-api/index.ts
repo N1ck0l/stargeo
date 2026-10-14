@@ -83,7 +83,7 @@ Deno.serve(
         return json(request, await reenviarEmail(corpo))
 
       case 'estrelas':
-        return json(request, await listarEstrelas(db))
+        return json(request, await listarEstrelas(db, corpo))
 
       case 'paginas':
         return json(request, await listarPaginas(db, corpo))
@@ -317,20 +317,31 @@ async function reenviarEmail(corpo: Record<string, unknown>) {
 // ---------------------------------------------------------------------------
 
 /**
- * Catálogo inteiro para o seletor do editor de página.
+ * Estrelas para o seletor do editor de página.
  *
- * Sem filtro de `active`: o painel precisa ver também as estrelas fora da
- * vitrine (uma página já publicada pode apontar para uma delas).
+ * O catálogo tem ~118 mil estrelas — uma lista com todas travaria o painel.
+ * Vão as que têm nome próprio (faixas `lendaria` e `nomeada`, ~600) mais a
+ * estrela atual da página, se for outra (`corpo.incluir`). Sem filtro de
+ * `active` nem de status: o painel cria páginas manuais e precisa ver tudo.
  */
-async function listarEstrelas(db: ReturnType<typeof admin>) {
+async function listarEstrelas(db: ReturnType<typeof admin>, corpo: Record<string, unknown> = {}) {
+  const campos = 'slug, name, bayer, constellation, magnitude, distance_ly'
   const { data, error } = await db
     .from('stars')
-    .select('slug, name, bayer, constellation, magnitude, distance_ly')
+    .select(campos)
+    .or('curada.eq.true,faixa.in.(lendaria,nomeada)')
     .order('name')
+    .limit(1000)
 
   if (error) throw new ErroApp('consulta_falhou', 'Não foi possível listar as estrelas.', 500, error.message)
 
-  return { estrelas: data ?? [] }
+  const lista = (data ?? []) as Array<Record<string, unknown>>
+  const incluir = typeof corpo.incluir === 'string' ? corpo.incluir : ''
+  if (incluir && !lista.some((e) => e.slug === incluir)) {
+    const { data: atual } = await db.from('stars').select(campos).eq('slug', incluir).maybeSingle()
+    if (atual) lista.unshift(atual as Record<string, unknown>)
+  }
+  return { estrelas: lista }
 }
 
 // ---------------------------------------------------------------------------

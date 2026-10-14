@@ -32,8 +32,9 @@ import { brightStars } from '../data/brightStars.js'
 export function estrelaDaFolha(estrela) {
   return {
     name: estrela.commonName,
-    // O slug liga o mapa do céu da folha (`shared/ceu.js`).
     slug: estrela.slug,
+    // A sigla destaca a constelação da estrela no mapa da folha.
+    sigla: estrela.sigla,
     bayer: estrela.bayer,
     constellation: estrela.constellation,
     constellationLatin: estrela.constellationLatin,
@@ -41,16 +42,23 @@ export function estrelaDaFolha(estrela) {
     ra: estrela.ra.hoursDecimal,
     dec: estrela.dec.decimal,
     magnitude: estrela.magnitude,
-    distanceLy: estrela.distanceLy,
+    distanceLy: estrela.distanceLy || null,
   }
 }
 
-/** O objeto `content` completo, pronto para o `ContentContext`. */
-export function montarConteudo(pagina, estrela) {
+/**
+ * O objeto `content` completo, pronto para o `ContentContext`.
+ *
+ * `ceu` é o módulo `shared/ceu.js` (carregado sob demanda pela página): com
+ * ele, o mapa de QUALQUER estrela do catálogo ganha o céu real em volta e a
+ * figura da constelação. Sem ele (testes antigos), fica o fundo das 90
+ * brilhantes, como antes.
+ */
+export function montarConteudo(pagina, estrela, ceu = null) {
   return {
     ...pagina.conteudo,
     estrela,
-    sky: montarCeu(estrela),
+    sky: montarCeu(estrela, ceu),
     skyFigura: { stars: montarFigura(estrela), lines: [] },
   }
 }
@@ -59,12 +67,11 @@ export function montarConteudo(pagina, estrela) {
  * O céu do MAPA.
  *
  * Em Sagitário é o bule de chá de sempre, com `dedicated` movido para a
- * estrela da página (o anel dourado e a seleção inicial seguem essa marca).
- * Em qualquer outro lugar são as 90 estrelas brilhantes + a dedicada, sem
- * linhas — não temos a figura de outras constelações, e inventar uma seria
- * pior do que não mostrar.
+ * estrela da página. Nas outras 87 constelações, as estrelas reais até
+ * magnitude 5 num raio de 30° e a figura da constelação, com cada traço
+ * ligado às estrelas das pontas (a mais próxima, até 0,5°).
  */
-function montarCeu(estrela) {
+function montarCeu(estrela, ceu) {
   if (estrela.constellationLatin === 'Sagittarius') {
     let dedicada = false
     const stars = sagittariusStars.map((star) => {
@@ -75,8 +82,42 @@ function montarCeu(estrela) {
     if (!dedicada) stars.push(alvoDe(estrela))
     return { stars, lines: constellationLines }
   }
+  if (!ceu) return { stars: [...fundoBrilhante(), alvoDe(estrela)], lines: [] }
 
-  return { stars: [...fundoBrilhante(), alvoDe(estrela)], lines: [] }
+  const alvo = alvoDe(estrela)
+  const G = Math.PI / 180
+  const distancia = (ra1, dec1, ra2, dec2) =>
+    Math.acos(
+      Math.min(1, Math.sin(dec1 * G) * Math.sin(dec2 * G) + Math.cos(dec1 * G) * Math.cos(dec2 * G) * Math.cos((ra1 - ra2) * 15 * G)),
+    ) / G
+
+  const stars = ceu.ESTRELAS.filter(([ra, dec]) => distancia(ra, dec, alvo.ra, alvo.dec) <= 30)
+    // A própria estrela (se for brilhante) já entra como alvo.
+    .filter(([ra, dec]) => distancia(ra, dec, alvo.ra, alvo.dec) > 0.05)
+    .map(([ra, dec, mag], i) => ({ id: `c${i}`, name: '', bayer: '', ra, dec, mag, dedicated: false }))
+  stars.push(alvo)
+
+  const maisProxima = (ra, dec) => {
+    let melhor = null
+    let menor = 0.5
+    for (const s of stars) {
+      const d = distancia(ra, dec, s.ra, s.dec)
+      if (d < menor) {
+        menor = d
+        melhor = s.id
+      }
+    }
+    return melhor
+  }
+  const lines = []
+  for (const traco of ceu.LINHAS[estrela.sigla] ?? []) {
+    for (let i = 0; i < traco.length - 1; i += 1) {
+      const a = maisProxima(...traco[i])
+      const b = maisProxima(...traco[i + 1])
+      if (a && b && a !== b) lines.push([a, b])
+    }
+  }
+  return { stars, lines }
 }
 
 /** A figura ENXUTA da mira celeste. */

@@ -42,7 +42,10 @@ export function StarDetails({ onOpenCertificate }) {
       label: 'Magnitude aparente',
       value: estrela.magnitudeRange ?? String(estrela.magnitude),
     },
-    { label: 'Distância', value: `${estrela.distanceLy} anos-luz (~${estrela.distancePc} pc)` },
+    {
+      label: 'Distância',
+      value: estrela.distanceLy ? `${estrela.distanceLy} anos-luz (~${estrela.distancePc} pc)` : 'não medida com precisão',
+    },
     { label: 'Tipo espectral', value: estrela.spectralType },
     estrela.hip && estrela.hd && estrela.hr
       ? { label: 'Catálogos', value: `${estrela.hip} · ${estrela.hd} · ${estrela.hr}` }

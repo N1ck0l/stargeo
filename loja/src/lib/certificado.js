@@ -12,6 +12,7 @@ export function dadosDaFolha({ estrela, honoreeName, message, fromName, dedicati
     honoreeName,
     starName: estrela.name,
     slug: estrela.slug,
+    sigla: estrela.sigla,
     ra: estrela.ra,
     dec: estrela.dec,
     bayer: estrela.bayer,
@@ -40,7 +41,7 @@ export function nomeDoArquivo({ honoreeName, estrela }, sufixo, extensao) {
       // Letras que não se decompõem em base + acento.
       .replace(/[łŁ]/g, 'l').replace(/[øØ]/g, 'o').replace(/[đĐ]/g, 'd').replace(/ß/g, 'ss').replace(/[æÆ]/g, 'ae')
       .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
+      .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')

@@ -47,9 +47,11 @@ export function PaginaDedicada({ codigo }) {
 
   useEffect(() => {
     let vivo = true
-    buscarPagina(codigo)
-      .then((dados) => {
-        if (vivo) setEstado({ fase: 'pronta', dados })
+    // O céu inteiro (estrelas até mag 5 e as 88 constelações) chega junto,
+    // sob demanda: é dele que sai o mapa de qualquer estrela do catálogo.
+    Promise.all([buscarPagina(codigo), import('../../../shared/ceu.js')])
+      .then(([dados, ceu]) => {
+        if (vivo) setEstado({ fase: 'pronta', dados, ceu })
       })
       .catch((erro) => {
         if (vivo) setEstado({ fase: 'erro', erro })
@@ -62,7 +64,7 @@ export function PaginaDedicada({ codigo }) {
   const conteudo = useMemo(
     () =>
       estado.fase === 'pronta'
-        ? montarConteudo(estado.dados.pagina, estado.dados.estrela)
+        ? montarConteudo(estado.dados.pagina, estado.dados.estrela, estado.ceu)
         : null,
     [estado],
   )

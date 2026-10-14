@@ -33,6 +33,7 @@ function dados(slug, extra = {}) {
   return {
     starName: s.name,
     slug: s.slug,
+    sigla: s.sigla,
     ra: s.ra,
     dec: s.dec,
     bayer: s.bayer,

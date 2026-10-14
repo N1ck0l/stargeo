@@ -21,6 +21,9 @@ export function MiniCeu({ estrela, className = '' }) {
     >
       <circle cx="50" cy="50" r={r} fill="#0b0e27" stroke="#d8b66a" strokeOpacity="0.8" strokeWidth="0.8" />
       <circle cx="50" cy="50" r={r * 0.5} fill="none" stroke="#d8b66a" strokeOpacity="0.18" strokeWidth="0.3" />
+      {ceu.linhasVizinhas.map(([x1, y1, x2, y2], i) => (
+        <line key={`v${i}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#d8b66a" strokeOpacity="0.2" strokeWidth="0.35" />
+      ))}
       {ceu.linhas.map(([x1, y1, x2, y2], i) => (
         <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#d8b66a" strokeOpacity="0.6" strokeWidth="0.5" />
       ))}

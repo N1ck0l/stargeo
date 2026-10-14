@@ -2,7 +2,7 @@ import { STARS } from '../../../shared/stars.js'
 import { Folha } from '../components/Folha.jsx'
 import { SimboloOficial } from '../components/SimboloOficial.jsx'
 import { Link } from '../lib/Link.jsx'
-import { usePreco } from '../lib/preco.js'
+import { reais, useFaixas } from '../lib/catalogo.js'
 import { useState } from 'react'
 import { Reveal } from '../components/Reveal.jsx'
 import { useScroll, useTypewriter } from '../lib/useReveal.js'
@@ -38,17 +38,14 @@ import { useScroll, useTypewriter } from '../lib/useReveal.js'
 /**
  * O produto à venda.
  *
- * `preco` e `eram` (o preço "de", riscado) são só a RESERVA enquanto o banco
- * não responde — o que aparece vem de `products` via `usePreco`, o mesmo
- * valor que o checkout cobra. `inclui` é a lista que a pessoa lê antes de
- * decidir.
+ * O preço não mora aqui: cada estrela tem a faixa dela (brilho e nome), e o
+ * cartão mostra "a partir de" — a faixa mais barata, lida do banco. `inclui` é
+ * a lista que a pessoa lê antes de decidir.
  */
 const PRODUTO = {
   slug: 'certificado-digital',
   nome: 'Certificado Digital',
   resumo: 'O essencial, na hora',
-  preco: 49,
-  eram: 79,
   inclui: [
     'Certificado em PDF de alta resolução',
     'Mapa do céu da constelação',
@@ -60,7 +57,7 @@ const PRODUTO = {
 
 const CONFianca = [
   { titulo: 'Entrega em minutos', texto: 'O certificado sai por e-mail assim que o pagamento cai.' },
-  { titulo: 'Só estrelas visíveis', texto: 'Todas as 12 são visíveis a olho nu do Brasil.' },
+  { titulo: 'Estrela exclusiva', texto: 'Cada estrela vai para uma pessoa só — depois, sai do catálogo.' },
   { titulo: '7 dias para desistir', texto: 'Não gostou? Devolvemos, sem pergunta.' },
   { titulo: 'Suporte de verdade', texto: 'Uma pessoa responde, em português, no mesmo dia.' },
 ]
@@ -74,7 +71,17 @@ const FAQ = [
   {
     pergunta: 'Consigo ver a estrela no Brasil?',
     resposta:
-      'Sim. Só oferecemos estrelas visíveis a olho nu do hemisfério sul, com a melhor época de observação indicada em cada uma. Para quem está no Norte, algumas nem sobem o bastante para aparecer.',
+      'Depende da estrela, e a gente diz antes: cada uma mostra se aparece a olho nu, com binóculo ou só de telescópio, e qual a melhor época. O filtro "Visíveis em todo o Brasil", ligado por padrão na busca, esconde as que nunca sobem acima do nosso horizonte.',
+  },
+  {
+    pergunta: 'Outra pessoa pode ganhar a mesma estrela?',
+    resposta:
+      'Não pela Stellara: cada estrela do catálogo é dedicada uma única vez e, depois disso, sai da lista. Uma nota honesta — nenhuma empresa dá nome oficial a estrelas (isso é da União Astronômica Internacional). O que é exclusivo é o registro dela no nosso catálogo, a página e o certificado.',
+  },
+  {
+    pergunta: 'Por que as estrelas têm preços diferentes?',
+    resposta:
+      'São mais de 118 mil, e não são todas iguais: as mais brilhantes e as que têm nome próprio há séculos (Sirius, Vega, Antares…) são poucas e custam mais. As que só aparecem de telescópio são as mais acessíveis — e guardam um céu que pouca gente já viu.',
   },
   {
     pergunta: 'Como recebo?',
@@ -213,8 +220,8 @@ function Hero() {
           <Reveal delay={640}>
             <dl className="mt-12 grid max-w-lg grid-cols-3 gap-6">
               {[
-                ['12', 'estrelas no catálogo'],
-                ['3–143', 'anos-luz de distância'],
+                ['118 mil', 'estrelas no catálogo'],
+                ['1', 'pessoa por estrela'],
                 ['~1 min', 'para receber por Pix'],
               ].map(([valor, rotulo]) => (
                 <div key={rotulo}>
@@ -398,7 +405,8 @@ function Confianca() {
  */
 function Certificado() {
   const [nome, setNome] = useState('')
-  const { preco, eram } = usePreco(PRODUTO.slug, PRODUTO)
+  const faixas = useFaixas()
+  const aPartirDe = Math.min(...faixas.map((f) => f.precoCentavos))
 
   return (
     <section id="certificados" className="espaco-secao border-t border-white/8">
@@ -432,8 +440,8 @@ function Certificado() {
               </ul>
 
               <div className="mt-7 flex items-baseline gap-3 border-t border-white/10 pt-6">
-                <span className="font-display text-3xl text-ivory">R$ {preco}</span>
-                {eram && <span className="text-sm text-ivory/35 line-through">R$ {eram}</span>}
+                <span className="text-sm text-ivory/50">a partir de</span>
+                <span className="font-display text-3xl text-ivory">{reais(aPartirDe)}</span>
               </div>
               <p className="mt-1 text-xs text-ivory/45">à vista no Pix ou em até 12x no cartão</p>
 
@@ -477,7 +485,8 @@ function Certificado() {
 }
 
 /**
- * Catálogo das 12 estrelas com o painel de detalhe ao lado.
+ * Estrelas em destaque (as 12 curadas, com história escrita à mão) com o
+ * painel de detalhe ao lado, e a porta para o catálogo completo.
  *
  * São botões, não links: a seleção troca o painel sem trocar de rota, e
  * `aria-pressed` diz a quem navega por teclado ou leitor de tela qual está
@@ -492,11 +501,14 @@ function Estrelas() {
     <section id="estrelas" className="espaco-secao border-t border-white/8">
       <div className="pilha">
         <Reveal className="mx-auto max-w-2xl text-center">
-          <h2 className="font-display text-3xl text-ivory sm:text-4xl">As 12 estrelas</h2>
+          <h2 className="font-display text-3xl text-ivory sm:text-4xl">Estrelas em destaque</h2>
           <p className="mt-4 leading-relaxed text-ivory/70">
-            Todas visíveis a olho nu do Brasil, todas com posição conferida com o SIMBAD. Clique
-            para ver a história de cada uma.
+            Algumas das mais famosas do céu do Brasil — e mais de 118 mil outras no catálogo, cada
+            uma exclusiva. Clique para ver a história.
           </p>
+          <Link para="/estrelas" className="btn btn-secundario mt-6">
+            Explorar o catálogo completo
+          </Link>
         </Reveal>
 
         <div className="mt-12 grid gap-8 lg:grid-cols-[1fr_320px]">
@@ -534,7 +546,7 @@ function Estrelas() {
 
             <dl className="mt-6 space-y-2.5 border-t border-white/10 pt-5 text-sm">
               {[
-                ['Distância', `${selecionada.distanceLy} anos-luz`],
+                ['Distância', selecionada.distanceLy ? `${selecionada.distanceLy} anos-luz` : 'não medida'],
                 ['Tipo', selecionada.spectralType],
                 ['Melhor época', selecionada.bestMonth],
               ].map(([rotulo, valor]) => (
@@ -566,7 +578,7 @@ function ComoFunciona() {
   const passos = [
     {
       titulo: 'Escolha a estrela',
-      texto: 'Navegue pelas 12 e veja a história de cada uma. Todas servem.',
+      texto: 'Busque entre 118 mil estrelas por nome ou constelação — ou deixe o céu escolher por você.',
     },
     {
       titulo: 'Escreva o nome',
