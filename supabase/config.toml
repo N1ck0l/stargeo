@@ -48,12 +48,30 @@ file_size_limit = "50MiB"
 # ---------------------------------------------------------------------------
 # Edge Functions
 #
-# As quatro funções abaixo têm seção para FIXAR o `verify_jwt` de cada uma.
-# `get-page`, `page-auth`, `page-update` e `admin-api` ficaram de fora: no
-# deploy elas levam `--no-verify-jwt` (ver `LOJA.md`), e a proteção de cada
-# uma está no próprio código — código da página, token de edição e lista
-# branca de `admins`.
+# TODAS as funções têm seção aqui, para FIXAR o `verify_jwt` de cada uma: o
+# padrão do CLI é `true`, e um deploy que esquecesse o `--no-verify-jwt` faria
+# o gateway barrar com 401 quem chama sem JWT — o navegador da loja, o login de
+# edição, o Mercado Pago. Com a seção, `supabase functions deploy` acerta
+# sozinho, com ou sem flag.
 # ---------------------------------------------------------------------------
+[functions.get-page]
+# Página pública: quem abre `/p/CODE` não tem conta. Só devolve `published`.
+verify_jwt = false
+
+[functions.page-auth]
+# É o LOGIN da edição, então não pode exigir um. A proteção é o par código +
+# e-mail (ou o link por e-mail), com limite de tentativas.
+verify_jwt = false
+
+[functions.page-update]
+# Autentica pelo token de edição próprio (`page_edit_tokens`), não por JWT.
+verify_jwt = false
+
+[functions.admin-api]
+# Recebe o JWT do Supabase Auth do painel, mas confere ela mesma
+# (`auth.getUser` + linha em `admins`) — o gateway não sabe da lista branca.
+verify_jwt = false
+
 [functions.create-checkout]
 # Chamada pelo navegador durante o checkout. Precisa do JWT desligado porque
 # o visitante não está autenticado — é o preço no servidor que protege a

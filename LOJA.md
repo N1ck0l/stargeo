@@ -99,7 +99,19 @@ npm install
 cp .env.example .env
 ```
 
-Preencha o `.env`. As variáveis sem prefixo `VITE_` vão para as Edge Functions:
+Preencha o `.env`. Para publicar banco e funções de uma vez, com
+`SUPABASE_ACCESS_TOKEN` no `.env`:
+
+```bash
+npm run publicar:supabase   # migrations pendentes + todas as Edge Functions
+```
+
+Rode isso ANTES do push quando a mudança mexer nos dois lados: o push publica
+só a loja, e a loja nova pode depender da função ou da coluna nova.
+
+O mesmo passo à mão, função por função (o `verify_jwt` de cada uma está fixado
+no `supabase/config.toml`). As variáveis sem prefixo `VITE_` vão para as Edge
+Functions:
 
 ```bash
 supabase functions deploy create-checkout --no-verify-jwt
