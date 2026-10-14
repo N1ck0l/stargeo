@@ -1,6 +1,6 @@
 import { useId } from 'react'
 import { desenharCertificado, MM_POR_PT } from '../../../shared/certificado/desenho.js'
-import { formatDec, formatRa } from '../../../shared/stars.js'
+import { dadosDaFolha } from '../lib/certificado.js'
 
 /**
  * Prévia do certificado — a MESMA folha do PDF, desenhada em SVG.
@@ -47,25 +47,7 @@ export function CertificadoPreview({
   const id = useId().replace(/:/g, '')
 
   const folha = desenharCertificado(
-    {
-      honoreeName,
-      starName: estrela.name,
-      slug: estrela.slug,
-      ra: estrela.ra,
-      dec: estrela.dec,
-      bayer: estrela.bayer,
-      constellation: estrela.constellation,
-      constellationLatin: estrela.constellationLatin,
-      spectralType: estrela.spectralType,
-      raFormatted: formatRa(estrela.ra),
-      decFormatted: formatDec(estrela.dec),
-      magnitude: estrela.magnitude,
-      distanceLy: estrela.distanceLy,
-      code,
-      dedicationDate,
-      fromName,
-      message,
-    },
+    dadosDaFolha({ estrela, honoreeName, message, fromName, dedicationDate, code }),
     { claro: light },
   )
 

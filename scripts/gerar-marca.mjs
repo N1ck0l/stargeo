@@ -290,6 +290,11 @@ function ogImage() {
 }
 writeFileSync(join(publico, 'og-image.png'), png(ogImage(), 1200))
 
+// Logo para e-mail: PNG (cliente de e-mail não mostra SVG), horizontal,
+// dourada sobre transparente, no dobro do tamanho em que aparece (240 px).
+mkdirSync(join(publico, 'email'), { recursive: true })
+writeFileSync(join(publico, 'email', 'stellara-horizontal.png'), png(arquivoHorizontal(null, 'email'), 480))
+
 // Nome e slogan em curvas para o certificado (`shared/certificado/`): a
 // folha usa a marca IDÊNTICA à oficial, sem depender de fonte nem de motor
 // de texto. Altura das maiúsculas = 100 unidades; quem desenha escala.

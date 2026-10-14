@@ -74,6 +74,11 @@ PDF = {
 metricas = {}
 for chave, (origem, peso, destino) in PDF.items():
     fonte = estatica(origem, peso)
+    # TTF puro para o navegador ("Baixar PDF" na página dedicada): o pdf-lib
+    # embute TTF direto, sem o descompressor de woff2 (WASM) no bundle. O
+    # servidor continua com o woff2, menor para baixar.
+    fonte.flavor = None
+    fonte.save(os.path.join(SAIDA_PDF, destino.replace('.woff2', '.ttf')))
     fonte.flavor = 'woff2'
     fonte.save(os.path.join(SAIDA_PDF, destino))
 

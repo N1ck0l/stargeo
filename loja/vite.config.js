@@ -89,6 +89,20 @@ export default defineConfig({
   root: raiz,
   base: process.env.BASE_URL || '/',
 
+  /*
+   * `shared/pdf.js` é escrito para o Deno da Edge Function (imports `npm:`).
+   * A loja também o usa — no "Baixar PDF" da página dedicada —, então os
+   * mesmos nomes apontam para os pacotes do node_modules. O `wawoff2` vira um
+   * módulo vazio: no navegador as fontes vão em TTF, sem descompressão.
+   */
+  resolve: {
+    alias: {
+      'npm:pdf-lib': 'pdf-lib',
+      'npm:@pdf-lib/fontkit': '@pdf-lib/fontkit',
+      'npm:wawoff2': resolve(loja, 'src/lib/semWawoff2.js'),
+    },
+  },
+
   // Com `root` na raiz, o padrão seria `public/` da raiz — os assets da loja
   // ficam em `loja/public`.
   publicDir: resolve(loja, 'public'),

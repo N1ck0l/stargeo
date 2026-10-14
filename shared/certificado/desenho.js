@@ -21,7 +21,7 @@
 import { METRICAS } from './metricas.js'
 import { COR, arco, caixaSimbolo, contornoEstrela, facetas, naOrbita, ORBITA, PONTO } from '../marca.js'
 import { NOME_EM_CURVAS, SLOGAN_EM_CURVAS } from '../marcaTexto.js'
-import { CEU, RAIO_CEU_GRAUS } from '../ceu.js'
+import { projetarCeu, raioDaEstrela } from './mapa.js'
 
 /** A4 retrato, em milímetros. */
 export const PAGINA = { largura: 210, altura: 297 }
@@ -415,27 +415,6 @@ function dadosAstronomicos(texto, dados, p) {
  * dados (Hipparcos, via d3-celestial) estão em `shared/ceu.js`.
  */
 function mapaDoCeu(add, texto, dados, p, { cx, cy, r }) {
-  const ceu = dados.slug ? CEU[dados.slug] : null
-  const ra0 = Number(dados.ra)
-  const dec0 = Number(dados.dec)
-  const g = Math.PI / 180
-  const escala = r / Math.tan(RAIO_CEU_GRAUS * g)
-
-  const projetar = (ra, dec) => {
-    let dRa = (ra - ra0) * 15
-    if (dRa > 180) dRa -= 360
-    if (dRa < -180) dRa += 360
-    const a = dRa * g
-    const d = dec * g
-    const d0 = dec0 * g
-    const cosc = Math.sin(d0) * Math.sin(d) + Math.cos(d0) * Math.cos(d) * Math.cos(a)
-    if (cosc <= 0.05) return null
-    const xi = (Math.cos(d) * Math.sin(a)) / cosc
-    const eta = (Math.cos(d0) * Math.sin(d) - Math.sin(d0) * Math.cos(d) * Math.cos(a)) / cosc
-    return [cx - xi * escala, cy - eta * escala]
-  }
-  const dentro = ([x, y]) => (x - cx) ** 2 + (y - cy) ** 2 <= r * r
-
   // Retícula: dois anéis e a cruz, bem apagados.
   for (const f of [0.5, 0.82]) {
     add({ tipo: 'circulo', cx, cy, r: r * f, traco: p.moldura, espessura: 0.12, opacidade: 0.22 })
@@ -443,24 +422,13 @@ function mapaDoCeu(add, texto, dados, p, { cx, cy, r }) {
   add({ tipo: 'linha', x1: cx - r, y1: cy, x2: cx + r, y2: cy, cor: p.moldura, espessura: 0.1, opacidade: 0.18 })
   add({ tipo: 'linha', x1: cx, y1: cy - r, x2: cx, y2: cy + r, cor: p.moldura, espessura: 0.1, opacidade: 0.18 })
 
-  if (ceu && Number.isFinite(ra0) && Number.isFinite(dec0)) {
-    // Linhas da constelação, cortadas na borda do círculo.
-    for (const traco of ceu.linhas) {
-      for (let i = 0; i < traco.length - 1; i += 1) {
-        const a = projetar(...traco[i])
-        const b = projetar(...traco[i + 1])
-        if (!a || !b) continue
-        const seg = recortar(a, b, cx, cy, r)
-        if (seg) add({ tipo: 'linha', x1: seg[0][0], y1: seg[0][1], x2: seg[1][0], y2: seg[1][1], cor: p.destaque, espessura: 0.22, opacidade: 0.6 })
-      }
-    }
-    // Estrelas, do tamanho do brilho.
-    for (const [ra, dec, mag] of ceu.estrelas) {
-      const ponto = projetar(ra, dec)
-      if (!ponto || !dentro(ponto)) continue
-      const raio = Math.min(1.05, Math.max(0.16, 0.95 - mag * 0.16))
-      add({ tipo: 'circulo', cx: ponto[0], cy: ponto[1], r: raio, preenchimento: p.estrelaCeu, opacidade: mag < 3 ? 0.95 : 0.7 })
-    }
+  // Linhas da constelação e estrelas, do tamanho do brilho.
+  const ceu = projetarCeu(dados, { cx, cy, r })
+  for (const [x1, y1, x2, y2] of ceu.linhas) {
+    add({ tipo: 'linha', x1, y1, x2, y2, cor: p.destaque, espessura: 0.22, opacidade: 0.6 })
+  }
+  for (const { x, y, mag } of ceu.estrelas) {
+    add({ tipo: 'circulo', cx: x, cy: y, r: raioDaEstrela(mag), preenchimento: p.estrelaCeu, opacidade: mag < 3 ? 0.95 : 0.7 })
   }
 
   // A estrela dedicada: a estrela da marca, com um anel.
@@ -474,27 +442,6 @@ function mapaDoCeu(add, texto, dados, p, { cx, cy, r }) {
   texto(`${String(dados.constellationLatin ?? '').toUpperCase()} · J2000`, {
     x: cx, y: cy + r + 5, fonte: 'sansMedio', pt: 5, cor: p.rotulo, espaco: 1, opacidade: 0.9,
   })
-}
-
-/** Segmento AB recortado ao círculo (centro c, raio r); null se ficar fora. */
-function recortar([ax, ay], [bx, by], cx, cy, r) {
-  const dx = bx - ax
-  const dy = by - ay
-  const fx = ax - cx
-  const fy = ay - cy
-  const A = dx * dx + dy * dy
-  const B = 2 * (fx * dx + fy * dy)
-  const C = fx * fx + fy * fy - r * r
-  const disc = B * B - 4 * A * C
-  if (A === 0 || disc < 0) return null
-  const raiz = Math.sqrt(disc)
-  const t1 = Math.max(0, (-B - raiz) / (2 * A))
-  const t2 = Math.min(1, (-B + raiz) / (2 * A))
-  if (t1 >= t2) return null
-  return [
-    [ax + dx * t1, ay + dy * t1],
-    [ax + dx * t2, ay + dy * t2],
-  ]
 }
 
 /** Registro e data à esquerda, assinatura à direita, aviso no centro. */

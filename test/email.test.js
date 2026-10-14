@@ -41,8 +41,8 @@ let paginaPublicada = null
 const db = {
   storage: {
     from: () => ({
-      createSignedUrl: async () => ({
-        data: { signedUrl: 'https://exemplo.test/certificado.pdf' },
+      createSignedUrl: async (caminho) => ({
+        data: { signedUrl: `https://exemplo.test/${caminho}` },
         error: null,
       }),
     }),
@@ -110,10 +110,28 @@ describe('enviarEmail', () => {
     expect(enviado.corpo.subject).toContain('Geovanna')
   })
 
-  it('usa o link assinado como destino do botão', async () => {
-    await enviarEmail(db, PEDIDO, ESTRELA, 'caminho/certificado.pdf')
+  it('manda as DUAS versões do PDF, venha o caminho de qual vier', async () => {
+    // O webhook gera a escura e depois a clara, e guardava o caminho da
+    // ÚLTIMA: o e-mail só tinha a clara. A original nunca chegava.
+    await enviarEmail(db, PEDIDO, ESTRELA, 'pedido-1/certificado-claro.pdf')
 
-    expect(enviado.corpo.html).toContain('https://exemplo.test/certificado.pdf')
+    expect(enviado.corpo.html).toContain('https://exemplo.test/pedido-1/certificado.pdf')
+    expect(enviado.corpo.html).toContain('https://exemplo.test/pedido-1/certificado-claro.pdf')
+  })
+
+  it('traz a logo oficial em PNG, com texto alternativo', async () => {
+    await enviarEmail(db, PEDIDO, ESTRELA, 'pedido-1/certificado.pdf')
+
+    expect(enviado.corpo.html).toMatch(/<img src="[^"]*\/email\/stellara-horizontal\.png"/)
+    expect(enviado.corpo.html).toContain('alt="STELLARA')
+  })
+
+  it('a miniatura repete a folha: estrela, nome e coordenadas', async () => {
+    await enviarEmail(db, PEDIDO, { ...ESTRELA, bayer: 'ε Sagittarii', ra_hours: 18.40286622, dec_degrees: -34.38461647 }, 'p/certificado.pdf')
+
+    expect(enviado.corpo.html).toContain('CERTIFICADO DE DEDICAÇÃO')
+    expect(enviado.corpo.html).toContain('ε Sagittarii')
+    expect(enviado.corpo.html).toContain('18h 24m 10.32s')
   })
 
   it('escapa HTML do nome, que é texto do cliente', async () => {

@@ -138,9 +138,9 @@ export default function Rastrear() {
  * conhece os status do Mercado Pago, e a tela não deve repetir a lista.
  */
 function Resultado({ pedido }) {
-  // "Pendente" aqui significa "ainda não dá para garantir a entrega" —
-  // qualquer status que não seja aprovado/análise pinta de âmbar.
-  const pendente = pedido.status !== 'approved' && pedido.status !== 'in_process'
+  // "Pendente" aqui significa "ainda não dá para garantir a entrega" — só o
+  // aprovado pinta de verde. `in_process` (Pix/cartão em análise) é espera.
+  const pendente = pedido.status !== 'approved'
 
   return (
     <section aria-live="polite" className="cartao animate-fade-in mt-8">
@@ -191,7 +191,7 @@ function Resultado({ pedido }) {
       {pedido.pendencia && (
         <p className="mt-5 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
           O pagamento foi recebido e já estamos cuidando da entrega. Se o e-mail não chegar em
-          meia hora, fale com a gente quoting <strong>{pedido.code}</strong>.
+          meia hora, fale com a gente informando o código <strong>{pedido.code}</strong>.
         </p>
       )}
 
@@ -202,7 +202,15 @@ function Resultado({ pedido }) {
         </p>
       )}
 
-      <Link para="/" className="btn btn-secundario mt-6 w-full">
+      {/* A página dedicada é onde o certificado está — e onde dá para baixar
+          o PDF na hora, mesmo que o e-mail atrase. */}
+      {pedido.pagina && (
+        <Link para={`/p/${pedido.pagina}`} className="btn btn-primary mt-6 w-full">
+          Abrir a página da estrela e baixar o PDF
+        </Link>
+      )}
+
+      <Link para="/" className={`btn btn-secundario w-full ${pedido.pagina ? 'mt-3' : 'mt-6'}`}>
         Comprar outro certificado
       </Link>
     </section>

@@ -44,6 +44,13 @@ uma lista de itens em milímetros — e dois tradutores a desenham: SVG na loja
 As duas medem o texto com a mesma tabela de larguras, então a quebra de linha
 é idêntica. Sai em duas versões: escura (original) e clara (papel).
 
+**Entrega sem depender do e-mail.** A página dedicada tem "Baixar PDF": o
+mesmo `shared/pdf.js`, rodando no navegador (fontes em TTF, pdf-lib carregado
+só no clique). O "obrigado" consulta o pedido até a página existir e leva até
+ela; o rastreio (`track-order` devolve `pagina`) também. O e-mail de entrega
+traz a logo (PNG em `loja/public/email/`), uma miniatura da folha em HTML, a
+página e as DUAS versões do PDF — antes ia só a clara, por acidente.
+
 O PDF embute instâncias ESTÁTICAS das fontes (`loja/public/fonts/pdf/`): as do
 site são variáveis, e o pdf-lib usaria a instância padrão — a Thin, no caso da
 Montserrat. Para refazer fontes e larguras: `python scripts/gerar-fontes.py`
@@ -200,7 +207,7 @@ incluindo bypass por acento e caixa), os componentes da página dedicada e da
 loja (prévia do certificado, validação do configurador, rastreio, páginas
 dedicadas, edição e o painel), o webhook (entrega única com eventos repetidos
 e simultâneos, valor divergente, falha de gravação, e-mail falho), a
-autorização do reenvio e a prévia social de `/p/CODE`. São **91 testes no
+autorização do reenvio e a prévia social de `/p/CODE`. São **108 testes no
 vitest**, mais as três suítes de núcleo.
 
 Além disso, o fluxo completo da plataforma é verificado E2E no navegador

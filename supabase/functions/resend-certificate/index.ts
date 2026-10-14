@@ -82,7 +82,7 @@ export const reenvio = comHandler(async (request) => {
 
   const { data: estrela } = await db
     .from('stars')
-    .select('name, constellation')
+    .select('name, constellation, bayer, ra_hours, dec_degrees')
     .eq('slug', pedido.star_slug)
     .maybeSingle()
 

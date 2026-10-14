@@ -132,6 +132,16 @@ describe('CertificadoPreview', () => {
 
 // === Configurador do produto ===
 describe('configurador', () => {
+  it('mostra o céu real da estrela escolhida, o mesmo que vai na folha', async () => {
+    window.history.pushState(null, '', '/produto/certificado-digital?estrela=antares')
+    render(<Produto slug="certificado-digital" />)
+    // O mini mapa carrega sob demanda; a legenda acompanha a constelação.
+    expect(await screen.findByText(/O céu de Escorpião, como sai na folha/)).toBeTruthy()
+    const mapa = await screen.findByRole('img', { name: /Mapa do céu em volta de Antares/ })
+    expect(mapa.querySelectorAll('circle').length).toBeGreaterThan(20)
+    window.history.pushState(null, '', '/')
+  })
+
   // --- Moderação: telefone na mensagem é vetor de golpe ---
   it('avisa sobre telefone, que é vetor de golpe', async () => {
     render(<Produto slug="certificado-digital" />)

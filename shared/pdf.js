@@ -43,14 +43,24 @@ const fontCache = new Map()
  */
 let fila = Promise.resolve()
 
-/** Baixa e converte uma fonte woff2 em ttf, uma de cada vez. */
+/**
+ * Baixa uma fonte e devolve o TTF, uma de cada vez.
+ *
+ * `.ttf` vem pronto (é o caminho do navegador, no "Baixar PDF" da página
+ * dedicada); `.woff2` é descomprimido (o caminho do servidor, arquivo menor).
+ */
 function carregarTtf(url) {
   if (fontCache.has(url)) return Promise.resolve(fontCache.get(url))
 
   const trabalho = fila.then(async () => {
     if (fontCache.has(url)) return fontCache.get(url)
     const resposta = await fetch(url)
+    if (!resposta.ok) throw new Error(`Fonte não encontrada: ${url} (${resposta.status})`)
     const bruto = new Uint8Array(await resposta.arrayBuffer())
+    if (url.endsWith('.ttf')) {
+      fontCache.set(url, bruto)
+      return bruto
+    }
     const { decompress } = await import('npm:wawoff2')
     const ttf = Uint8Array.from(await decompress(bruto))
     fontCache.set(url, ttf)
@@ -77,7 +87,8 @@ function misturar(a, b, t) {
  * Gera o PDF.
  *
  * @param {import('./certificado/desenho.js').DadosCertificado} data
- * @param {{ light?: boolean, fontBaseUrl?: string }} [opts]
+ * @param {{ light?: boolean, fontBaseUrl?: string, formatoFonte?: 'woff2' | 'ttf' }} [opts]
+ *   `formatoFonte: 'ttf'` é o do navegador (sem o descompressor WASM).
  * @returns {Promise<Uint8Array>}
  */
 export async function buildCertificatePdf(data, opts = {}) {
@@ -86,7 +97,10 @@ export async function buildCertificatePdf(data, opts = {}) {
   pdf.registerFontkit(fontkit)
 
   const chaves = Object.keys(METRICAS)
-  const ttfs = await Promise.all(chaves.map((k) => carregarTtf(`${base}/fonts/pdf/${METRICAS[k].arquivo}`)))
+  const extensao = opts.formatoFonte === 'ttf' ? '.ttf' : '.woff2'
+  const ttfs = await Promise.all(
+    chaves.map((k) => carregarTtf(`${base}/fonts/pdf/${METRICAS[k].arquivo.replace(/\.woff2$/, extensao)}`)),
+  )
   const fontes = {}
   for (let i = 0; i < chaves.length; i += 1) {
     fontes[chaves[i]] = await pdf.embedFont(ttfs[i], { subset: true })

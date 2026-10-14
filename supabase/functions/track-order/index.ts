@@ -30,6 +30,7 @@ import { limitar } from '../_shared/limite.ts'
  * rastreamento em um dossiê de quem comprou o quê.
  */
 const CAMPOS = [
+  'id',
   'code',
   'status',
   'product_name',
@@ -49,6 +50,7 @@ const CAMPOS = [
  * `supabase gen types typescript`, o cast de baixo sai.
  */
 interface PedidoRastreio {
+  id: string
   code: string
   status: string
   product_name: string
@@ -115,6 +117,16 @@ Deno.serve(
       .eq('slug', pedido.star_slug)
       .maybeSingle()
 
+    // A página dedicada nasce no pagamento (webhook). Com ela publicada, quem
+    // rastreia ganha o atalho para a página — onde o certificado também pode
+    // ser baixado em PDF, sem depender do e-mail.
+    const { data: pagina } = await db
+      .from('pages')
+      .select('code')
+      .eq('order_id', pedido.id)
+      .eq('status', 'published')
+      .maybeSingle()
+
     return json(request, {
       pedido: {
         code: pedido.code,
@@ -129,6 +141,7 @@ Deno.serve(
         criadoEm: pedido.created_at,
         entregueEm: pedido.delivered_at,
         pendencia: pedido.email_error ?? null,
+        pagina: pagina?.code ?? null,
       },
     })
   }, 'track-order'),

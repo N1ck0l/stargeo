@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Folha } from '../components/Folha.jsx'
+import { baixarPdf, nomeDoArquivo } from '../lib/certificado.js'
 import { useContent } from '../lib/contentContext.js'
 import { estrelaDaFolha } from '../lib/conteudoPagina.js'
 
@@ -23,11 +24,53 @@ export function ModalCertificado({ open, onClose }) {
   // Folha clara/escura: a MESMA opção `light` da prévia e do PDF — muda a
   // papelada, nunca o conteúdo.
   const [claro, setClaro] = useState(false)
-  const [baixando, setBaixando] = useState(false)
+  // Qual download está em andamento ('pdf' | 'png'), e a falha, se houver.
+  const [baixando, setBaixando] = useState(null)
+  const [falha, setFalha] = useState('')
 
   // Com o modal fechado o componente não renderiza nada; `open` fica aqui
   // para o chamador controlar montagem sem perder o contrato do diálogo.
   if (!open) return null
+
+  const folha = {
+    estrela: estrelaDaFolha(content.estrela),
+    honoreeName: content.nome,
+    message: content.mensagemPessoal,
+    fromName: content.assinatura,
+    dedicationDate: content.data,
+    code: content.registro,
+  }
+
+  /**
+   * PDF: o mesmo gerador do e-mail, rodando aqui (`baixarPdf`). PNG: a
+   * captura da folha na tela, para mandar por mensagem. Falha vira aviso —
+   * antes ela era engolida e o botão só voltava ao normal, sem explicação.
+   */
+  async function baixar(tipo) {
+    if (baixando) return
+    setBaixando(tipo)
+    setFalha('')
+    try {
+      if (tipo === 'pdf') {
+        await baixarPdf(folha, { claro })
+      } else {
+        if (!folhaRef.current) return
+        const { toPng } = await import('html-to-image')
+        // pixelRatio 2: o dobro da resolução da folha na tela.
+        const url = await toPng(folhaRef.current, { pixelRatio: 2 })
+        const link = document.createElement('a')
+        link.href = url
+        link.download = nomeDoArquivo(folha, claro ? 'claro' : '', 'png')
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+      }
+    } catch {
+      setFalha('Não foi possível gerar o arquivo agora. Confira a conexão e tente de novo.')
+    } finally {
+      setBaixando(null)
+    }
+  }
 
   return (
     <DiarioDialog onClose={onClose} painelRef={painelRef}>
@@ -67,54 +110,40 @@ export function ModalCertificado({ open, onClose }) {
       </div>
 
       <div className="shimmer-border mx-auto mt-4 max-w-[30rem] overflow-hidden rounded-2xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
-          <div ref={folhaRef}>
-            <Folha
-              estrela={estrelaDaFolha(content.estrela)}
-              honoreeName={content.nome}
-              message={content.mensagemPessoal}
-              fromName={content.assinatura}
-              dedicationDate={content.data}
-              code={content.registro}
-              light={claro}
-            />
-          </div>
+        <div ref={folhaRef}>
+          <Folha {...folha} light={claro} />
+        </div>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-md text-xs leading-relaxed text-ivory/50">
-          Mesmas medidas e fontes do PDF enviado por e-mail. Para guardar em
-          alta, baixe a imagem — ou use o PDF do e-mail, que é o documento.
+        <p className="max-w-sm text-xs leading-relaxed text-ivory/50">
+          O PDF é o documento: A4, pronto para imprimir e emoldurar
+          {claro ? ' (versão clara, que gasta pouca tinta).' : '. A versão clara gasta menos tinta.'}
         </p>
-        <button
-          type="button"
-          disabled={baixando}
-          onClick={async () => {
-            if (!folhaRef.current || baixando) return
-            setBaixando(true)
-            try {
-              const { toPng } = await import('html-to-image')
-              // pixelRatio 2: captura em dobro da resolução da folha na tela.
-              // O PDF continua sendo o documento — isto é o jeito rápido de
-              // guardar uma cópia sem esperar o e-mail.
-              const url = await toPng(folhaRef.current, { pixelRatio: 2 })
-              const link = document.createElement('a')
-              link.href = url
-              link.download = `certificado-${content.registro}.png`
-              document.body.appendChild(link)
-              link.click()
-              link.remove()
-            } catch {
-              // Sem downloads no aparelho o certificado continua no e-mail;
-              // não é motivo para quebrar a tela.
-            } finally {
-              setBaixando(false)
-            }
-          }}
-          className="rounded-full bg-gold px-5 py-2.5 text-sm font-medium text-night transition hover:bg-gold-soft disabled:opacity-60"
-        >
-          {baixando ? 'Preparando…' : 'Baixar imagem (PNG)'}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={baixando !== null}
+            onClick={() => baixar('png')}
+            className="rounded-full border border-white/25 px-4 py-2.5 text-sm text-ivory transition hover:border-gold hover:text-gold disabled:opacity-60"
+          >
+            {baixando === 'png' ? 'Preparando…' : 'Imagem (PNG)'}
+          </button>
+          <button
+            type="button"
+            disabled={baixando !== null}
+            onClick={() => baixar('pdf')}
+            className="rounded-full bg-gold px-5 py-2.5 text-sm font-medium text-night transition hover:bg-gold-soft disabled:opacity-60"
+          >
+            {baixando === 'pdf' ? 'Gerando o PDF…' : 'Baixar PDF'}
+          </button>
+        </div>
       </div>
+      {falha && (
+        <p role="alert" className="mt-3 text-right text-sm text-red-200">
+          {falha}
+        </p>
+      )}
     </DiarioDialog>
   )
 }

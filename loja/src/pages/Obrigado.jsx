@@ -30,30 +30,36 @@ import { Link } from '../lib/Link.jsx'
  */
 export default function Obrigado() {
   const [estado, setEstado] = useState('consultando')
+  // Código da página dedicada, quando o webhook já a criou.
+  const [pagina, setPagina] = useState(null)
 
   useEffect(() => {
     let cancelado = false
 
-    // O Mercado Pago manda o status no fragmento da URL ou em query, conforme
-    // a versão. Os dois são lidos; nenhum deles é confiável o bastante para
-    // decidir o que mostrar — a decisão vem do servidor.
-    const params = new URLSearchParams(window.location.search)
-    const status = params.get('collection_status') ?? params.get('status') ?? ''
-
+    /*
+     * A decisão vem do servidor, nunca do status que o Mercado Pago põe na
+     * URL. E o webhook pode ainda não ter rodado: o Pix cai em segundos, o
+     * cartão leva um instante, e a página dedicada nasce logo depois do
+     * pagamento. Consulta a cada 4 s por até um minuto, parando na resposta
+     * final — pago COM a página pronta, ou recusado.
+     */
+    let tentativas = 0
+    let timer
     const consultar = async () => {
+      tentativas += 1
       try {
         const { pedido } = await rastrearUltimo()
         if (cancelado) return
-        setEstado(descrever(pedido, status))
+        const novo = descrever(pedido)
+        setEstado(novo)
+        setPagina(pedido.pagina ?? null)
+        const final = novo === 'recusado' || (novo === 'aprovado' && pedido.pagina)
+        if (!final && tentativas < 15) timer = setTimeout(consultar, 4000)
       } catch {
         if (!cancelado) setEstado('sem-dados')
       }
     }
-
-    // O webhook pode ainda não ter rodado: o Pix cai em segundos, mas o
-    // cartão leva um instante. Duas tentativas com espera resolvem a maioria.
     consultar()
-    const timer = setTimeout(consultar, 4000)
 
     return () => {
       cancelado = true
@@ -70,7 +76,7 @@ export default function Obrigado() {
       */}
       <div key={estado} className="animate-fade-in pilha max-w-xl">
         {estado === 'consultando' && <Consultando />}
-        {estado === 'aprovado' && <Aprovado />}
+        {estado === 'aprovado' && <Aprovado pagina={pagina} />}
         {estado === 'processando' && <Processando />}
         {estado === 'recusado' && <Recusado />}
         {estado === 'sem-dados' && <SemDados />}
@@ -111,27 +117,20 @@ async function rastrearUltimo() {
 }
 
 /**
- * Traduz o pedido (mais o status que a URL trouxe, no máximo) em um dos
- * cinco estados da tela.
+ * Traduz o pedido em um dos estados da tela.
  *
- * A ordem das verificações importa: `approved`/`in_process` vêm primeiro,
- * porque "está pago" é a resposta que a pessoa quer ouvir e não pode ser
- * sobrescrita por mais nada.
+ * Só `approved` é "aprovado". `in_process` é Pix ou cartão AINDA em análise —
+ * antes ele aparecia como aprovado, e a pessoa ficava esperando um e-mail que
+ * só sai depois da confirmação. `pending` (webhook atrasado, boleto que não
+ * compensou) também é espera normal, não erro.
  *
- * O `statusUrl` é lido, mas não decide sozinho: com o pedido ainda `pending` no
- * servidor, tanto o webhook que atrasou quanto o boleto que ainda não
- * compensou caem em "processando" — é espera normal, não erro. Por isso as
- * duas saídas do fim são idênticas; o que não pode acontecer é o pedido
- * cair em "recusado" por causa de um parâmetro que o próprio navegador
- * manda e ninguém autentica.
+ * O status que o Mercado Pago põe na URL não entra: ele chega antes do
+ * webhook e é um parâmetro que o próprio navegador manda — não pode jogar
+ * ninguém em "recusado" nem em "aprovado".
  */
-function descrever(pedido, statusUrl) {
-  if (pedido.status === 'approved' || pedido.status === 'in_process') return 'aprovado'
+function descrever(pedido) {
+  if (pedido.status === 'approved') return 'aprovado'
   if (pedido.status === 'rejected' || pedido.status === 'cancelled') return 'recusado'
-
-  // `pending` com a URL dizendo que o gateway aprovou significa que o
-  // webhook ainda não chegou. É a espera normal, não um erro.
-  if (statusUrl === 'approved') return 'processando'
   return 'processando'
 }
 
@@ -149,32 +148,48 @@ function Consultando() {
   )
 }
 
-/** Dinheiro aceito. A promessa é de prazo ("minutos"), não de instante — é o que o webhook de geração cumpre. */
-function Aprovado() {
+/**
+ * Pago. Com a página dedicada pronta, ela é o caminho principal: lá está a
+ * folha, o PDF para baixar na hora e o link para mandar a quem recebe — sem
+ * depender do e-mail chegar.
+ */
+function Aprovado({ pagina }) {
   return (
     <div className="text-center">
       <Icone tipo="check" />
       <h1 className="font-display mt-6 text-3xl text-ivory">Pagamento aprovado</h1>
-      <p className="mt-4 leading-relaxed text-ivory/70">
-        Já estamos montando o seu certificado. Ele chega no seu e-mail em instantes — normalmente
-        menos de um minuto com Pix.
-      </p>
-      <p className="mt-4 text-sm text-ivory/50">
-        Não chegou? Verifique a caixa de spam e confira se o e-mail digitado é o mesmo da compra.
-      </p>
+      {pagina ? (
+        <p className="mt-4 leading-relaxed text-ivory/70">
+          A página da sua estrela está pronta. Lá você vê o certificado, baixa o PDF agora mesmo e
+          pega o link para enviar a quem vai receber. Uma cópia também segue para o seu e-mail.
+        </p>
+      ) : (
+        <p className="mt-4 leading-relaxed text-ivory/70" aria-live="polite">
+          Estamos montando o certificado e a página da sua estrela — leva poucos segundos. Esta
+          tela atualiza sozinha.
+        </p>
+      )}
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-        <Link para="/rastrear" className="btn btn-primary">
-          Rastrear meu pedido
-        </Link>
+        {pagina ? (
+          <Link para={`/p/${pagina}`} className="btn btn-primary">
+            Abrir a página da estrela
+          </Link>
+        ) : (
+          <Link para="/rastrear" className="btn btn-primary">
+            Rastrear meu pedido
+          </Link>
+        )}
         <Link para="/" className="btn btn-secundario">
           Voltar à loja
         </Link>
       </div>
+      <p className="mt-6 text-sm text-ivory/50">
+        O e-mail não chegou? Veja a caixa de spam e confira se o endereço é o mesmo da compra.
+      </p>
     </div>
   )
 }
 
-/** Ainda `pending` no servidor. Só aparece para quem acabou de pagar, e por isso o texto é de espera, não de problema. */
 function Processando() {
   return (
     <div className="text-center">

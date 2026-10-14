@@ -121,21 +121,75 @@ export async function gerarEGuardar(
   return { caminho, hash: hashHex, bytes: bytes.byteLength }
 }
 
+/** Paleta do e-mail — a mesma da marca (`shared/marca.js`). */
+const EMAIL = {
+  noite: '#090b20',
+  folha: '#11153a',
+  dourado: '#d8b66a',
+  douradoSuave: '#eadfb6',
+  marfim: '#f6f1e7',
+  apagado: '#a9a6b8',
+  serif: "'Playfair Display',Georgia,'Times New Roman',serif",
+  sans: "Montserrat,'Segoe UI',Arial,sans-serif",
+}
+
 /**
- * Envia o e-mail com o link para baixar o certificado.
+ * Moldura comum dos e-mails: fundo azul-noite, logo oficial no topo, rodapé.
+ *
+ * Tabelas e estilo inline, de propósito: é o HTML que o Gmail, o Outlook e o
+ * Apple Mail desenham igual. A logo é PNG (`loja/public/email/`, de
+ * `npm run marca`) — cliente de e-mail não mostra SVG. O `alt` em texto
+ * garante a marca quando a imagem vem bloqueada.
+ */
+function moldura(conteudo: string, rodape: string): string {
+  return `
+<div style="margin:0;padding:0;background:${EMAIL.noite}">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${EMAIL.noite}">
+    <tr><td align="center" style="padding:32px 16px">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">
+        <tr><td align="center" style="padding:8px 0 28px">
+          <img src="${urlDoSite()}/email/stellara-horizontal.png" width="240" alt="STELLARA — A star of your own."
+               style="display:block;width:240px;max-width:100%;height:auto;border:0;color:${EMAIL.dourado};font-family:${EMAIL.serif};font-size:22px;letter-spacing:4px">
+        </td></tr>
+        <tr><td style="font-family:${EMAIL.sans};color:${EMAIL.marfim}">
+          ${conteudo}
+        </td></tr>
+        <tr><td style="padding:28px 8px 0;font-family:${EMAIL.sans};font-size:12px;line-height:1.7;color:${EMAIL.apagado};text-align:center">
+          ${rodape}
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</div>`
+}
+
+/** Botão "pílula", com o `href` já pronto. `principal` = dourado cheio. */
+function botao(href: string, texto: string, principal = false): string {
+  const estilo = principal
+    ? `background:${EMAIL.dourado};color:${EMAIL.noite};border:1.5px solid ${EMAIL.dourado}`
+    : `background:transparent;color:${EMAIL.douradoSuave};border:1.5px solid ${EMAIL.dourado}`
+  return `<a href="${href}" style="display:inline-block;${estilo};text-decoration:none;padding:13px 26px;border-radius:999px;font-family:${EMAIL.sans};font-weight:600;font-size:14px;margin:4px">${texto}</a>`
+}
+
+/**
+ * Envia o e-mail de entrega: a "miniatura" do certificado em HTML, a página
+ * dedicada e os dois PDFs.
  *
  * Efeito colateral: uma mensagem real na caixa de entrada de quem comprou
  * (Resend). Em caso de falha lança `ErroApp` — nada é gravado como entregue,
  * e é o chamador quem decide se tenta de novo.
  *
  * A estrela chega por parâmetro porque `orders` guarda só `star_slug`, não o
- * nome nem a constelação. O webhook já busca a estrela para gerar o PDF, e o
- * e-mail usa a mesma linha — ler `pedido.star_name` daria `undefined` e o
+ * nome nem a constelação — ler `pedido.star_name` daria `undefined` e o
  * e-mail sairia como "O certificado de , dedicado a Ana".
  *
- * O link é assinado e tem prazo: o PDF fica num bucket privado, e o link é a
- * única forma de chegar nele. Link permanente em bucket público transformaria
- * qualquer estouro de rede em vazamento de quem comprou o quê.
+ * `caminho` pode ser o de qualquer uma das duas versões: os dois links saem
+ * dele. Antes ia só UM link — o do último PDF gerado, que é o CLARO —, e a
+ * versão escura, a original, não chegava a ninguém.
+ *
+ * Os links são assinados e têm prazo: o PDF fica num bucket privado. Link
+ * permanente em bucket público transformaria qualquer estouro de rede em
+ * vazamento de quem comprou o quê.
  */
 export async function enviarEmail(
   db: SupabaseClient,
@@ -149,27 +203,30 @@ export async function enviarEmail(
   const destino = String(pedido.honoree_name ?? '')
   const nomeEstrela = String(estrela.name ?? '')
   const constelacao = String(estrela.constellation ?? '')
+  const bayer = String(estrela.bayer ?? '')
+  const ra = Number(estrela.ra_hours)
+  const dec = Number(estrela.dec_degrees)
+  const coordenadas =
+    estrela.ra_hours != null && estrela.dec_degrees != null && Number.isFinite(ra) && Number.isFinite(dec)
+      ? `${formatRa(ra)} · ${formatDec(dec)}`
+      : ''
 
-  /*
-   * O PDF fica num bucket PRIVADO, e o link assinado é a única forma de chegar
-   * nele. Link permanente em bucket público transformaria qualquer estouro de
-   * rede em vazamento de quem comprou o quê.
-   */
-  const { data: assinado, error: erroLink } = await db.storage
-    .from('certificados')
-    .createSignedUrl(caminho, 60 * 60 * 24 * 30)
-
-  if (erroLink || !assinado) {
-    throw new ErroApp('link_falhou', 'Não foi possível gerar o link de download.', 500, erroLink?.message)
+  const escuro = caminho.replace(/-claro\.pdf$/, '.pdf')
+  const claro = escuro.replace(/\.pdf$/, '-claro.pdf')
+  const assinar = async (arquivo: string) => {
+    const { data, error } = await db.storage.from('certificados').createSignedUrl(arquivo, 60 * 60 * 24 * 30)
+    if (error || !data) {
+      throw new ErroApp('link_falhou', 'Não foi possível gerar o link de download.', 500, error?.message)
+    }
+    return data.signedUrl
   }
+  const [linkEscuro, linkClaro] = await Promise.all([assinar(escuro), assinar(claro)])
 
   /*
-   * A página dedicada, se existir e estiver publicada.
-   *
-   * A conferência é aqui dentro porque o mesmo `enviarEmail` roda no webhook
-   * (página recém-criada), no reenvio do painel (página pode existir) e em
-   * pedidos anteriores às páginas (não existe — sem botão, sem link morto).
-   * Página em rascunho também fica de fora: o rascunho não é público.
+   * A página dedicada, se existir e estiver publicada. A conferência é aqui
+   * dentro porque o mesmo `enviarEmail` roda no webhook (página recém-criada),
+   * no reenvio do painel e em pedidos anteriores às páginas (sem botão, sem
+   * link morto). Rascunho também fica de fora: não é público.
    */
   const { data: pagina } = await db
     .from('pages')
@@ -178,72 +235,58 @@ export async function enviarEmail(
     .eq('status', 'published')
     .maybeSingle()
 
-  const botaoPagina = pagina
-    ? `
-      <p style="margin:0 0 28px">
-        <a href="${urlDoSite()}/p/${escapeHtml(codigo)}"
-           style="display:inline-block;border:1.5px solid #1b1d33;color:#1b1d33;text-decoration:none;
-                  padding:14px 28px;border-radius:999px;font-family:'Segoe UI',system-ui,sans-serif;
-                  font-weight:600;font-size:15px">
-          Ver a página dedicada
-        </a>
-      </p>
+  const urlPagina = `${urlDoSite()}/p/${escapeHtml(codigo)}`
 
-      <p style="font-size:14px;line-height:1.7;color:#565a75;margin:0 0 24px">
-        A página fica no ar nesse endereço. Com o código
-        <strong>${escapeHtml(codigo)}</strong> e o seu e-mail, você também pode
-        editar o texto dela quando quiser.
-      </p>
-    `
-    : ''
+  // A "miniatura": a folha resumida em HTML, com a mesma hierarquia do PDF.
+  const miniatura = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+           style="background:${EMAIL.folha};border:1px solid ${EMAIL.dourado};border-radius:6px">
+      <tr><td style="padding:6px">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid rgba(216,182,106,0.45);border-radius:3px">
+          <tr><td align="center" style="padding:30px 20px 28px">
+            <p style="margin:0;font-family:${EMAIL.serif};font-size:13px;letter-spacing:3px;color:${EMAIL.dourado}">CERTIFICADO DE DEDICAÇÃO</p>
+            <p style="margin:4px 0 22px;font-size:9px;letter-spacing:3px;color:${EMAIL.douradoSuave}">DE UMA ESTRELA</p>
+            <p style="margin:0;font-size:12px;color:${EMAIL.apagado}">Certificamos que a estrela</p>
+            <p style="margin:6px 0 2px;font-family:${EMAIL.serif};font-size:26px;color:${EMAIL.dourado}">${escapeHtml(nomeEstrela)}</p>
+            <p style="margin:0 0 16px;font-family:${EMAIL.serif};font-style:italic;font-size:14px;color:${EMAIL.apagado}">${escapeHtml(bayer)}${bayer && constelacao ? ' · ' : ''}${escapeHtml(constelacao)}</p>
+            <p style="margin:0;font-size:12px;color:${EMAIL.apagado}">foi dedicada a</p>
+            <p style="margin:8px 0 0;font-family:${EMAIL.serif};font-style:italic;font-size:28px;line-height:1.25;color:${EMAIL.marfim}">${escapeHtml(destino)}</p>
+            ${coordenadas ? `<p style="margin:18px 0 0;font-size:11px;letter-spacing:1px;color:${EMAIL.douradoSuave}">${escapeHtml(coordenadas)}</p>` : ''}
+            <p style="margin:6px 0 0;font-size:11px;letter-spacing:2px;color:${EMAIL.apagado}">REGISTRO ${escapeHtml(codigo)}</p>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>`
 
   const assunto = `${destino}, a sua estrela está pronta`
 
-  const corpo = `
-    <div style="font-family:'Segoe UI',Montserrat,system-ui,sans-serif;color:#1b1d33;max-width:560px;margin:0 auto;padding:32px">
-      <p style="font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#8f6f1f;margin:0 0 24px">
-        Stellara · certificado de dedicação celeste
-      </p>
+  const conteudo = `
+    <h1 style="margin:0 0 12px;font-family:${EMAIL.serif};font-weight:normal;font-size:28px;color:${EMAIL.marfim};text-align:center">A sua estrela está pronta</h1>
+    <p style="margin:0 0 28px;font-size:15px;line-height:1.7;color:${EMAIL.marfim};text-align:center">
+      Olá, ${escapeHtml(nomeComprador)}. O certificado de <strong style="color:${EMAIL.dourado}">${escapeHtml(nomeEstrela)}</strong>,
+      dedicado a <strong>${escapeHtml(destino)}</strong>, já está pronto.
+    </p>
+    ${miniatura}
+    <p style="margin:28px 0 0;text-align:center">
+      ${pagina ? botao(urlPagina, 'Ver a página dedicada', true) : ''}
+      ${botao(linkEscuro, 'Baixar o certificado (PDF)', !pagina)}
+    </p>
+    <p style="margin:14px 0 0;font-size:13px;line-height:1.7;color:${EMAIL.apagado};text-align:center">
+      Vai imprimir? Use a <a href="${linkClaro}" style="color:${EMAIL.douradoSuave}">versão clara</a>, que gasta muito menos tinta.
+      Os links valem por 30 dias — guarde os arquivos.
+    </p>
+    ${pagina ? `
+    <p style="margin:22px 0 0;font-size:13px;line-height:1.7;color:${EMAIL.apagado};text-align:center">
+      A página fica no ar em <a href="${urlPagina}" style="color:${EMAIL.douradoSuave}">${escapeHtml(urlPagina.replace(/^https?:\/\//, ''))}</a> —
+      é o link para mandar a quem vai receber. Com o código <strong style="color:${EMAIL.marfim}">${escapeHtml(codigo)}</strong>
+      e o seu e-mail, você também pode editar o texto dela quando quiser.
+    </p>` : ''}`
 
-      <h1 style="font-size:26px;margin:0 0 20px">A sua estrela está pronta</h1>
+  const rodape = `
+    Documento simbólico de afeto. As coordenadas foram conferidas com o SIMBAD.<br>
+    Precisa de ajuda? Responda este e-mail informando o registro <strong style="color:${EMAIL.marfim}">${escapeHtml(codigo)}</strong>.`
 
-      <p style="font-size:16px;line-height:1.7;margin:0 0 20px">
-        Olá, ${escapeHtml(nomeComprador)}. O certificado de
-        <strong>${escapeHtml(nomeEstrela)}</strong>,
-        dedicado a <strong>${escapeHtml(destino)}</strong>, já está pronto.
-      </p>
-
-      <p style="margin:0 0 28px">
-        <a href="${assinado.signedUrl}"
-           style="display:inline-block;background:#d8b66a;color:#090b20;text-decoration:none;
-                  padding:14px 28px;border-radius:999px;font-family:'Segoe UI',system-ui,sans-serif;
-                  font-weight:600;font-size:15px">
-          Baixar o certificado (PDF)
-        </a>
-      </p>
-      ${botaoPagina}
-      <p style="font-size:14px;line-height:1.7;color:#565a75;margin:0 0 24px">
-        O link vale por 30 dias. Guarde o arquivo: ele fica em uma pasta só sua.
-      </p>
-
-      <table style="width:100%;border-collapse:collapse;font-size:13px;color:#565a75;margin:0 0 28px">
-        <tr><td style="padding:4px 0">Registro</td>
-            <td style="text-align:right;font-family:monospace">${escapeHtml(codigo)}</td></tr>
-        <tr><td style="padding:4px 0">Estrela</td>
-            <td style="text-align:right">${escapeHtml(nomeEstrela)}</td></tr>
-        <tr><td style="padding:4px 0">Constelação</td>
-            <td style="text-align:right">${escapeHtml(constelacao)}</td></tr>
-      </table>
-
-      <p style="font-size:12px;color:#565a75;border-top:1px solid #efe9db;padding-top:16px;margin:0">
-        Documento simbólico de afeto. As coordenadas foram conferidas com o SIMBAD.
-        Se precisar de ajuda, responda este e-mail quoting o registro
-        <strong>${escapeHtml(codigo)}</strong>.
-      </p>
-    </div>
-  `
-
-  await enviarPorResend({ para: email, assunto, html: corpo, referencia: codigo })
+  await enviarPorResend({ para: email, assunto, html: moldura(conteudo, rodape), referencia: codigo })
 }
 
 /**
@@ -294,24 +337,16 @@ export async function enviarLinkDeEdicao(opcoes: {
 }): Promise<void> {
   const link = `${urlDoSite()}/p/${encodeURIComponent(opcoes.codigo)}/editar#acesso=${opcoes.token}`
 
-  const html = `
-    <div style="font-family:Georgia,serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#090b20;color:#f6f1e7">
-      <h1 style="font-weight:normal;color:#d8b66a;font-size:24px;margin:0 0 16px">Editar a sua página</h1>
-      <p style="line-height:1.6">
-        Recebemos um pedido para editar a página <strong>${escapeHtml(opcoes.codigo)}</strong>.
-        O botão abaixo abre a edição direto, sem senha, e vale por ${opcoes.validadeDias} dias.
-      </p>
-      <p style="margin:28px 0">
-        <a href="${link}"
-           style="display:inline-block;padding:12px 24px;background:#d8b66a;color:#090b20;text-decoration:none;border-radius:999px">
-          Editar minha página
-        </a>
-      </p>
-      <p style="line-height:1.6;font-size:13px;color:#b9b3a6">
-        Se não foi você, ignore este e-mail: sem o link, ninguém entra na edição.
-      </p>
-    </div>
-  `
+  const html = moldura(
+    `
+    <h1 style="margin:0 0 16px;font-family:${EMAIL.serif};font-weight:normal;font-size:26px;color:${EMAIL.marfim};text-align:center">Editar a sua página</h1>
+    <p style="margin:0;font-size:15px;line-height:1.7;color:${EMAIL.marfim};text-align:center">
+      Recebemos um pedido para editar a página <strong style="color:${EMAIL.dourado}">${escapeHtml(opcoes.codigo)}</strong>.
+      O botão abaixo abre a edição direto, sem senha, e vale por ${opcoes.validadeDias} dias.
+    </p>
+    <p style="margin:28px 0 0;text-align:center">${botao(link, 'Editar minha página', true)}</p>`,
+    'Se não foi você, ignore este e-mail: sem o link, ninguém entra na edição.',
+  )
 
   await enviarPorResend({
     para: opcoes.para,

@@ -131,7 +131,23 @@ de coluna errado no typecheck. Precisa do CLI logado no projeto.
 
 ---
 
-## 3. Certificado Edição Midnight (14/10)
+## 3. Entrega e experiência pós-compra (14/10)
+
+- **Baixar PDF na página dedicada**, gerado no navegador com o mesmo código
+  do servidor — o cliente tem o certificado mesmo com o e-mail bloqueado.
+- **"Obrigado" leva até a página**: consulta o pedido até a página existir
+  (antes: duas tentativas) e o botão principal é "Abrir a página da estrela".
+  Bug corrigido: `in_process` (pagamento em análise) aparecia como aprovado.
+- **Rastreio** com atalho para a página; "em análise" deixou de ficar verde;
+  texto com "quoting" corrigido.
+- **E-mail de entrega** na marca: logo, miniatura da folha, página e os dois
+  PDFs. Bug corrigido: só a versão CLARA era enviada (o webhook guardava o
+  caminho do último PDF gerado). O e-mail do link de edição também.
+- **Produto**: mini mapa do céu real da estrela escolhida (o mesmo da folha),
+  coluna da prévia no tamanho da folha em retrato, "até 12x" no texto.
+- Nomes de arquivo legíveis: `certificado-geovanna-kaus-australis.pdf`.
+
+## 4. Certificado Edição Midnight (14/10)
 
 O PDF que o cliente recebia era bem pior que a prévia: Montserrat **Thin** em
 tudo (a fonte variável embutida na instância padrão), rótulos dos dados por
@@ -145,7 +161,7 @@ real da estrela (Hipparcos). Testes garantem que nenhum texto encosta em
 outro nem sai da moldura no pior caso da moderação (nome de 80, mensagem de
 600, assinatura de 60) e que as fontes do PDF são estáticas no peso certo.
 
-## 3. O que foi corrigido (rodada de 14/10 — loja)
+## 5. O que foi corrigido (rodada de 14/10 — loja)
 
 | O que era | Consequência |
 | --- | --- |
@@ -171,7 +187,7 @@ Testes: 94 → **112** no vitest com webhook, reenvio e prévia social novos; **
 
 ---
 
-## 4. O que foi corrigido (rodada anterior — site pessoal)
+## 6. O que foi corrigido (rodada anterior — site pessoal)
 
 Uma revisão completa do código do site pessoal encontrou problemas reais,
 todos resolvidos:
@@ -200,13 +216,13 @@ de 95 para **151 verificações**.
 
 ---
 
-## 5. Estado atual, para conferência
+## 7. Estado atual, para conferência
 
 | Item | Situação |
 | --- | --- |
 | Build | limpo, deploy automático no push — só depois de `verificar` passar |
 | Lint | limpo, zero warnings (oxlint) |
-| Testes | **237 verificações** — 91 no vitest + astro (39) + céu (82) + moderação (25); também no GitHub Actions |
+| Testes | **254 verificações** — 108 no vitest + astro (39) + céu (82) + moderação (25); também no GitHub Actions |
 | E2E no navegador | compra→página, página pública (30), edição do cliente (22), painel (25) — todos verdes |
 | Pacote inicial | 111 kB gzip de JS + 11,4 de CSS (chunk do Supabase só em `/admin` e `/editar`) |
 | `/admin` | painel Supabase Auth (conta + linha em `admins`), sem senha no código |

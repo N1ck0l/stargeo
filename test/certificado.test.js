@@ -185,7 +185,7 @@ describe('PDF (geração real, fontes lidas do disco)', () => {
     globalThis.fetch = async (url) => {
       const arquivo = join(process.cwd(), 'loja', 'public', String(url).replace(/^https?:\/\/[^/]+/, ''))
       const bytes = readFileSync(arquivo)
-      return { arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) }
+      return { ok: true, arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) }
     }
 
     try {
@@ -208,6 +208,13 @@ describe('PDF (geração real, fontes lidas do disco)', () => {
           expect(height, `${nome}: altura`).toBeCloseTo((297 * 72) / 25.4, 1)
         }
       }
+
+      // O caminho do navegador ("Baixar PDF" da página dedicada): fontes em
+      // TTF, sem o descompressor de woff2. Mesma folha, mesmo tamanho.
+      const viaTtf = await buildCertificatePdf(casos.típico, { formatoFonte: 'ttf' })
+      const pdf = await PDFDocument.load(viaTtf)
+      expect(pdf.getPageCount()).toBe(1)
+      expect(viaTtf.length).toBeGreaterThan(20_000)
     } finally {
       globalThis.fetch = original
     }

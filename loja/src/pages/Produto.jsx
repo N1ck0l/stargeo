@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { STARS, getStar } from '../../../shared/stars.js'
 import { validarPedido, explicarErros } from '../../../shared/moderation.js'
 import { Folha } from '../components/Folha.jsx'
+import { MiniCeuSobDemanda } from '../components/MiniCeuSobDemanda.jsx'
 import { Reveal } from '../components/Reveal.jsx'
 import { criarCheckout, ErroApi, irParaPagamento } from '../lib/api.js'
 import { Link } from '../lib/Link.jsx'
@@ -226,13 +227,11 @@ export default function Produto({ slug }) {
         </nav>
 
         {/*
-          Prévia em A4 PAISAGEM: 297 mm ≈ 1122 px de folha, então a coluna dela
-          precisa de boa parte da largura da tela. O teto de 700 px evita que a
-          folha domine a página e a coluna do formulário encolha demais — em
-          1024 px de viewport, onde o grid ainda está ligado, `60%` deixa o
-          formulário com ~350 px, que é o mínimo confortável.
+          Prévia em A4 RETRATO: a coluna dela tem o teto da própria folha
+          (30rem), e o formulário fica com o resto — em retrato a folha é
+          estreita, e dar mais largura só a faria passar da altura da tela.
         */}
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_min(700px,60%)]">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)]">
           {/* --- Formulário --------------------------------------------------
               No celular o formulário vem DEPOIS da prévia (`order-2`): quem
               compra pelo telefone precisa ver o certificado antes de
@@ -283,12 +282,22 @@ export default function Produto({ slug }) {
                 ))}
               </div>
 
-              <div className="cartao mt-5">
-                <h3 className="font-serif text-lg text-ivory">{estrela.name}</h3>
-                <p className="mt-1 text-xs text-gold/80">
-                  {estrela.bayer} · {estrela.constellation} · {estrela.distanceLy} anos-luz
-                </p>
-                <p className="mt-3 text-sm leading-relaxed text-ivory/70">{estrela.story}</p>
+              <div className="cartao mt-5 flex flex-col gap-5 sm:flex-row sm:items-start">
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-serif text-lg text-ivory">{estrela.name}</h3>
+                  <p className="mt-1 text-xs text-gold/80">
+                    {estrela.bayer} · {estrela.constellation} · {estrela.distanceLy} anos-luz
+                  </p>
+                  <p className="mt-3 text-sm leading-relaxed text-ivory/70">{estrela.story}</p>
+                </div>
+                {/* O mesmo mapa do pé da folha: a constelação real de cada
+                    estrela, que muda junto com a escolha. */}
+                <figure className="mx-auto w-32 shrink-0 text-center sm:mx-0">
+                  <MiniCeuSobDemanda key={estrela.slug} estrela={estrela} className="animate-fade-in aspect-square w-32" />
+                  <figcaption className="mt-2 text-[10px] leading-snug tracking-wide text-ivory/50">
+                    O céu de {estrela.constellation}, como sai na folha
+                  </figcaption>
+                </figure>
               </div>
             </Secao>
 
@@ -364,7 +373,7 @@ export default function Produto({ slug }) {
                 {enviando ? 'Abrindo o pagamento…' : `Finalizar · R$ ${preco}`}
               </button>
               <p className="text-xs text-ivory/45">
-                Você paga no Mercado Pago, por Pix, cartão ou boleto.
+                Você paga no Mercado Pago: Pix, cartão em até 12x ou boleto.
               </p>
             </div>
           </div>
