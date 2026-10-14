@@ -5,11 +5,7 @@ import { existsSync, renameSync, rmdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 /**
- * Configuração da loja.
- *
- * App Vite separado do site pessoal (que fica na raiz), porque os dois têm
- * deploys independentes: o presente continua no Netlify Drop atual, e a loja
- * vai para o domínio próprio.
+ * Configuração da loja (`npm run dev`, `npm run build`).
  *
  * `root` é a RAIZ DO REPOSITÓRIO, e não `loja/`. Parece contra intuitivo, mas
  * foi a única configuração que resolveu: com `root` em `loja/`, o Rolldown
@@ -19,8 +15,8 @@ import { resolve } from 'node:path'
  *
  * Consequências de usar a raiz, e como cada uma é tratada:
  *
- * - O `publicDir` padrão seria o do site pessoal, e o `conteudo.json` dele
- *   acabaria na build da loja. Por isso `publicDir` aponta para `loja/public`.
+ * - O `publicDir` padrão seria o `public/` da raiz. Por isso `publicDir`
+ *   aponta para `loja/public`.
  * - O `index.html` da loja é emitido em `dist-loja/loja/index.html`, preservando
  *   o caminho relativo ao `root`. O plugin abaixo o move para a raiz da saída,
  *   onde um SPA com rotas precisa que ele esteja.
@@ -93,20 +89,21 @@ export default defineConfig({
   root: raiz,
   base: process.env.BASE_URL || '/',
 
-  // Só os assets da loja. Sem isto, `conteudo.json` e os ícones do site
-  // pessoal iam junto.
+  // Com `root` na raiz, o padrão seria `public/` da raiz — os assets da loja
+  // ficam em `loja/public`.
   publicDir: resolve(loja, 'public'),
 
   server: {
-    // O site pessoal e a loja importam `shared/` por caminho relativo. Por
-    // ficarem fora da raiz deste projeto, o Vite precisa de autorização
-    // explícita — sem isso o dev server devolve 403 ao ler o arquivo.
+    // A loja importa `shared/` por caminho relativo, fora de `loja/`: o Vite
+    // precisa de autorização explícita — sem isso o dev server devolve 403.
     fs: {
       allow: [raiz],
     },
-    // Porta separada: dá para rodar o site pessoal (5173) e a loja (5174) ao
-    // mesmo tempo durante o desenvolvimento.
-    port: 5174,
+    // 5173 é a porta que o CORS das Edge Functions libera para
+    // desenvolvimento (`ORIGENS_DEV` em `_shared/http.ts`); outra porta faria
+    // toda chamada ao Supabase falhar no `npm run dev`.
+    port: 5173,
+    strictPort: true,
   },
 
   build: {

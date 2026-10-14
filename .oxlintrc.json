@@ -6,10 +6,8 @@
     "react/only-export-components": ["warn", { "allowConstantExport": true }]
   },
   "ignorePatterns": [
-    "dist/**",
     "dist-loja/**",
     "node_modules/**",
-    "public/**",
     "loja/public/**"
   ]
 }

@@ -11,7 +11,7 @@
 /**
  * Origens sempre liberadas, para o desenvolvimento local.
  *
- * 5173 é o site pessoal (porta padrão do Vite) e 4173 é o `vite preview`.
+ * 5173 é o `npm run dev` da loja e 4173 é o `npm run preview`.
  */
 const ORIGENS_DEV = ['http://localhost:5173', 'http://localhost:4173']
 

@@ -3,7 +3,7 @@
  *
  * Roda via `vitest run`, que por sua vez é o último passo de `npm test`. Os
  * testes numéricos de astronomia (astro/sky) e os da moderação NÃO passam por
- * aqui: são scripts Node puros (`node src/lib/astro.test.mjs` etc.), porque
+ * aqui: são scripts Node puros (`node shared/astro.test.mjs` etc.), porque
  * usam `process.exit` e não se dariam bem dentro do runner.
  *
  * O ponto não óbvio deste arquivo são os aliases `npm:*` — as Edge Functions
@@ -36,7 +36,7 @@ export default defineConfig({
     // `threads` é mais confiável e suficiente para estes testes.
     pool: 'threads',
     // Só os testes de componente. A verificação numérica da projeção roda
-    // separada, com `node src/lib/astro.test.mjs`, porque ela encerra o
+    // separada, com `node shared/astro.test.mjs`, porque ela encerra o
     // processo com process.exit e não se sairia bem dentro do vitest.
     include: ['test/**/*.test.{js,jsx}'],
   },

@@ -13,7 +13,7 @@ mapa do céu, a carta e a Mira celeste (câmera + bússola apontando a estrela).
 ```bash
 npm install
 cp .env.example .env   # preencha as VITE_* para falar com o Supabase
-npm run dev:loja       # http://localhost:5174
+npm run dev            # http://localhost:5173
 ```
 
 Sem `.env`, a loja abre e a prévia do certificado funciona; checkout,
@@ -23,8 +23,9 @@ rastreio e páginas dedicadas pedem o Supabase.
 
 | Comando | O que faz |
 | --- | --- |
-| `npm run dev:loja` | Loja em desenvolvimento (porta 5174) |
-| `npm run build:loja` | Build de produção em `dist-loja/` (é o que a Netlify roda) |
+| `npm run dev` | Loja em desenvolvimento (porta 5173, a que o CORS das funções libera) |
+| `npm run build` | Build de produção em `dist-loja/` (é o que a Netlify roda) |
+| `npm run preview` | Serve o build localmente (porta 4173) |
 | `npm run verificar` | Lint (oxlint) + typecheck das Edge Functions + todos os testes |
 | `npm test` | Testes numéricos (`shared/*.test.mjs`) + vitest (`test/`) |
 
@@ -65,10 +66,10 @@ test/              vitest: componentes, e-mail, webhook, reenvio, prévia
 - **Texto do cliente é moderado duas vezes** (checkout e webhook) com a mesma
   regra (`shared/moderation.js`), e escapado em todo HTML.
 
-## Site pessoal (legado)
+## História
 
-`src/`, o `index.html` da raiz e `public/` são o site-presente original
-(Kaus Australis para Geovanna), que deu origem à loja e não é mais publicado.
-O estado dele está guardado na tag `site-pessoal-legado`; a documentação
-completa dele está no README dessa tag (`git show site-pessoal-legado:README.md`).
-`npm run dev` / `npm run build` ainda o rodam.
+A loja nasceu de um presente: um site feito para a Geovanna, com Kaus Australis,
+o mapa do céu e a Mira celeste. Esse site original não está mais na `main`; o
+código e a documentação dele estão na tag `site-pessoal-legado`
+(`git checkout site-pessoal-legado`). A página dedicada dela continua no ar
+dentro da loja, em `/p/SG-GEOV-ANNA`.

@@ -1,16 +1,15 @@
 # Stellara — Loja
 
-Transformação do projeto de presente pessoal em loja de certificados de estrela.
-O site pessoal continua existindo, intocado, em `src/` — esta é a estrutura de
-cima dele.
+Loja de certificados de estrela, nascida do site-presente original (guardado
+na tag `site-pessoal-legado`).
 
 ```
-shared/              núcleo usado pelo site, pela loja e pelo servidor
+shared/              núcleo usado pela loja e pelo servidor
 ├── stars.js         12 estrelas vendáveis, dados conferidos com o SIMBAD
 ├── moderation.js    filtro do texto que o cliente escreve no certificado
 ├── certificate.js   desenho do certificado, em milímetros
 ├── pdf.js           geração do PDF (pdf-lib, sem navegador)
-├── astro.js         projeção gnomônica (também usada pelo site pessoal)
+├── astro.js         projeção gnomônica do mapa do céu
 └── sky.js           posição celeste no céu, agora e aqui
 
 supabase/
@@ -177,7 +176,7 @@ incluindo bypass por acento e caixa), os componentes da página dedicada e da
 loja (prévia do certificado, validação do configurador, rastreio, páginas
 dedicadas, edição e o painel), o webhook (entrega única com eventos repetidos
 e simultâneos, valor divergente, falha de gravação, e-mail falho), a
-autorização do reenvio e a prévia social de `/p/CODE`. São **112 testes no
+autorização do reenvio e a prévia social de `/p/CODE`. São **91 testes no
 vitest**, mais as três suítes de núcleo.
 
 Além disso, o fluxo completo da plataforma é verificado E2E no navegador
@@ -187,19 +186,18 @@ logout.
 
 ## Publicar a loja
 
-O build é separado do site pessoal, porque o `root` do Vite precisa ser a raiz
-do repositório para resolver `shared/`. O comando já existe:
+O `root` do Vite é a raiz do repositório (para resolver `shared/`), e a
+configuração fica em `loja/vite.config.js`:
 
 ```bash
-npm run build:loja   # gera dist-loja/
+npm run build   # gera dist-loja/
 ```
 
 O `netlify.toml` já configura **publish** `dist-loja` e **build**
-`npm run verificar && npm run build:loja` (teste vermelho não publica); defina as variáveis `VITE_*` do `.env.example` em
+`npm run verificar && npm run build` (teste vermelho não publica); defina as variáveis `VITE_*` do `.env.example` em
 *Environment variables* — elas entram no bundle em tempo de build.
 
 O `loja/public/_redirects` (copiado para `dist-loja/` no build) faz o rewrite
 de SPA: sem ele, abrir um link direto de `/rastrear` ou `/produto/...` devolve
-404, porque essas rotas só existem no JavaScript. O site pessoal não precisa
-disso — ele usa âncoras.
+404, porque essas rotas só existem no JavaScript.
 

@@ -37,8 +37,8 @@
     }
   },
   // `shared/` entra porque as functions importam os módulos de lá (e são JS
-  // puro, checáveis com allowJs). O site pessoal e a loja (`src/`, `loja/`,
-  // `test/`) ficam de fora: eles têm seu próprio caminho de build via Vite.
+  // puro, checáveis com allowJs). A loja (`loja/`) e os testes (`test/`) ficam
+  // de fora: eles têm seu próprio caminho de build via Vite.
   "include": ["supabase/functions/**/*.ts", "supabase/functions/**/*.d.ts", "shared/**/*.js"],
-  "exclude": ["node_modules", "dist", "test", "src"]
+  "exclude": ["node_modules", "dist-loja", "test"]
 }

@@ -1,16 +1,17 @@
 /**
- * Ponte entre o painel de conteúdo (`/admin` → `conteudo.json`) e os
- * componentes reais: campos editados precisam aparecer em StarDetails,
- * CertificateModal e SkyMap — e todo campo do `DEFAULTS` precisa ter
- * consumidor em algum lugar.
+ * Ponte entre o conteúdo da página dedicada (o que o painel `/admin` e o
+ * cliente editam, servido pelo `get-page`) e as seções reais: campos editados
+ * precisam aparecer em StarDetails, no certificado e no SkyMap — e todo campo
+ * do `DEFAULTS` precisa ter consumidor em algum lugar.
  */
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
-import { ContentProvider } from '../src/lib/content.jsx'
-import { CertificateModal } from '../src/components/CertificateModal'
+import { ContentContext } from '../loja/src/lib/contentContext.js'
+import { ModalCertificado } from '../loja/src/pagina/ModalCertificado'
 import { StarDetails } from '../loja/src/pagina/secoes/StarDetails'
 import { SkyMap } from '../loja/src/pagina/secoes/SkyMap'
 import { DEFAULTS } from '../loja/src/data/defaults'
+import { kausAustralis } from '../loja/src/data/star'
 
 afterEach(cleanup)
 
@@ -24,6 +25,8 @@ afterEach(cleanup)
  */
 const CUSTOM = {
   ...DEFAULTS,
+  // A página dedicada sempre recebe a estrela do banco (`montarConteudo`).
+  estrela: kausAustralis,
   nome: 'Nome Escrito no Painel',
   nomeCurto: 'Apelido do Painel',
   data: '3 de março de 2027',
@@ -33,8 +36,13 @@ const CUSTOM = {
   assinatura: 'Assinatura do painel',
 }
 
+// Mesmo provedor que a `PaginaDedicada` monta com o conteúdo do banco.
 const renderWith = (content, element) =>
-  render(<ContentProvider editable initial={content}>{element}</ContentProvider>)
+  render(
+    <ContentContext.Provider value={{ content, setContent: () => {}, editable: false }}>
+      {element}
+    </ContentContext.Provider>,
+  )
 
 describe('campos editáveis chegam ao site', () => {
   // === Componentes individuais ===
@@ -48,7 +56,7 @@ describe('campos editáveis chegam ao site', () => {
   })
 
   it('o certificado mostra nome, registro, data e assinatura editados', () => {
-    renderWith(CUSTOM, <CertificateModal open onClose={() => {}} />)
+    renderWith(CUSTOM, <ModalCertificado open onClose={() => {}} />)
 
     const text = document.body.textContent
     expect(text).toContain('Nome Escrito no Painel')
@@ -72,15 +80,16 @@ describe('campos editáveis chegam ao site', () => {
      * algum componente. Se alguém acrescentar um campo ao painel sem ligar em
      * lugar nenhum, este teste é o que avisa.
      */
-    const { container } = renderWith(CUSTOM, (
+    renderWith(CUSTOM, (
       <div>
         <StarDetails onOpenCertificate={() => {}} />
-        <CertificateModal open onClose={() => {}} />
+        <ModalCertificado open onClose={() => {}} />
         <SkyMap onOpenCertificate={() => {}} />
       </div>
     ))
 
-    const text = container.textContent
+    // `document.body`, não `container`: o certificado da loja abre num portal.
+    const text = document.body.textContent
     const esperados = ['nome', 'nomeCurto', 'data', 'registro', 'tituloEstrela', 'descricaoEstrela']
     for (const chave of esperados) {
       expect(text, `campo "${chave}" não aparece em lugar nenhum`).toContain(String(CUSTOM[chave]))

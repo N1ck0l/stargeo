@@ -92,7 +92,21 @@ export async function criarPreferencia(opcoes: {
        * Pix do checkout — no Brasil, o meio preferido de pagamento.
        */
       excluded_payment_types: [{ id: 'marketplace' }],
-      installments: 1,
+      /*
+       * Parcelamento no cartão: até 12x, o teto do Checkout Pro no Brasil.
+       * `installments` é o MÁXIMO oferecido; o checkout já abre em 1x
+       * (`default_installments`), e Pix continua à vista.
+       *
+       * Os juros do parcelado ficam com quem compra, que é o padrão do
+       * Mercado Pago. Para assumir os juros ("sem juros"), a configuração é na
+       * CONTA do Mercado Pago (Seu negócio → Custos → Parcelamento), não aqui —
+       * e aí o texto da home pode voltar a prometer "sem juros".
+       *
+       * O valor da parcela com juros não muda nada no webhook: os juros vêm
+       * em `transaction_details`, e `transaction_amount` continua sendo o
+       * preço do pedido, que é o que `valorConfere` compara.
+       */
+      installments: 12,
       default_installments: 1,
     },
     // Volta para a página de obrigado da loja depois do pagamento.

@@ -434,7 +434,7 @@ function Certificado() {
                 <span className="font-display text-3xl text-ivory">R$ {preco}</span>
                 {eram && <span className="text-sm text-ivory/35 line-through">R$ {eram}</span>}
               </div>
-              <p className="mt-1 text-xs text-ivory/45">à vista no Pix ou no cartão</p>
+              <p className="mt-1 text-xs text-ivory/45">à vista no Pix ou em até 12x no cartão</p>
 
               <Link para={`/produto/${PRODUTO.slug}`} className="btn btn-primary mt-6 w-full">
                 Montar o meu certificado

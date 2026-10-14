@@ -21,4 +21,4 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run verificar
-      - run: npm run build:loja
+      - run: npm run build

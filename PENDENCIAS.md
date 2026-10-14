@@ -49,11 +49,6 @@ na plataforma, daí o sufixo. Os projetos antigos
 pessoal, build manual) foram apagados; `leafy-jelly-5aac6d` não é deste
 projeto e segue intocado.
 
-O site pessoal não está publicado em lugar nenhum. O `og:url`, o `canonical`
-e o `og:image` dele apontam para `https://n1ck0l.github.io/stellara/`
-(GitHub Pages, a opção 3 do DEPLOY.md) — ative o Pages e a prévia passa a
-funcionar sem mexer em código.
-
 Não existe domínio próprio da marca ainda: a loja vive em `*.netlify.app`.
 Quando o domínio chegar, aponte-o (A/ALIAS ou CNAME para o Netlify), troque
 `PUBLIC_SITE_URL`, `FONTS_BASE_URL` e `ORIGENS_PERMITIDAS` nos *secrets* do
@@ -70,9 +65,6 @@ O `/admin` da loja usa Supabase Auth — não há senha escrita no código. A co
 domínio removido; a senha continua sendo a entregue fora do repositório —
 troque no dashboard → Authentication → Users → *Reset password* se quiser).
 Permissão é a linha em `public.admins`; sem ela, a conta loga e recebe 403.
-
-O `/admin` antigo do site pessoal (`src/components/Admin.jsx`, senha
-`stellara`) só existe no build do site pessoal, que não é mais publicado.
 
 ### 1.6 Mercado Pago real
 
@@ -101,31 +93,11 @@ O código está no repositório, mas o Supabase não publica sozinho com o push:
 2. Republicar as funções que mudaram: `mp-webhook`, `resend-certificate`,
    `create-checkout`, `track-order`, `page-auth`, `admin-api` (comandos em
    `LOJA.md`).
-3. Na Netlify, em *Environment variables*, deixar `VITE_FUNCTIONS_URL` com
-   escopo de **Functions** também — a prévia de `/p/CODE` lê em tempo de
-   execução.
-4. Navegar loja → produto → `/p/SG-GEOV-ANNA` → `/admin` com o console aberto e
-   conferir que a CSP (em modo só-relatório) não reclama de nada; aí trocar o
-   nome do header para `Content-Security-Policy` no `netlify.toml`.
-5. Depois do domínio e do e-mail: `supabase secrets set EDICAO_POR_EMAIL=1`.
+3. Depois do domínio e do e-mail: `supabase secrets set EDICAO_POR_EMAIL=1`.
 
-### 1.8 Parcelamento: decidir
-
-A home dizia "ou em até 3x sem juros", mas a preferência do Mercado Pago é
-criada com `installments: 1` — ninguém conseguia parcelar. O texto agora diz
-"à vista no Pix ou no cartão". Se a ideia é parcelar, é `installments` (e
-quem absorve os juros) em `supabase/functions/_shared/mercadoPago.ts`, e o
-texto volta em `loja/src/pages/Home.jsx`.
-
-### 1.9 Remover o site pessoal da `main`
-
-A loja não depende mais de `src/`: o que a página dedicada usava (Hero, mapa,
-carta, Mira, dados da estrela) foi movido para `loja/src/`. O resto de `src/`,
-o `index.html` da raiz, `public/` e o `vite.config.js` da raiz são só o
-site-presente antigo, guardado na tag local `site-pessoal-legado`
-(`git push origin site-pessoal-legado` para ela existir no GitHub também).
-A remoção ficou para você autorizar; os testes do site pessoal
-(`App`, `CertificateModal`, `Navbar`, `Content`) saem junto.
+A prévia de `/p/CODE` já está funcionando no ar (a `VITE_FUNCTIONS_URL` da
+Netlify já vale para Functions), e a CSP está ATIVA — testada em modo
+bloqueante antes, sem nenhuma violação.
 
 ---
 
@@ -147,8 +119,7 @@ Os PNGs (`og-image`, `icon-192`, `icon-512`, `icon-maskable-512`,
 `favicon-32`, `apple-touch-icon`) foram regenerados na marca Stellara —
 símbolo, noite e dourado, com Playfair/Montserrat embutidas — e ficaram bem
 menores: o og-image caiu de 201 KB para ~32 KB e o ícone de 512 px de
-~137 KB para ~9 KB. Os arquivos valem para os dois sites (a pasta `public/`
-de cada build recebeu os mesmos). Se a arte mudar de novo, a geração é
+~137 KB para ~9 KB. Ficam em `loja/public/`. Se a arte mudar de novo, a geração é
 reproduzível a partir do `favicon.svg` e da prancha da marca.
 
 ### 2.3 Tipos gerados do banco
@@ -173,14 +144,16 @@ de coluna errado no typecheck. Precisa do CLI logado no projeto.
 | `meta.js` nunca rodava | `window.__STELLARA_ENV__` não existia: a loja **nunca teve og:image**. E robô de prévia não executa JS — agora as tags saem no HTML pelo build |
 | `/p/CODE` sem prévia própria | O link do presente no WhatsApp mostrava o cartão genérico; agora mostra "Uma estrela para Geovanna · Kaus Australis" |
 | Preço escrito no front | Mudar o preço no banco deixaria o botão mostrando um valor e o Mercado Pago cobrando outro |
-| "Em até 3x sem juros" | O checkout só aceita 1 parcela (ver 1.8) |
+| "Em até 3x sem juros" | O checkout só aceitava 1 parcela — agora até 12x no cartão (juros por conta de quem compra, padrão do Mercado Pago; "sem juros" é configuração da conta) |
 | Receita do painel sobre 500 pedidos | A partir do pedido 501 o total e a receita mentiam |
 | Deploy sem teste | A Netlify publicava commit com teste vermelho |
 
 E de estrutura: a loja deixou de importar do site pessoal (componentes e
-dados movidos para `loja/src/`), CI no GitHub Actions, CSP em modo
-só-relatório, link de edição por e-mail pronto para ligar, README da loja.
-Testes: 94 → **112** no vitest (webhook, reenvio e prévia social novos).
+dados movidos para `loja/src/`) e o site pessoal saiu da `main` (tag
+`site-pessoal-legado`), CI no GitHub Actions, CSP ativa, `npm run dev` na porta
+que o CORS libera (era 5174, e nenhuma chamada ao Supabase funcionava em
+desenvolvimento), link de edição por e-mail pronto para ligar, README da loja.
+Testes: 94 → **112** no vitest com webhook, reenvio e prévia social novos; **91** depois de sair o site pessoal (os 21 testes dele foram junto).
 
 ---
 
@@ -217,12 +190,11 @@ de 95 para **151 verificações**.
 
 | Item | Situação |
 | --- | --- |
-| Build | limpo (site pessoal e loja), deploy automático no push — só depois de `verificar` passar |
+| Build | limpo, deploy automático no push — só depois de `verificar` passar |
 | Lint | limpo, zero warnings (oxlint) |
-| Testes | **258 verificações** — 112 no vitest + astro (39) + céu (82) + moderação (25); também no GitHub Actions |
+| Testes | **237 verificações** — 91 no vitest + astro (39) + céu (82) + moderação (25); também no GitHub Actions |
 | E2E no navegador | compra→página, página pública (30), edição do cliente (22), painel (25) — todos verdes |
 | Pacote inicial | 111 kB gzip de JS + 11,4 de CSS (chunk do Supabase só em `/admin` e `/editar`) |
-| PWA / offline | do site pessoal (`dist/`), funcionando — a loja não usa service worker |
 | `/admin` | painel Supabase Auth (conta + linha em `admins`), sem senha no código |
 | Conteúdo | páginas no banco (`pages`); seed Geovanna `SG-GEOV-ANNA` publicada |
 | Loja e páginas | prontas e verificadas; Mercado Pago ainda em ambiente de teste |
@@ -235,8 +207,7 @@ de 95 para **151 verificações**.
 3. **Páginas** também tem criar manual, publicar/despublicar; **Pedidos**
    reenvia o e-mail e cria página de pedido pago
 
-Nada de build nem de arrastar pasta para mudar texto — `conteudo.json` só vale
-para o site pessoal (`src/`), que hoje é build legado.
+Nada de build nem de deploy para mudar texto: tudo vive no banco.
 
 ### Onde mexer
 

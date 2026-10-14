@@ -1,23 +1,11 @@
-# Configuração da Netlify.
-#
-# Atenção a quem lê isto: existem DOIS sites com formas de publicar diferentes.
-#
-#  1. O SITE PESSOAL (o presente): é publicado arrastando a pasta `dist/` no
-#     Netlify Drop (ver DEPLOY.md). O Drop não lê este arquivo — ele só existe
-#     na raiz do repositório, que não está conectado a esse site. Por isso nada
-#     daqui afeta o presente.
-#
-#  2. A LOJA: este arquivo é dela. Conecte o repositório ao Netlify (Import an
-#     existing project → GitHub → N1ck0l/stellara) e o build sai daqui.
-#
-# As regras de segurança e cache valem para qualquer um dos dois; só o
-# comando de build é específico da loja.
+# Configuração da Netlify — site `stellara-loja`, conectado ao repositório
+# N1ck0l/stellara: commit com push na `main` é deploy.
 
 [build]
   # `verificar` (lint + typecheck + testes) ANTES do build: commit com push é
   # deploy, e sem isto um teste vermelho ia para o ar do mesmo jeito. Se
   # falhar, a Netlify mantém no ar a última versão boa.
-  command = "npm run verificar && npm run build:loja"
+  command = "npm run verificar && npm run build"
   publish = "dist-loja"
 
 [build.environment]
@@ -67,19 +55,22 @@
     # DENY também bloqueia iframes da própria origem, e um iframe interno
     # (ex.: preview futuro) quebraria sem nenhum ganho de segurança externo.
     X-Frame-Options = "SAMEORIGIN"
-    # Só a própria origem pode usar câmera, microfone, localização e sensores
-    # de orientação — a loja não usa nenhum, mas restringir custa nada.
-    # O site pessoal (que usa câmera e bússola na Mira celeste) não é servido
-    # por este arquivo: o Netlify Drop não aplica o netlify.toml (ver topo).
+    # Câmera, localização e sensores de orientação só para a própria origem:
+    # a Mira celeste da página dedicada usa os três. Microfone e sensor de luz
+    # ninguém usa, então ficam fechados.
     Permissions-Policy = "camera=(self), microphone=(), geolocation=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self), ambient-light-sensor=()"
     # 604800 s = 7 dias. Curto de propósito: HSTS com includeSubDomains é
     # difícil de desfazer (o navegador recusa HTTP por esse tempo em TODOS os
     # subdomínios), então o primeiro passo é pequeno e só depois se sobe.
     Strict-Transport-Security = "max-age=604800; includeSubDomains"
-    # CSP em modo SÓ RELATÓRIO: nada é bloqueado, as violações aparecem no
-    # console do navegador. A loja só fala com a própria origem e com o
-    # Supabase (functions, auth do painel); o Mercado Pago é navegação, que a
-    # CSP não restringe. Depois de navegar loja → checkout → /p/CODE →
-    # /admin sem nenhuma violação no console, troque o nome do header para
-    # `Content-Security-Policy` e ela passa a valer.
-    Content-Security-Policy-Report-Only = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+    # CSP: a loja só carrega código e dados da própria origem e do Supabase
+    # (functions, Data API e auth do painel); o Mercado Pago é navegação, que
+    # a CSP não restringe. `style-src 'unsafe-inline'` é pelos estilos que o
+    # React e o html-to-image (PNG do certificado) escrevem inline; `data:` e
+    # `blob:` são o PNG gerado e o vídeo da câmera na Mira.
+    #
+    # Testada em modo bloqueante antes de ativar (14/10): home, produto,
+    # /p/CODE com get-page, certificado e PNG, /admin — zero violações.
+    # Se um recurso novo de outro domínio entrar na loja, ele tem de entrar
+    # aqui também, ou o navegador o bloqueia.
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
