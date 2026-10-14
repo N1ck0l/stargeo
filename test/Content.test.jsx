@@ -4,7 +4,7 @@
  * precisam aparecer em StarDetails, no certificado e no SkyMap — e todo campo
  * do `DEFAULTS` precisa ter consumidor em algum lugar.
  */
-import { cleanup, render } from '@testing-library/react'
+import { cleanup, render, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { ContentContext } from '../loja/src/lib/contentContext.js'
 import { ModalCertificado } from '../loja/src/pagina/ModalCertificado'
@@ -55,9 +55,11 @@ describe('campos editáveis chegam ao site', () => {
     expect(container.textContent).toContain('Nome Escrito no Painel')
   })
 
-  it('o certificado mostra nome, registro, data e assinatura editados', () => {
+  it('o certificado mostra nome, registro, data e assinatura editados', async () => {
     renderWith(CUSTOM, <ModalCertificado open onClose={() => {}} />)
 
+    // A folha carrega sob demanda (`Folha`, com `lazy`): espera ela chegar.
+    await waitFor(() => expect(document.body.textContent).toContain('REG-PAINEL-999'))
     const text = document.body.textContent
     expect(text).toContain('Nome Escrito no Painel')
     expect(text).toContain('REG-PAINEL-999')
@@ -74,7 +76,7 @@ describe('campos editáveis chegam ao site', () => {
 
   // === Guarda: todo campo editável tem consumidor ===
 
-  it('todo campo editável no painel tem algum lugar onde aparece', () => {
+  it('todo campo editável no painel tem algum lugar onde aparece', async () => {
     /*
      * Varredura de guarda: cada chave de `DEFAULTS` precisa ser consumida por
      * algum componente. Se alguém acrescentar um campo ao painel sem ligar em
@@ -89,6 +91,8 @@ describe('campos editáveis chegam ao site', () => {
     ))
 
     // `document.body`, não `container`: o certificado da loja abre num portal.
+    // E a folha carrega sob demanda — espera ela chegar antes de varrer.
+    await waitFor(() => expect(document.body.textContent).toContain(String(CUSTOM.registro)))
     const text = document.body.textContent
     const esperados = ['nome', 'nomeCurto', 'data', 'registro', 'tituloEstrela', 'descricaoEstrela']
     for (const chave of esperados) {

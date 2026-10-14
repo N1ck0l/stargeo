@@ -5,214 +5,202 @@
  * `shared/` porque a mesma função gera o comprovante de teste e o PDF que o
  * cliente recebe — não pode haver dois geradores que divergem.
  *
- * Não usa navegador nem headless: `pdf-lib` desenha direto. São ~200 ms por
- * certificado, em vez de 15 s, e nenhuma dependência de Chrome — que a Edge
- * Function não tem.
+ * O desenho NÃO mora aqui: ele é a lista de itens de
+ * `shared/certificado/desenho.js`, a mesma que a prévia da loja desenha em
+ * SVG. Este arquivo só traduz item por item para o pdf-lib — y invertido
+ * (o PDF cresce para cima), milímetros em pontos, letra por letra quando há
+ * espaçamento (o pdf-lib não tem `letter-spacing`).
  *
- * As fontes são as mesmas do site, convertidas de woff2 para ttf na primeira
- * execução e guardadas em cache. Isso não é vaidade: as fontes padrão do
- * pdf-lib (WinAnsi) não sabem escrever "ε Sagittarii" nem os símbolos
- * astronômicos "−34° 23′ 04.62″". Um certificado que troca a letra grega por um
- * ponto de interrogação não é um certificado de astronomia.
+ * Fontes: as instâncias ESTÁTICAS de `loja/public/fonts/pdf/`
+ * (`scripts/gerar-fontes.py`). As do site são variáveis, e o pdf-lib embute
+ * a instância padrão — a da Montserrat é a Thin, e o certificado saía todo
+ * fininho. As fontes padrão do pdf-lib (WinAnsi) também não serviriam: não
+ * escrevem "ε Sagittarii" nem "−34° 23′ 04.62″".
  */
 /*
  * Pacotes npm com o prefixo `npm:`, que o Deno exige no empacotamento da Edge
- * Function — um import sem prefixo ("pdf-lib") falha com "not prefixed with /
- * or ./ or ../". Neste arquivo não há importador de navegador: quem chama é a
- * função do servidor, e os testes (vitest) mapeiam os `npm:` para os mesmos
- * pacotes via alias no `vitest.config.js`.
+ * Function. Os testes (vitest) mapeiam os `npm:` para os mesmos pacotes via
+ * alias no `vitest.config.js`.
  */
-import { PDFDocument, rgb } from 'npm:pdf-lib'
+import { LineCapStyle, PDFDocument, rgb } from 'npm:pdf-lib'
 import fontkit from 'npm:@pdf-lib/fontkit'
-import { drawCertificate, definirFabricaDeCor, PAGE } from './certificate.js'
+import { desenharCertificado, PAGINA } from './certificado/desenho.js'
+import { METRICAS } from './certificado/metricas.js'
 
 /** Milímetros para pontos: 1 polegada = 25,4 mm e 1 polegada = 72 pt. */
 export const MM_TO_PT = 72 / 25.4
 
 /**
- * Cache de fontes, por URL.
- *
- * A decompressão de woff2 custa ~150 ms por arquivo. Convertir a cada pedido
- * gastaria esse tempo em toda venda, para sempre. Na Edge Function o processo
- * é efêmero, então o cache vale enquanto a instância estiver viva — que é o
- * comportamento certo para uma função serverless.
+ * Cache de fontes, por URL. A decompressão de woff2 custa ~150 ms por
+ * arquivo; na Edge Function o cache vale enquanto a instância estiver viva.
  */
 const fontCache = new Map()
 
 /**
- * Fila de conversão.
- *
- * O `wawoff2` é um módulo WASM de instância única, e ele NÃO reentrante: duas
- * chamadas a `decompress` ao mesmo tempo corrompem a saída uma da outra, e o
- * fontkit depois acusa "Unknown font format" numa fonte perfeitamente boa.
- *
- * Como as três fontes do certificado são sempre as mesmas, a fila só é
- * percorrida uma vez por instância — e o cache evita as próximas.
+ * Fila de conversão: o `wawoff2` é um módulo WASM de instância única e NÃO é
+ * reentrante — duas chamadas a `decompress` ao mesmo tempo corrompem a saída
+ * uma da outra ("Unknown font format" numa fonte boa).
  */
 let fila = Promise.resolve()
 
-/**
- * Baixa e converte uma fonte woff2 em ttf, uma de cada vez.
- *
- * @param {string} url
- * @returns {Promise<Uint8Array>}
- */
+/** Baixa e converte uma fonte woff2 em ttf, uma de cada vez. */
 function carregarTtf(url) {
   if (fontCache.has(url)) return Promise.resolve(fontCache.get(url))
 
   const trabalho = fila.then(async () => {
     if (fontCache.has(url)) return fontCache.get(url)
-
-    // O `arrayBuffer()` de um fetch precisa vir inteiro e destacado; um Buffer
-    // que é view de um array maior faz a conversão falhar em silêncio.
-    const bruto = new Uint8Array(await (await fetch(url)).arrayBuffer())
-    // `npm:` também no import dinâmico: o empacotador do Deno analisa imports
-    // literais, mesmo os dinâmicos, e rejeita o bare specifier.
+    const resposta = await fetch(url)
+    const bruto = new Uint8Array(await resposta.arrayBuffer())
     const { decompress } = await import('npm:wawoff2')
-    /*
-     * O retorno do WASM é uma *view* dentro do heap dele, com `byteOffset`
-     * grande. O fontkit lê a partir do início do `ArrayBuffer` em vez de
-     * respeitar a view, então passá-lo direto dá "Unknown font format". A
-     * cópia num array novo resolve e custa alguns KB, uma vez por fonte.
-     */
     const ttf = Uint8Array.from(await decompress(bruto))
     fontCache.set(url, ttf)
     return ttf
   })
 
-  // A fila não pode quebrar por causa de uma fonte: o próximo chama precisa
-  // conseguir tentar de novo.
   fila = trabalho.catch(() => {})
   return trabalho
 }
 
-/**
- * Converte `#rrggbb` para a cor do pdf-lib.
- *
- * Exportada porque `certificate.js` não conhece o pdf-lib: quem chama
- * registra esta função como fábrica via `definirFabricaDeCor`, e o desenho
- * continua falando só em hex.
- */
+/** `#rrggbb` → cor do pdf-lib. */
 export function cor(hex) {
   const h = hex.replace('#', '')
-  return rgb(
-    parseInt(h.slice(0, 2), 16) / 255,
-    parseInt(h.slice(2, 4), 16) / 255,
-    parseInt(h.slice(4, 6), 16) / 255,
-  )
+  return rgb(parseInt(h.slice(0, 2), 16) / 255, parseInt(h.slice(2, 4), 16) / 255, parseInt(h.slice(4, 6), 16) / 255)
+}
+
+function misturar(a, b, t) {
+  const ca = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16))
+  const cb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16))
+  return `#${ca.map((v, i) => Math.round(v + (cb[i] - v) * t).toString(16).padStart(2, '0')).join('')}`
 }
 
 /**
- * Envolve a página convertendo milímetros para pontos.
+ * Gera o PDF.
  *
- * `certificate.js` desenha em milímetros, que é a unidade em que se pensa
- * papel. O pdf-lib trabalha em pontos e não tem transformação de página
- * inteira, então a conversão fica aqui, na fronteira.
- *
- * Só a geometria é convertida. O `size` da fonte fica em pontos de propósito:
- * font-size em pt é o padrão em tipografia.
- */
-function emMilimetros(page) {
-  const s = (v) => v * MM_TO_PT
-  const escala = (opts) => {
-    const out = { ...opts }
-    for (const key of ['x', 'y', 'width', 'height', 'x1', 'y1', 'x2', 'y2', 'borderWidth']) {
-      if (typeof out[key] === 'number') out[key] = s(out[key])
-    }
-    return out
-  }
-  return {
-    /*
-     * `drawText` recebe (conteúdo, opções) no pdf-lib, e o desenho em
-     * `certificate.js` também chama assim. Os dois argumentos precisam
-     * passar separados — colapsá-los num objeto só faria o texto sair com a
-     * fonte padrão do pdf-lib, que não conhece o "ε".
-     *
-     * A posição (x, y) é convertida; o `size` NÃO. Tamanho de fonte em pontos
-     * é a convenção da tipografia e da spec do PDF, e o desenho já foi
-     * escrito pensando em "40 é um título grande", não "40 mm de altura".
-     */
-    drawText: (content, opts = {}) => {
-      const { x, y, ...resto } = opts
-      return page.drawText(content, {
-        ...resto,
-        ...(typeof x === 'number' ? { x: s(x) } : {}),
-        ...(typeof y === 'number' ? { y: s(y) } : {}),
-      })
-    },
-    drawRectangle: (opts) => page.drawRectangle(escala(opts)),
-    drawLine: (opts) => page.drawLine(escala(opts)),
-    /*
-     * O `drawSvgPath` do pdf-lib já aplica a escala e a inversão do eixo Y,
-     * desde que `scale` venha nas opções. Passar o valor aqui é o que impede
-     * a estrela de sair do tamanho de um ponto.
-     */
-    drawSvgPath: (path, opts = {}) => page.drawSvgPath(path, opts),
-    /** Pontos por milímetro, para quem desenhar em unidades do documento. */
-    escala: s,
-    raw: page,
-  }
-}
-
-/**
- * @param {object} data    campos de `_certificate`
+ * @param {import('./certificado/desenho.js').DadosCertificado} data
  * @param {{ light?: boolean, fontBaseUrl?: string }} [opts]
- * @returns {Promise<Uint8Array>} bytes do PDF
+ * @returns {Promise<Uint8Array>}
  */
 export async function buildCertificatePdf(data, opts = {}) {
   const base = opts.fontBaseUrl ?? ''
   const pdf = await PDFDocument.create()
   pdf.registerFontkit(fontkit)
 
-  /*
-   * As fontes do site: Playfair Display (display — marca e título), Montserrat
-   * (regular, itálico — texto, nome e dados) e o itálico grego da EB Garamond
-   * (linha das designações de Bayer).
-   *
-   * Playfair e Montserrat são variáveis: o mesmo woff2 cobre a faixa de pesos
-   * declarada no CSS, e o pdf-lib embute a instância padrão (400) — que é o
-   * único peso que o desenho usa.
-   *
-   * `subset: true` embute só os glifos usados. Sem isso, cada certificado
-   * carregaria ~120 KB de fonte para 40 glifos — e o e-mail ficaria pesado.
-   */
-  const [display, sans, sansItalic, italicoGrego] = await Promise.all([
-    carregarTtf(`${base}/fonts/playfair-display-400-700.woff2`),
-    carregarTtf(`${base}/fonts/montserrat-400-600.woff2`),
-    carregarTtf(`${base}/fonts/montserrat-400i.woff2`),
-    /*
-     * Itálico com alfabeto grego, para a linha "ε Sagittarii".
-     *
-     * Os outros três são subconjuntos só com latim: o "ε" das designações de
-     * Bayer não existe neles, e o pdf-lib não tem o fallback que o navegador
-     * tem — o glifo saía como a caixinha de "não existe". O subset abaixo foi
-     * cortado com as letras gregas inteiras, então serve para qualquer estrela
-     * (α, β, δ…), não só para a Kaus Australis.
-     */
-    carregarTtf(`${base}/fonts/eb-garamond-italic-grego.woff2`),
-  ])
-
-  const fonts = {
-    regular: await pdf.embedFont(sans, { subset: true }),
-    italic: await pdf.embedFont(sansItalic, { subset: true }),
-    display: await pdf.embedFont(display, { subset: true }),
-    bayer: await pdf.embedFont(italicoGrego, { subset: true }),
+  const chaves = Object.keys(METRICAS)
+  const ttfs = await Promise.all(chaves.map((k) => carregarTtf(`${base}/fonts/pdf/${METRICAS[k].arquivo}`)))
+  const fontes = {}
+  for (let i = 0; i < chaves.length; i += 1) {
+    fontes[chaves[i]] = await pdf.embedFont(ttfs[i], { subset: true })
   }
 
-  const page = pdf.addPage([PAGE.width * MM_TO_PT, PAGE.height * MM_TO_PT])
-
-  // O desenho fala em hex legível; quem converte para o tipo do pdf-lib é a
-  // fábrica informada aqui.
-  definirFabricaDeCor(cor)
-  drawCertificate(pdf, emMilimetros(page), fonts, data, opts)
+  const folha = desenharCertificado(data, { claro: opts.light === true })
+  const page = pdf.addPage([PAGINA.largura * MM_TO_PT, PAGINA.altura * MM_TO_PT])
+  desenhar(page, folha, fontes)
 
   pdf.setTitle(`Certificado de ${data.starName} para ${data.honoreeName}`)
   pdf.setAuthor('Stellara')
-  pdf.setSubject('Certificado de dedicação celeste')
+  pdf.setSubject('Certificado de dedicação de estrela')
   pdf.setKeywords(['certificado', 'estrela', data.starName, data.bayer])
   pdf.setProducer('Stellara')
   pdf.setCreator('Stellara')
   pdf.setCreationDate(new Date())
 
   return pdf.save()
+}
+
+/** Traduz a lista de itens para o pdf-lib. */
+function desenhar(page, folha, fontes) {
+  const pt = (mm) => mm * MM_TO_PT
+  const yPdf = (y) => pt(folha.altura - y)
+
+  for (const item of folha.itens) {
+    switch (item.tipo) {
+      case 'degrade': {
+        /*
+         * O pdf-lib não tem gradiente: faixas de 0,25 mm com 50% de
+         * sobreposição. Sem a sobreposição, cada faixa arredonda para um pixel
+         * diferente e aparece uma listra clara entre elas.
+         */
+        const faixas = Math.ceil(folha.altura / 0.25)
+        const h = folha.altura / faixas
+        for (let i = 0; i < faixas; i += 1) {
+          page.drawRectangle({
+            x: 0,
+            y: yPdf((i + 1) * h),
+            width: pt(folha.largura),
+            height: pt(h * 1.5),
+            color: cor(misturar(item.topo, item.base, i / (faixas - 1))),
+          })
+        }
+        break
+      }
+      case 'linha':
+        page.drawLine({
+          start: { x: pt(item.x1), y: yPdf(item.y1) },
+          end: { x: pt(item.x2), y: yPdf(item.y2) },
+          thickness: pt(item.espessura),
+          color: cor(item.cor),
+          opacity: item.opacidade,
+        })
+        break
+      case 'retangulo':
+        page.drawRectangle({
+          x: pt(item.x),
+          y: yPdf(item.y + item.altura),
+          width: pt(item.largura),
+          height: pt(item.altura),
+          borderColor: cor(item.traco),
+          borderWidth: pt(item.espessura),
+          borderOpacity: item.opacidade,
+        })
+        break
+      case 'circulo':
+        page.drawCircle({
+          x: pt(item.cx),
+          y: yPdf(item.cy),
+          size: pt(item.r),
+          ...(item.preenchimento ? { color: cor(item.preenchimento), opacity: item.opacidade } : {}),
+          ...(item.traco
+            ? { borderColor: cor(item.traco), borderWidth: pt(item.espessura), borderOpacity: item.opacidade }
+            : {}),
+        })
+        break
+      case 'caminho':
+        // `drawSvgPath` lê o path com y para baixo, a partir da origem dada.
+        page.drawSvgPath(item.d, {
+          x: pt(item.x),
+          y: yPdf(item.y),
+          scale: pt(item.escala),
+          ...(item.preenchimento ? { color: cor(item.preenchimento), opacity: item.opacidade } : {}),
+          ...(item.traco
+            ? {
+                borderColor: cor(item.traco),
+                borderWidth: pt(item.espessura),
+                borderOpacity: item.opacidade,
+                ...(item.ponta === 'redonda' ? { borderLineCap: LineCapStyle.Round } : {}),
+              }
+            : {}),
+        })
+        break
+      case 'texto': {
+        const fonte = fontes[item.fonte]
+        const opcoes = { size: item.pt, font: fonte, color: cor(item.cor), opacity: item.opacidade }
+        if (!item.espaco) {
+          page.drawText(item.texto, { ...opcoes, x: pt(item.x), y: yPdf(item.y) })
+          break
+        }
+        // Espaçamento entre letras: uma letra por vez, avançando pela MESMA
+        // tabela de larguras que a prévia usa.
+        const m = METRICAS[item.fonte]
+        let x = item.x
+        for (const ch of item.texto) {
+          page.drawText(ch, { ...opcoes, x: pt(x), y: yPdf(item.y) })
+          const avanco = m.larguras[ch.codePointAt(0)] ?? 0
+          x += (avanco / m.unidades) * item.pt * (25.4 / 72) + item.espaco * (25.4 / 72)
+        }
+        break
+      }
+      default:
+        throw new Error(`Item desconhecido no certificado: ${item.tipo}`)
+    }
+  }
 }

@@ -1,156 +1,187 @@
 /**
- * Certificado em PDF: a matemática de distribuição vertical compartilhada
- * entre o PDF e a prévia HTML, e a geração real do arquivo com fontes lidas
- * do disco.
+ * Certificado: a folha (`shared/certificado/desenho.js`), as fontes do PDF e
+ * a geração real do arquivo.
  *
- * Motivo: o layout é a parte frágil do certificado — texto longo já saiu
- * para fora da folha e o bloco de dados desceu em cima do rodapé. Os casos
- * cobrem o pior que a moderação deixa passar (nome em 2 linhas + mensagem
- * no limite de 600 caracteres).
+ * Os bugs que este arquivo impede de voltar:
+ *
+ * - O PDF embutia a fonte VARIÁVEL da Montserrat, cuja instância padrão é a
+ *   Thin: todo texto saía fininho, diferente da prévia.
+ * - Rótulos dos dados desenhados por cima dos valores, filetes tortos (o
+ *   pdf-lib ignorava o espaçamento entre letras que a conta somava).
+ * - Texto longo saindo do espaço dele. O pior caso que a moderação deixa
+ *   passar — nome de 80 caracteres, mensagem de 600, assinatura de 60 —
+ *   precisa caber sem encostar em nada.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { PDFDocument } from 'pdf-lib'
+import fontkit from '@pdf-lib/fontkit'
+import { decompress } from 'wawoff2'
 import { buildCertificatePdf } from '../shared/pdf.js'
 import { LIMITES } from '../shared/moderation.js'
-import { MARGIN, MM_PER_PT, PAGE, alturaDe, distribuirBlocos } from '../shared/certificate.js'
+import { desenharCertificado, medir, MM_POR_PT, PAGINA, quebrar } from '../shared/certificado/desenho.js'
+import { METRICAS } from '../shared/certificado/metricas.js'
+import { STARS, formatDec, formatRa } from '../shared/stars.js'
 
-// Faixa útil vertical em milímetros: topo logo abaixo da borda superior,
-// chão acima da margem inferior, mais o espaço reservado ao bloco de dados.
-const topo = PAGE.height - MARGIN - 10
-const base = MARGIN + 26
-const dadosAltura = 8
+const mensagemLonga =
+  'Que este céu sempre te lembre que você é amada — e que, onde quer que olhe para cima, a gente está olhando para a mesma coisa. Guarde este papel como quem guarda uma carta: ele não é a estrela, é o combinado de que a gente olhava para ela junto. Passaram-se anos, mudou-se de casa, trocou-se de cidade, e o céu continuou lá em cima, exatamente onde estava quando você nasceu — girando devagar, sem pressa, esperando ninguém. Que você encontre ela em noites claras, no fim de uma semana difícil, quando ninguém está olhando. Quando isso acontecer, sorria: é a minha maneira de estar por perto, mesmo quando estiver longe. Que este céu sempre te lembre que você é amada.'
 
-/*
- * A tabela de alturas, igual à dos dois consumidores (PDF e prévia).
- *
- * Só os blocos de UMA linha usam `alturaDe` — a altura das maiúsculas. Nome e
- * mensagem têm várias linhas e valem o avanço de linha (1,15 e 1,5, o mesmo
- * `line-height` do CSS): medir com `alturaDe` subestimava o bloco e o texto
- * saía para fora do espaço reservado.
- */
-const blocos = (nomeLinhas, mensagemLinhas) => [
-  ['titulo', alturaDe(9)],
-  ['marca', alturaDe(40)],
-  ['selo', alturaDe(7)],
-  ['estrelaSimbolo', 22],
-  ['estrela', alturaDe(22)],
-  ['bayer', alturaDe(11)],
-  ['dedicatoria', alturaDe(7)],
-  ['nome', nomeLinhas * 26 * MM_PER_PT * 1.15],
-  ...(mensagemLinhas > 0 ? [['mensagem', mensagemLinhas * 11 * MM_PER_PT * 1.5]] : []),
-]
+/** Dados da folha a partir de uma estrela do catálogo — como a prévia monta. */
+function dados(slug, extra = {}) {
+  const s = STARS.find((estrela) => estrela.slug === slug)
+  return {
+    starName: s.name,
+    slug: s.slug,
+    ra: s.ra,
+    dec: s.dec,
+    bayer: s.bayer,
+    constellation: s.constellation,
+    constellationLatin: s.constellationLatin,
+    spectralType: s.spectralType,
+    raFormatted: formatRa(s.ra),
+    decFormatted: formatDec(s.dec),
+    magnitude: s.magnitude,
+    distanceLy: s.distanceLy,
+    code: 'SG-AB3K-9ZXM',
+    dedicationDate: '14 de outubro de 2026',
+    honoreeName: 'Geovanna Beatriz Santos Trindade',
+    ...extra,
+  }
+}
 
-// Nome em 2 linhas (o corpo encolhe até caber) e mensagem no limite de 600
-// caracteres — cinco a seis linhas. É o pior caso que a moderação deixa passar.
-const casos = [
-  ['típico', 1, 1],
-  ['sem mensagem', 1, 0],
-  ['extremo', 2, 5],
-  ['extremo apertado', 2, 6],
-]
+const casos = {
+  típico: dados('kaus-australis', { message: 'Que este céu sempre te lembre que você é amada.', fromName: 'Com amor, Nickolas' }),
+  'sem mensagem nem assinatura': dados('vega', { honoreeName: 'Lívia' }),
+  extremo: dados('alpha-centauri', {
+    honoreeName: 'Maria Eduarda Albuquerque de Vasconcelos Cavalcanti Figueiredo Pessoa Junior'.slice(0, LIMITES.honoreeName.max),
+    message: mensagemLonga.slice(0, LIMITES.message.max),
+    fromName: 'Com todo o amor do mundo, para sempre seu, hoje e amanhã'.slice(0, LIMITES.fromName.max),
+  }),
+  'extremo sem espaços': dados('canopus', {
+    honoreeName: 'Wolfeschlegelsteinhausenbergerdorff Montmorency Albuquerque',
+    message: 'Amor '.repeat(150).slice(0, LIMITES.message.max).trim(),
+  }),
+}
 
-// === Unidade: distribuição de blocos na faixa útil ===
-describe('distribuirBlocos (matemática compartilhada PDF ↔ prévia)', () => {
-  it('cabe inteiro na faixa útil, com o bloco de dados acima do rodapé', () => {
-    for (const [nome, nNome, nMensagem] of casos) {
-      const { bases, dadosTopo } = distribuirBlocos(blocos(nNome, nMensagem), {
-        topo,
-        base,
-        dadosAltura,
-      })
+/** Caixa aproximada de um texto: da altura das maiúsculas até as descendentes. */
+const caixa = (t) => ({
+  x1: t.x,
+  x2: t.x + t.largura,
+  y1: t.y - t.pt * MM_POR_PT * 0.74,
+  y2: t.y + t.pt * MM_POR_PT * 0.24,
+})
 
-      const ys = Object.values(bases)
-      // Tolerância de 1e-6: no caso apertado a conta bate EXATAMENTE no chão
-      // e o resto de vírgula flutuante é 39,99999999999998.
-      expect(Math.max(...ys), `${nome}: topo`).toBeLessThanOrEqual(topo + 1e-6)
-      expect(Math.min(...ys), `${nome}: chão`).toBeGreaterThanOrEqual(base - 1e-6)
+// === A folha ===
+describe('desenharCertificado', () => {
+  it('é A4 retrato, em milímetros', () => {
+    const folha = desenharCertificado(casos.típico)
+    expect([folha.largura, folha.altura]).toEqual([210, 297])
+    expect(PAGINA).toEqual({ largura: 210, altura: 297 })
+  })
 
-      // O bug: sem o bloco de dados no orçamento, a sobra era toda gasta no
-      // vão e ele descia em cima da zona do rodapé.
-      expect(dadosTopo - dadosAltura, `${nome}: dados acima do rodapé`).toBeGreaterThanOrEqual(base - 1e-6)
+  it('todo texto fica dentro da moldura interna, em todos os casos', () => {
+    for (const [nome, caso] of Object.entries(casos)) {
+      for (const claro of [false, true]) {
+        const textos = desenharCertificado(caso, { claro }).itens.filter((i) => i.tipo === 'texto')
+        for (const t of textos) {
+          const c = caixa(t)
+          expect(c.x1, `${nome}: "${t.texto.slice(0, 30)}" à esquerda`).toBeGreaterThanOrEqual(13)
+          expect(c.x2, `${nome}: "${t.texto.slice(0, 30)}" à direita`).toBeLessThanOrEqual(197)
+          expect(c.y1, `${nome}: "${t.texto.slice(0, 30)}" no topo`).toBeGreaterThanOrEqual(13)
+          expect(c.y2, `${nome}: "${t.texto.slice(0, 30)}" no pé`).toBeLessThanOrEqual(284)
+        }
+      }
     }
   })
 
-  it('descende pela regra base[i+1] = base[i] - vao - altura[i+1]', () => {
-    const alturas = blocos(2, 5)
-    const { vao, bases } = distribuirBlocos(alturas, { topo, base, dadosAltura })
-    const presentes = alturas.filter(([, altura]) => altura > 0)
-
-    for (let i = 0; i < presentes.length - 1; i += 1) {
-      const [chave, altura] = presentes[i]
-      const [proximoChave, proximaAltura] = presentes[i + 1]
-      expect(bases[proximoChave]).toBeCloseTo(bases[chave] - vao - proximaAltura, 6)
-      expect(altura).toBeGreaterThan(0)
+  it('nenhum texto encosta em outro — nem no pior caso que a moderação permite', () => {
+    for (const [nome, caso] of Object.entries(casos)) {
+      const textos = desenharCertificado(caso).itens.filter((i) => i.tipo === 'texto')
+      for (let i = 0; i < textos.length; i += 1) {
+        for (let j = i + 1; j < textos.length; j += 1) {
+          const a = caixa(textos[i])
+          const b = caixa(textos[j])
+          const cruzam = a.x1 < b.x2 && b.x1 < a.x2 && a.y1 < b.y2 && b.y1 < a.y2
+          expect(cruzam, `${nome}: "${textos[i].texto.slice(0, 25)}" × "${textos[j].texto.slice(0, 25)}"`).toBe(false)
+        }
+      }
     }
   })
 
-  it('o vão fica entre o piso e o teto', () => {
-    for (const [nome, nNome, nMensagem] of casos) {
-      const { vao } = distribuirBlocos(blocos(nNome, nMensagem), { topo, base, dadosAltura })
-      expect(vao, nome).toBeGreaterThanOrEqual(2.5)
-      expect(vao, nome).toBeLessThanOrEqual(9)
+  it('o bloco central não desce até o fio que separa os dados', () => {
+    for (const [nome, caso] of Object.entries(casos)) {
+      const textos = desenharCertificado(caso).itens.filter((i) => i.tipo === 'texto' && i.y > 100 && i.y < 205)
+      const ultimo = Math.max(...textos.map((t) => caixa(t).y2))
+      expect(ultimo, nome).toBeLessThan(202.5)
+    }
+  })
+
+  it('o nome inteiro aparece: encolhe o corpo, nunca corta o sobrenome', () => {
+    const textos = desenharCertificado(casos.extremo).itens.filter((i) => i.tipo === 'texto').map((t) => t.texto)
+    expect(textos.join(' ')).toContain('Cavalcanti')
+    expect(textos.join(' ')).toContain('Pessoa')
+  })
+
+  it('a mesma entrada dá sempre a mesma folha (céu de fundo com sorteio fixo)', () => {
+    expect(JSON.stringify(desenharCertificado(casos.típico))).toBe(JSON.stringify(desenharCertificado(casos.típico)))
+  })
+
+  it('as 12 estrelas têm mapa do céu, com estrelas reais e linhas da constelação', () => {
+    for (const estrela of STARS) {
+      const itens = desenharCertificado(dados(estrela.slug)).itens
+      // Estrelas do mapa: círculos preenchidos dentro do círculo do mapa.
+      const doMapa = itens.filter(
+        (i) => i.tipo === 'circulo' && i.preenchimento && (i.cx - 152) ** 2 + (i.cy - 232) ** 2 < 23 ** 2,
+      )
+      const linhas = itens.filter((i) => i.tipo === 'linha' && i.espessura === 0.22)
+      expect(doMapa.length, `${estrela.slug}: estrelas`).toBeGreaterThan(15)
+      expect(linhas.length, `${estrela.slug}: linhas`).toBeGreaterThan(0)
+      const legenda = itens.find((i) => i.tipo === 'texto' && i.texto.endsWith('· J2000'))
+      expect(legenda.texto).toBe(`${estrela.constellationLatin.toUpperCase()} · J2000`)
     }
   })
 })
 
-// === Integração: geração real do PDF (A4 paisagem, fontes do disco) ===
-describe('PDF (geração real, fontes lidas do disco)', () => {
-  /*
-   * Texto longo do caso extremo.
-   *
-   * O formulário corta em `LIMITES.message.max` (600) — o `maxLength` do textarea
-   * —, então o PDF é testado com o MESMO texto que a pessoa consegue digitar.
-   * Enviar 668 caracteres aqui fazia a prévia e o PDF renderizarem textos
-   * diferentes, e as duas quebras de linha não tinham por que coincidir.
-   */
-  const mensagemLonga =
-    'Que este céu sempre te lembre que você é amada — e que, onde quer que olhe para cima, a gente está olhando para a mesma coisa. Guarde este papel como quem guarda uma carta: ele não é a estrela, é o combinado de que a gente olhava para ela junto. Passaram-se anos, mudou-se de casa, trocou-se de cidade, e o céu continuou lá em cima, exatamente onde estava quando você nasceu — girando devagar, sem pressa, esperando ninguém. Que você encontre ela em noites claras, no fim de uma semana difícil, quando ninguém está olhando. Quando isso acontecer, sorria: é a minha maneira de estar por perto, mesmo quando estiver longe. Que este céu sempre te lembre que você é amada.'
-
-  const casosPdf = {
-    normal: {
-      honoreeName: 'Geovanna Beatriz Santos Trindade',
-      message: 'Que este céu sempre te lembre que você é amada.',
-    },
-    extremo: {
-      honoreeName: 'Maria Fernanda Oliveira dos Santos Albuquerque Júnior Filho',
-      message: mensagemLonga.slice(0, LIMITES.message.max),
-    },
-    semMensagem: {
-      honoreeName: 'Ana Clara Ribeiro',
-      message: '',
-    },
-    claro: {
-      honoreeName: 'Geovanna Beatriz Santos Trindade',
-      message: 'Que este céu sempre te lembre que você é amada.',
-    },
-  }
-
-  const baseDados = {
-    starName: 'Kaus Australis',
-    bayer: 'ε Sagittarii',
-    constellation: 'Sagitário',
-    constellationLatin: 'Sagittarius',
-    spectralType: 'B9.5 III',
-    raFormatted: '18h 24m 10.32s',
-    decFormatted: '−34° 23′ 04.62″',
-    magnitude: 0.85,
-    distanceLy: 143,
-    code: 'SG-TEST-TEST',
-    dedicationDate: '13 de outubro de 2026',
-    fromName: 'Com amor, sempre',
-  }
-
-  it('a mensagem do caso extremo é exatamente o limite da moderação', () => {
-    expect(mensagemLonga.length).toBeGreaterThanOrEqual(LIMITES.message.max)
-    expect(casosPdf.extremo.message).toHaveLength(LIMITES.message.max)
+// === Medida de texto, compartilhada com a prévia ===
+describe('medir e quebrar', () => {
+  it('soma as larguras da tabela, sem kerning', () => {
+    const m = METRICAS.sans
+    const esperado = (('A'.codePointAt(0) in m.larguras ? m.larguras[65] : 0) + m.larguras[86]) / m.unidades * 10 * MM_POR_PT
+    expect(medir('sans', 'AV', 10)).toBeCloseTo(esperado, 6)
   })
 
-  it('sai em A4 paisagem nos quatro casos', async () => {
+  it('o espaçamento entra entre as letras, não depois da última', () => {
+    expect(medir('sans', 'ABC', 10, 2) - medir('sans', 'ABC', 10)).toBeCloseTo(2 * 2 * MM_POR_PT, 6)
+  })
+
+  it('quebra sem passar da largura, salvo palavra maior que a linha', () => {
+    const linhas = quebrar(mensagemLonga, 'serifItalico', 10, 120)
+    expect(linhas.length).toBeGreaterThan(3)
+    for (const linha of linhas) expect(medir('serifItalico', linha, 10)).toBeLessThanOrEqual(120)
+    expect(quebrar('Supercalifragilisticexpialidocious', 'serif', 30, 20)).toHaveLength(1)
+  })
+})
+
+// === Fontes do PDF ===
+describe('fontes do PDF', () => {
+  it('são estáticas e no peso certo — a variável embutia a Montserrat THIN', async () => {
+    const pesos = { sans: 400, sansMedio: 500, sansItalico: 400, serif: 400, serifItalico: 400, grego: 400 }
+    for (const [chave, peso] of Object.entries(pesos)) {
+      const woff2 = readFileSync(join(process.cwd(), 'loja/public/fonts/pdf', METRICAS[chave].arquivo))
+      // Uint8Array puro: no ambiente jsdom o Buffer não passa pela ponte do WASM.
+      const fonte = fontkit.create(Buffer.from(await decompress(Uint8Array.from(woff2))))
+      expect(Object.keys(fonte.variationAxes ?? {}), `${chave}: variável`).toHaveLength(0)
+      expect(fonte['OS/2'].usWeightClass, `${chave}: peso`).toBe(peso)
+    }
+  })
+})
+
+// === Geração real do PDF ===
+describe('PDF (geração real, fontes lidas do disco)', () => {
+  it('sai em A4 retrato, uma página, nos casos do teste e nas duas versões', async () => {
     const original = globalThis.fetch
-    // O pdf-lib não tem fallback de fonte: sem ler os arquivos do disco, o
-    // "ε" sairia como caixinha. O fetch vira leitura de `loja/public`.
+    // O pdf-lib não tem fallback de fonte: o fetch vira leitura de `loja/public`.
     globalThis.fetch = async (url) => {
       const arquivo = join(process.cwd(), 'loja', 'public', String(url).replace(/^https?:\/\/[^/]+/, ''))
       const bytes = readFileSync(arquivo)
@@ -158,25 +189,24 @@ describe('PDF (geração real, fontes lidas do disco)', () => {
     }
 
     try {
-      for (const [nome, dados] of Object.entries(casosPdf)) {
-        const bytes = await buildCertificatePdf({ ...baseDados, ...dados }, { light: nome === 'claro' })
+      for (const [nome, caso] of Object.entries(casos)) {
+        for (const light of [false, true]) {
+          const bytes = await buildCertificatePdf(caso, { light })
 
-        // Inspeção visual sob demanda: os PNGs são a única forma de enxergar
-        // o "ε" e a geometria de verdade.
-        const saida = process.env.CERT_PDF_OUT
-        if (saida) {
-          mkdirSync(saida, { recursive: true })
-          writeFileSync(join(saida, `cert-${nome}.pdf`), bytes)
+          // Inspeção visual sob demanda: `CERT_PDF_OUT=pasta npx vitest run test/certificado.test.js`.
+          const saida = process.env.CERT_PDF_OUT
+          if (saida) {
+            mkdirSync(saida, { recursive: true })
+            writeFileSync(join(saida, `cert-${nome.replace(/\s+/g, '-')}${light ? '-claro' : ''}.pdf`), bytes)
+          }
+
+          const pdf = await PDFDocument.load(bytes)
+          const [pagina] = pdf.getPages()
+          const { width, height } = pagina.getSize()
+          expect(pdf.getPageCount(), `${nome}: páginas`).toBe(1)
+          expect(width, `${nome}: largura`).toBeCloseTo((210 * 72) / 25.4, 1)
+          expect(height, `${nome}: altura`).toBeCloseTo((297 * 72) / 25.4, 1)
         }
-
-        const pdf = await PDFDocument.load(bytes)
-        const [pagina] = pdf.getPages()
-        const { width, height } = pagina.getSize()
-
-        expect(pdf.getPageCount(), `${nome}: páginas`).toBe(1)
-        expect(width, `${nome}: largura`).toBeCloseTo((PAGE.width * 72) / 25.4, 1)
-        expect(height, `${nome}: altura`).toBeCloseTo((PAGE.height * 72) / 25.4, 1)
-        expect(width, `${nome}: paisagem`).toBeGreaterThan(height)
       }
     } finally {
       globalThis.fetch = original

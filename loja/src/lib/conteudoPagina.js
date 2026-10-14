@@ -32,6 +32,8 @@ import { brightStars } from '../data/brightStars.js'
 export function estrelaDaFolha(estrela) {
   return {
     name: estrela.commonName,
+    // O slug liga o mapa do céu da folha (`shared/ceu.js`).
+    slug: estrela.slug,
     bayer: estrela.bayer,
     constellation: estrela.constellation,
     constellationLatin: estrela.constellationLatin,

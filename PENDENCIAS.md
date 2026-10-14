@@ -131,6 +131,20 @@ de coluna errado no typecheck. Precisa do CLI logado no projeto.
 
 ---
 
+## 3. Certificado Edição Midnight (14/10)
+
+O PDF que o cliente recebia era bem pior que a prévia: Montserrat **Thin** em
+tudo (a fonte variável embutida na instância padrão), rótulos dos dados por
+cima dos valores, filetes tortos (o pdf-lib ignorava o espaçamento entre
+letras), ★ genérica. A causa era ter dois desenhos mantidos à mão.
+
+Agora a folha é UMA lista de itens (`shared/certificado/desenho.js`) que vira
+SVG na loja e PDF no servidor, com as mesmas larguras de texto — e segue a
+prancha: A4 retrato, logo oficial, nome em Playfair itálica e o mapa do céu
+real da estrela (Hipparcos). Testes garantem que nenhum texto encosta em
+outro nem sai da moldura no pior caso da moderação (nome de 80, mensagem de
+600, assinatura de 60) e que as fontes do PDF são estáticas no peso certo.
+
 ## 3. O que foi corrigido (rodada de 14/10 — loja)
 
 | O que era | Consequência |

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { CertificadoPreview } from '../components/CertificadoPreview.jsx'
-import { Escala } from '../components/Escala.jsx'
+import { Folha } from '../components/Folha.jsx'
 import { useContent } from '../lib/contentContext.js'
 import { estrelaDaFolha } from '../lib/conteudoPagina.js'
 
@@ -67,10 +66,9 @@ export function ModalCertificado({ open, onClose }) {
         </div>
       </div>
 
-      <div className="shimmer-border mt-4 overflow-hidden rounded-2xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
-        <Escala>
+      <div className="shimmer-border mx-auto mt-4 max-w-[30rem] overflow-hidden rounded-2xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
           <div ref={folhaRef}>
-            <CertificadoPreview
+            <Folha
               estrela={estrelaDaFolha(content.estrela)}
               honoreeName={content.nome}
               message={content.mensagemPessoal}
@@ -80,7 +78,6 @@ export function ModalCertificado({ open, onClose }) {
               light={claro}
             />
           </div>
-        </Escala>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">

@@ -1,6 +1,6 @@
 import { STARS } from '../../../shared/stars.js'
-import { CertificadoPreview } from '../components/CertificadoPreview.jsx'
-import { Escala } from '../components/Escala.jsx'
+import { Folha } from '../components/Folha.jsx'
+import { SimboloOficial } from '../components/SimboloOficial.jsx'
 import { Link } from '../lib/Link.jsx'
 import { usePreco } from '../lib/preco.js'
 import { useState } from 'react'
@@ -254,7 +254,11 @@ function Hero() {
   )
 }
 
-/** Estrela decorativa grande, girando devagar, com anéis e cintilações. */
+/**
+ * A estrela do herói: o mostrador (anéis e raios) gira devagar por trás, e o
+ * símbolo oficial fica DE PÉ por cima, só pulsando o brilho. Antes a estrela
+ * girava junto com tudo e aparecia em "X" — outra estrela, não a da marca.
+ */
 function EstrelaGrande() {
   // Posições fixas: são seis pontos de luz, não um campo — aleatoriedade aqui
   // só faria a cena mudar a cada render.
@@ -313,12 +317,9 @@ function EstrelaGrande() {
             />
           )
         })}
-        <path
-          className="animate-shimmer"
-          d="M100 58 L104 96 L140 100 L104 104 L100 142 L96 104 L60 100 L96 96 Z"
-          fill="#d8b66a"
-        />
       </svg>
+
+      <SimboloOficial className="animate-shimmer absolute w-[62%] drop-shadow-[0_0_24px_rgba(216,182,106,0.35)]" />
     </div>
   )
 }
@@ -390,7 +391,7 @@ function Confianca() {
  * do herói: se o id mudar, as duas chamadas apontam para o nada.
  *
  * A prévia é a MESMA folha do configurador (`CertificadoPreview` dentro de
- * `Escala`), e o campo de nome atualiza ela a cada tecla — a pessoa vê o
+ * `Produto`), e o campo de nome atualiza ela a cada tecla — a pessoa vê o
  * objeto antes de pensar em preço. Só depois vêm o cartão com o que está
  * incluso e o valor: apresentação primeiro, venda em seguida. É a mesma
  * ordem no celular (a folha nasce por cima, via `order-1`).
@@ -440,7 +441,7 @@ function Certificado() {
                 Montar o meu certificado
               </Link>
               <p className="mt-3 text-center text-xs text-ivory/45">
-                Pix, cartão ou boleto · nota fiscal para pessoa jurídica
+                Pix, cartão ou boleto · pagamento pelo Mercado Pago
               </p>
             </div>
           </Reveal>
@@ -460,10 +461,8 @@ function Certificado() {
               maxLength={80}
             />
 
-            <div className="shimmer-border mt-4 overflow-hidden rounded-2xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
-              <Escala>
-                <CertificadoPreview estrela={STARS[0]} honoreeName={nome} code="SG-XXXX-XXXX" />
-              </Escala>
+            <div className="shimmer-border mx-auto mt-4 max-w-[26rem] overflow-hidden rounded-2xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
+              <Folha estrela={STARS[0]} honoreeName={nome} code="SG-XXXX-XXXX" />
             </div>
 
             <p className="mt-3 text-xs leading-relaxed text-ivory/45">

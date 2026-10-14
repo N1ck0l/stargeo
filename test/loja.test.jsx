@@ -1,5 +1,5 @@
 /**
- * Loja Stellara: prévia do certificado (HTML que espelha o PDF), configurador
+ * Loja Stellara: prévia do certificado (o SVG da mesma folha do PDF), configurador
  * do produto (formulário, validação, moderação de mensagem, preço) e
  * rastreamento de pedidos — mais a casca do App (rotas, rodapé) e as regras
  * de CSS das quais a prévia depende para escalar e para as utilities do
@@ -21,13 +21,14 @@ afterEach(cleanup)
 
 const estrela = getStar('kaus-australis')
 
-// === Prévia do certificado (espelho HTML do PDF) ===
+// === Prévia do certificado (a folha de `shared/certificado/desenho.js` em SVG) ===
 describe('CertificadoPreview', () => {
   it('mostra o nome, a estrela e as coordenadas reais', () => {
     render(<CertificadoPreview estrela={estrela} honoreeName="Geovanna" code="SG-TEST-TEST" />)
     const texto = document.body.textContent
 
-    expect(texto).toContain('Stellara')
+    // A marca é desenho (curvas), não texto; o título é texto.
+    expect(texto).toContain('CERTIFICADO DE DEDICAÇÃO')
     expect(texto).toContain('Geovanna')
     expect(texto).toContain('Kaus Australis')
     // A letra grega e os símbolos astronômicos são o motivo de o PDF usar as
@@ -38,38 +39,43 @@ describe('CertificadoPreview', () => {
     expect(texto).toContain('SG-TEST-TEST')
   })
 
-  it('usa a folha A4 em PAISAGEM, em milímetros, para bater com o PDF', () => {
-    // Medidas batendo com o arquivo que vai por e-mail: 297 × 210 mm, unidade
-    // e orientação iguais — não pixels "aproximados".
+  it('é a folha A4 em RETRATO, em milímetros, como o PDF', () => {
+    // Medidas batendo com o arquivo que vai por e-mail: 210 × 297 mm no
+    // viewBox, e largura 100% — o SVG escala sozinho para qualquer caixa.
     const { container } = render(<CertificadoPreview estrela={estrela} honoreeName="Ana" code="X" />)
-    const folha = container.querySelector('.certificado')
+    const folha = container.querySelector('svg.certificado')
 
-    expect(folha.style.width).toBe('297mm')
-    expect(folha.style.height).toBe('210mm')
+    expect(folha.getAttribute('viewBox')).toBe('0 0 210 297')
+    expect(folha.getAttribute('width')).toBe('100%')
   })
 
   it('converte o corpo da fonte por multiplicação — a divisão inflava 8×', () => {
     render(<CertificadoPreview estrela={estrela} honoreeName="Ana" code="X" />)
-    const titulo = screen.getByText('CERTIFICADO DE DEDICAÇÃO CELESTE')
+    const titulo = screen.getByText('CERTIFICADO DE DEDICAÇÃO')
 
-    // 9 pt × 0,3528 mm/pt = 3,17 mm. Dividindo, saía 25,5 mm: o texto oito
-    // vezes maior que a folha, com blocos estourando para fora do papel.
-    // O título tem filetes dos dois lados, então o texto mora num span interno
-    // e o corpo fica no bloco que envolve tudo.
-    const bloco = titulo.closest('[style*="font-size"]')
-    expect(bloco).toBeTruthy()
-    expect(bloco.style.fontSize).toMatch(/mm$/)
-    expect(parseFloat(bloco.style.fontSize)).toBeCloseTo(3.17, 2)
+    // 17 pt × 0,3528 mm/pt = 6,0 mm no viewBox em milímetros. Dividindo,
+    // sairia 48 mm: o título oito vezes maior, estourando a folha.
+    expect(parseFloat(titulo.getAttribute('font-size'))).toBeCloseTo(6.0, 1)
   })
 
-  it('põe os dados científicos em uma fileira de seis colunas', () => {
-    const { container } = render(<CertificadoPreview estrela={estrela} honoreeName="Ana" code="X" />)
-    const dados = container.querySelector('.grid-cols-6')
+  it('desliga kerning e ligaduras, que o PDF não aplica', () => {
+    render(<CertificadoPreview estrela={estrela} honoreeName="Ana" code="X" />)
+    const titulo = screen.getByText('CERTIFICADO DE DEDICAÇÃO')
+    // Ligados, a tela encurtaria pares como "AV" e "fi" e as linhas sairiam
+    // mais curtas que no papel — a quebra deixaria de bater.
+    expect(titulo.style.fontKerning).toBe('none')
+    expect(titulo.style.fontVariantLigatures).toBe('none')
+  })
 
-    // Em retrato eram duas colunas em três linhas; em paisagem sobra altura
-    // de menos e largura de mais, então a fileira é única.
-    expect(dados).toBeTruthy()
-    expect(dados.children).toHaveLength(6)
+  it('traz os seis dados astronômicos e o mapa do céu da constelação', () => {
+    const { container } = render(<CertificadoPreview estrela={estrela} honoreeName="Ana" code="X" />)
+    const texto = container.textContent
+    for (const rotulo of ['CONSTELAÇÃO', 'TIPO ESPECTRAL', 'ASCENSÃO RETA', 'DECLINAÇÃO', 'MAGNITUDE', 'DISTÂNCIA']) {
+      expect(texto).toContain(rotulo)
+    }
+    // O mapa: legenda da constelação e dezenas de estrelas reais desenhadas.
+    expect(texto).toContain('SAGITTARIUS · J2000')
+    expect(container.querySelectorAll('circle').length).toBeGreaterThan(40)
   })
 
   it('tem texto de apoio quando o nome está vazio', () => {
@@ -106,9 +112,8 @@ describe('CertificadoPreview', () => {
     const { container } = render(
       <CertificadoPreview estrela={estrela} honoreeName="Ana" code="X" light />,
     )
-    // jsdom expande o hex para rgb() dentro do gradiente, então comparamos
-    // com o valor computado, não com `#fffdf7`.
-    expect(container.querySelector('.certificado').style.background).toContain('rgb(255, 253, 247)')
+    expect(container.querySelector('svg.certificado').dataset.tema).toBe('claro')
+    expect(container.querySelector('linearGradient stop').getAttribute('stop-color')).toBe('#fffdf7')
   })
 
   it('reduz o corpo do nome em vez de cortar o sobrenome', () => {
@@ -446,7 +451,7 @@ describe('vitrine da home', () => {
     window.history.pushState(null, '', '/')
     const { container } = render(<Loja />)
 
-    expect(container.textContent).toContain('CERTIFICADO DE DEDICAÇÃO CELESTE')
+    expect(container.textContent).toContain('CERTIFICADO DE DEDICAÇÃO')
 
     fireEvent.change(screen.getByLabelText(/Escreva um nome/i), {
       target: { value: 'Beatriz' },
@@ -503,28 +508,14 @@ describe('prévia do certificado', () => {
     expect(camadas.some((bloco) => bloco.includes('.pilha {'))).toBe(true)
   })
 
-  it('escala por um número medido — um calc devolve comprimento e é descartado', () => {
-    // jsdom não mede layout: sem esta largura o fator seria 0 e a folha sairia invisível.
-    const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientWidth')
-    Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, value: 400 })
-
-    try {
-      render(<Produto slug="certificado-digital" />)
-      const escalado = [...document.querySelectorAll('[style*="scale"]')].find(
-        (el) => el.style.transform.includes('scale('),
-      )
-
-      expect(escalado).toBeTruthy()
-      // 400 px de contêiner sobre 1122.52 px de folha (297 mm) = 0.35634...
-      expect(escalado.style.transform).toMatch(/^scale\(0\.35[0-9]+\)$/)
-
-      // A caixa mantém a proporção da folha: paisagem, 297 por 210.
-      const caixa = [...document.querySelectorAll('[style*="aspect"]')].find((el) => el.style.aspectRatio)
-      expect(caixa).toBeTruthy()
-      expect(caixa.style.aspectRatio).toBe('297 / 210')
-    } finally {
-      if (original) Object.defineProperty(HTMLElement.prototype, 'clientWidth', original)
-      else delete HTMLElement.prototype.clientWidth
-    }
+  it('a folha escala sozinha pelo viewBox, sem medir a tela', () => {
+    // Antes, um contêiner media a largura e aplicava `transform: scale()` —
+    // em jsdom (sem layout) o fator dava 0 e a folha sumia. O SVG com viewBox
+    // e largura 100% não depende de medida nenhuma.
+    render(<Produto slug="certificado-digital" />)
+    const folha = document.querySelector('svg.certificado')
+    expect(folha).toBeTruthy()
+    expect(folha.getAttribute('width')).toBe('100%')
+    expect(document.querySelector('[style*="scale("]')).toBeNull()
   })
 })

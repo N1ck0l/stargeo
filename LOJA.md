@@ -7,8 +7,11 @@ na tag `site-pessoal-legado`).
 shared/              núcleo usado pela loja e pelo servidor
 ├── stars.js         12 estrelas vendáveis, dados conferidos com o SIMBAD
 ├── moderation.js    filtro do texto que o cliente escreve no certificado
-├── certificate.js   desenho do certificado, em milímetros
-├── pdf.js           geração do PDF (pdf-lib, sem navegador)
+├── certificado/     a folha (Edição Midnight, A4 retrato) como lista de
+│                    itens em mm + larguras das fontes (metricas.js)
+├── pdf.js           traduz a folha para PDF (pdf-lib, sem navegador)
+├── marca.js         geometria do símbolo; marcaTexto.js = nome em curvas
+├── ceu.js           céu em volta das 12 estrelas (Hipparcos), p/ o mapa
 ├── astro.js         projeção gnomônica do mapa do céu
 └── sky.js           posição celeste no céu, agora e aqui
 
@@ -32,11 +35,20 @@ netlify/edge-functions/
 
 ## O que já está pronto
 
-**Catálogo e certificado.** O PDF é gerado no servidor em ~400 ms, tem 24 KB e
-sai nas duas versões: escura (original) e clara (papel, economiza tinta). As
-fontes do site são embutidas no PDF — as padrão do `pdf-lib` não escrevem
-`ε Sagittarii` nem `−34° 23′ 04.62″`, que são justamente os dados que o
-certificado existe para mostrar.
+**Catálogo e certificado.** A folha é a Edição Midnight da prancha da marca:
+A4 retrato, logo oficial, nome em Playfair itálica, dados astronômicos e o
+mapa do céu REAL em volta da estrela (catálogo Hipparcos, linhas da
+constelação). Ela existe uma vez só — `shared/certificado/desenho.js` devolve
+uma lista de itens em milímetros — e dois tradutores a desenham: SVG na loja
+(`CertificadoPreview`) e PDF no servidor (`shared/pdf.js`, ~150 ms, ~85 KB).
+As duas medem o texto com a mesma tabela de larguras, então a quebra de linha
+é idêntica. Sai em duas versões: escura (original) e clara (papel).
+
+O PDF embute instâncias ESTÁTICAS das fontes (`loja/public/fonts/pdf/`): as do
+site são variáveis, e o pdf-lib usaria a instância padrão — a Thin, no caso da
+Montserrat. Para refazer fontes e larguras: `python scripts/gerar-fontes.py`
+(precisa de `pip install fonttools brotli`). As fontes padrão do pdf-lib não
+serviriam: não escrevem `ε Sagittarii` nem `−34° 23′ 04.62″`.
 
 **Banco.** `orders` não tem nenhuma política de RLS para `anon`: nem com a
 chave pública do Supabase dá para ler um pedido pelo Data API. Preço vive no
@@ -67,7 +79,7 @@ está no bundle público.
 
 **Loja.** O app em `loja/` tem home, configurador com prévia em A4 que atualiza
 a cada tecla, rastreio de pedido por código + e-mail e página de obrigado. A
-prévia usa as mesmas medidas do PDF (`shared/certificate.js`), então o que a
+prévia é a mesma folha do PDF (`shared/certificado/desenho.js`), então o que a
 pessoa vê antes de pagar é o que ela recebe. O roteador é próprio — quatro
 telas não justificam o peso de uma biblioteca.
 

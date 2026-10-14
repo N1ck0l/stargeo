@@ -2,8 +2,7 @@
 import { useState } from 'react'
 import { STARS, getStar } from '../../../shared/stars.js'
 import { validarPedido, explicarErros } from '../../../shared/moderation.js'
-import { CertificadoPreview } from '../components/CertificadoPreview.jsx'
-import { Escala } from '../components/Escala.jsx'
+import { Folha } from '../components/Folha.jsx'
 import { Reveal } from '../components/Reveal.jsx'
 import { criarCheckout, ErroApi, irParaPagamento } from '../lib/api.js'
 import { Link } from '../lib/Link.jsx'
@@ -66,7 +65,7 @@ function dataEmPortugues(iso) {
  *
  * Papel na arquitetura: rota `/produto/:slug`, com o `slug` passado por prop
  * pelo roteador (`loja/src/App.jsx`). Export default `Produto`; importa
- * `CertificadoPreview` + `Escala` (a folha), `Reveal`, `shared/moderation.js`
+ * `CertificadoPreview` (a folha), `Reveal`, `shared/moderation.js`
  * (regra única) e `lib/api.js` (`criarCheckout` / `irParaPagamento`).
  *
  * Invariantes: o pedido só nasce DEPOIS de a validação passar — falhar aqui
@@ -403,14 +402,12 @@ export default function Produto({ slug }) {
               </div>
 
               {/*
-                A folha é A4 em milímetros, e o contêiner escala por
-                `transform`. Dimensionar a folha em pixels fixos faria o
-                certificado ficar ilegível no celular e gigante na tela grande —
-                o `transform` mantém a proporção em qualquer largura.
+                A folha é um SVG A4 retrato em milímetros: escala sozinha para
+                a largura da caixa. O teto de largura impede que, em retrato,
+                ela fique mais alta que a tela no desktop.
               */}
-              <div className="shimmer-border overflow-hidden rounded-2xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
-                <Escala>
-                  <CertificadoPreview
+              <div className="shimmer-border mx-auto max-w-[30rem] overflow-hidden rounded-2xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
+                <Folha
                     estrela={estrela}
                     honoreeName={paraQuem}
                     message={mensagem}
@@ -419,7 +416,6 @@ export default function Produto({ slug }) {
                     code="SG-XXXX-XXXX"
                     light={versaoClara}
                   />
-                </Escala>
               </div>
 
               <p className="mt-3 text-xs leading-relaxed text-ivory/45">

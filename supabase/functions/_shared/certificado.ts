@@ -55,6 +55,10 @@ export async function gerarEGuardar(
   const dados = {
     honoreeName: String(pedido.honoree_name ?? ''),
     starName: String(estrela.name ?? ''),
+    // `slug`, `ra` e `dec` ligam o mapa do céu da folha (`shared/ceu.js`).
+    slug: String(estrela.slug ?? ''),
+    ra: Number(estrela.ra_hours),
+    dec: Number(estrela.dec_degrees),
     bayer: String(estrela.bayer ?? ''),
     constellation: String(estrela.constellation ?? ''),
     constellationLatin: String(estrela.constellation_latin ?? ''),
