@@ -13,6 +13,12 @@ on:
 jobs:
   verificar:
     runs-on: ubuntu-latest
+    # As mesmas variáveis que o build da Netlify tem (valores fictícios): um
+    # teste que só passa SEM elas passou aqui e travou o deploy lá.
+    env:
+      VITE_SUPABASE_URL: https://exemplo.supabase.co
+      VITE_SUPABASE_ANON_KEY: chave-de-teste
+      VITE_FUNCTIONS_URL: https://exemplo.supabase.co/functions/v1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

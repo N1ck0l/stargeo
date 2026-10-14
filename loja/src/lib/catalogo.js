@@ -15,7 +15,13 @@ import { STARS, getStar } from '../../../shared/stars.js'
 
 const URL_BASE = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '')
 const CHAVE = import.meta.env.VITE_SUPABASE_ANON_KEY
-const configurado = Boolean(URL_BASE && CHAVE)
+/*
+ * Em teste, NUNCA rede — mesmo com as variáveis no ambiente. O build da
+ * Netlify roda os testes com as `VITE_*` de produção definidas (o `envDir`
+ * do vitest não as apaga, porque a Vite também lê o `process.env`), e um teste
+ * consultando o banco de verdade falhou lá, segurando o deploy.
+ */
+const configurado = Boolean(URL_BASE && CHAVE) && import.meta.env.MODE !== 'test'
 
 /** Faixas padrão — as mesmas da migration 0010, para o modo sem banco. */
 export const FAIXAS_PADRAO = [
