@@ -1,4 +1,5 @@
 import { Reveal } from '../../components/Reveal'
+import { SimboloOficial } from '../../components/SimboloOficial.jsx'
 import { kausAustralis } from '../../data/star'
 import { useContent } from '../../lib/contentContext'
 import { useScroll, useTypewriter } from '../../lib/useReveal'
@@ -60,19 +61,7 @@ export function Hero({ onOpenCertificate, onOpenFinder }) {
         <span className="animate-spin-slow absolute inset-0 rounded-full border border-gold/20" />
         <span className="animate-spin-slow absolute inset-3 rounded-full border border-dashed border-gold/15 [animation-direction:reverse] [animation-duration:34s]" />
         <span className="absolute inset-7 rounded-full bg-gold/10 blur-xl" />
-        <svg
-          className="animate-floaty animate-shimmer relative"
-          width="52"
-          height="52"
-          viewBox="0 0 72 72"
-          fill="none"
-          aria-hidden="true"
-        >
-          <path
-            d="M36 4 L41.8 26.2 L65 29 L47 43.8 L52.5 66 L36 53.4 L19.5 66 L25 43.8 L7 29 L30.2 26.2 Z"
-            fill="#d8b66a"
-          />
-        </svg>
+        <SimboloOficial className="animate-floaty animate-shimmer relative w-24" />
       </div>
 
       <Reveal as="p" delay={120} className="mb-4 font-display text-[11px] tracking-[0.22em] text-gold/80 uppercase sm:tracking-[0.42em]">
@@ -93,7 +82,7 @@ export function Hero({ onOpenCertificate, onOpenFinder }) {
         <Reveal as="p" delay={520} className="mt-7 min-h-[3.5rem] max-w-2xl font-serif text-lg italic text-ivory/75 sm:text-xl">
           {content.nome}, este pedaço do universo foi escolhido para você:{' '}
           <span className="text-gold not-italic">{estrela.commonName}</span> (
-          {estrela.bayer}), visível a olho nu no céu do Brasil.
+          {estrela.bayer}), {comoSeVeDaqui(estrela)}.
         </Reveal>
       </div>
 
@@ -155,4 +144,17 @@ export function Hero({ onOpenCertificate, onOpenFinder }) {
       </a>
     </section>
   )
+}
+/**
+ * Como ver a estrela daqui — pelo brilho real e pela posição. Com o catálogo
+ * completo há estrelas que só um telescópio mostra, e algumas que nunca sobem
+ * no céu do Brasil: dizer "visível a olho nu" para todas seria mentir no
+ * presente de alguém.
+ */
+function comoSeVeDaqui(estrela) {
+  if (estrela.visibility === 'nunca') return 'uma estrela do céu do hemisfério norte'
+  const onde = estrela.visibility === 'norte' ? 'no céu do norte do Brasil' : 'no céu do Brasil'
+  if (estrela.magnitude <= 6.5) return `visível a olho nu ${onde}`
+  if (estrela.magnitude <= 9) return `visível com binóculo ${onde}`
+  return `visível com telescópio ${onde}`
 }

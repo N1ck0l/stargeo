@@ -214,6 +214,7 @@ export function estrelaParaPagina(estrela: Record<string, unknown>): Record<stri
   return {
     slug: estrela.slug,
     sigla: estrela.sigla ?? null,
+    visibility: estrela.visibility ?? 'brasil',
     commonName: estrela.name,
     bayer: estrela.bayer,
     constellation: estrela.constellation,
@@ -272,8 +273,11 @@ export function conteudoDoPedido(
     carta: [
       `${nome}.`,
       `Existe um pedaço do céu que se recusa a ser comum. Em ${constelacao}, ` +
-        `${nomeEstrela} — ${bayer} nos catálogos — não se esconde: clara o bastante ` +
-        `para ser vista a olho nu, do mesmo céu que cobre os seus dias.`,
+        `${nomeEstrela} — ${bayer} nos catálogos — ` +
+        (Number(estrela.magnitude) <= 6.5
+          ? `não se esconde: clara o bastante para ser vista a olho nu, do mesmo céu que cobre os seus dias.`
+          : `guarda a luz para quem sabe procurar: discreta demais para o olho nu, ` +
+            `ela está lá, no mesmo céu que cobre os seus dias, esperando um telescópio.`),
       `Este certificado não pretende possuir o céu. Ninguém é dono de uma estrela. ` +
         `O que ele guarda é outra coisa, mais verdadeira: a decisão de colocar alguém ` +
         `no mapa. Quando o mundo parecer pequeno demais, levanta os olhos — ela estará lá, ` +

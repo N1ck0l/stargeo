@@ -115,6 +115,27 @@ bloqueante antes, sem nenhuma violação.
   como funciona → confiança) não pôde ser conferida visualmente no aparelho
   nesta rodada — vale abrir no telefone.
 
+### 1.9 Antes de abrir as vendas (rodada "experiência premium", 14/10)
+
+- **E-mail**: o site diz que o link da página "também vai para o e-mail da
+  compra" (FAQ, resumo do pedido, políticas). Hoje o e-mail não sai (ver 1.4):
+  a entrega real é a página da estrela + PDF, que funciona. Com o domínio, a
+  frase passa a valer; sem ele, tire-a.
+- **Políticas** (`/politicas`): redigidas sobre o que a loja faz hoje —
+  entrega digital, Mercado Pago, 7 dias de arrependimento (art. 49 do CDC),
+  LGPD, fontes dos dados. Peça a revisão de um advogado antes de vender em
+  escala, e confirme que o e-mail de contato é o certo.
+- **Reembolso**: o estorno feito no Mercado Pago já devolve a estrela ao
+  catálogo e tira a página do ar sozinho (webhook). O estorno em si continua
+  sendo feito por você, no painel do Mercado Pago.
+- **Sem analytics**: não instalei rastreador nenhum (a política diz que o
+  site não usa rastreadores de anúncio). Se quiser medir conversão, um
+  analytics sem cookie (Plausible, por exemplo) cabe na política atual.
+- **Não implementado de propósito**: nome personalizado para a estrela (além
+  do nome de quem recebe), produto impresso, moldura e embalagem — o site
+  deixa claro que o certificado é digital e que a moldura da prévia é só
+  ilustração.
+
 ## 2. Melhorias que dá para fazer
 
 Nada de bloqueante. Só polimento:
