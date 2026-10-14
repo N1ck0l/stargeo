@@ -37,7 +37,7 @@ export function PersonalMessage() {
         className="shimmer-border group relative mx-auto mt-10 max-w-2xl"
       >
         <div
-          className="relative rotate-[-0.6deg] rounded-sm border border-gold/20 bg-[#fffaf0] px-7 py-9 text-[#2b2342] shadow-[0_18px_50px_rgba(0,0,0,0.45)] transition duration-500 ease-out group-hover:rotate-0 group-hover:scale-[1.015] sm:px-12 sm:py-12"
+          className="relative rotate-[-0.6deg] rounded-sm border border-gold/20 bg-[#fffaf0] px-7 py-9 text-[#1b1d33] shadow-[0_18px_50px_rgba(0,0,0,0.45)] transition duration-500 ease-out group-hover:rotate-0 group-hover:scale-[1.015] sm:px-12 sm:py-12"
         >
           {/* A dobra do papel, no canto. */}
           <span
@@ -63,7 +63,7 @@ export function PersonalMessage() {
           </div>
 
           {content.assinatura && (
-            <p className="relative mt-8 text-right font-serif text-lg text-[#8a6a1c] italic">
+            <p className="relative mt-8 text-right font-serif text-lg text-[#8f6f1f] italic">
               {content.assinatura}
             </p>
           )}

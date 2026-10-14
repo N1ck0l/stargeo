@@ -36,7 +36,7 @@ import { defineConfig } from 'vite'
  */
 function serviceWorkerPlugin() {
   return {
-    name: 'stargeo-service-worker',
+    name: 'stellara-service-worker',
     // Só no build: o dev server não gera sw.js, e um SW no modo de
     // desenvolvimento ficaria servindo bundle antigo por cima do HMR.
     apply: 'build',
@@ -59,10 +59,10 @@ function serviceWorkerPlugin() {
       // fazia o precache baixar o mesmo desenho várias vezes.
       const publicFiles = [
         'index.html',
-        'fonts/cinzel-400.woff2',
-        'fonts/cormorant-garamond-400.woff2',
-        'fonts/cormorant-garamond-400i.woff2',
-        'fonts/outfit-400.woff2',
+        'fonts/playfair-display-400-700.woff2',
+        'fonts/montserrat-400-600.woff2',
+        'fonts/montserrat-400i.woff2',
+        'fonts/eb-garamond-italic-grego.woff2',
         'icon-192.png',
         'icon-512.png',
         'manifest.webmanifest',
@@ -82,7 +82,7 @@ function serviceWorkerPlugin() {
         .slice(0, 12)
 
       const source = `// Gerado automaticamente durante o build. Não edite à mão.
-const CACHE = 'stargeo-${version}';
+const CACHE = 'stellara-${version}';
 const INDEX = ${JSON.stringify(indexHtml)};
 // Conteúdo editável: o arquivo é trocado a cada publicação e não leva hash no
 // nome, então cache-first serviria sempre a versão antiga.

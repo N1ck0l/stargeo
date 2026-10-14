@@ -44,7 +44,7 @@ export function StarTrails({ videoRef }) {
       canvas.style.height = '100%'
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       // Fundo inicial: sem isso a primeira imagem seria um retângulo preto.
-      ctx.fillStyle = '#07061a'
+      ctx.fillStyle = '#090b20'
       ctx.fillRect(0, 0, width, height)
       paint()
     }

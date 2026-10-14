@@ -42,11 +42,17 @@ norte) ela mandava virar para o lado errado. Ainda vale confirmar no escuro.
 
 ### 1.4 Domínio e Netlify
 
-O repositório já publica sozinho na Netlify (site `stellara`, publish
-`dist-loja`) — commit com push é deploy. Os projetos antigos
+O repositório já publica sozinho na Netlify (site `stellara-loja`, publish
+`dist-loja`) — commit com push é deploy. O nome `stellara` puro estava em uso
+na plataforma, daí o sufixo. Os projetos antigos
 `luxury-lamington-97da01` (duplicata) e `papaya-dieffenbachia-483678` (site
 pessoal, build manual) foram apagados; `leafy-jelly-5aac6d` não é deste
 projeto e segue intocado.
+
+O site pessoal não está publicado em lugar nenhum. O `og:url`, o `canonical`
+e o `og:image` dele apontam para `https://n1ck0l.github.io/stellara/`
+(GitHub Pages, a opção 3 do DEPLOY.md) — ative o Pages e a prévia passa a
+funcionar sem mexer em código.
 
 Não existe domínio próprio da marca ainda: a loja vive em `*.netlify.app`.
 Quando o domínio chegar, aponte-o (A/ALIAS ou CNAME para o Netlify), troque
@@ -66,7 +72,7 @@ troque no dashboard → Authentication → Users → *Reset password* se quiser)
 Permissão é a linha em `public.admins`; sem ela, a conta loga e recebe 403.
 
 O `/admin` antigo do site pessoal (`src/components/Admin.jsx`, senha
-`stargeo`) só existe no build do site pessoal, que não é mais publicado.
+`stellara`) só existe no build do site pessoal, que não é mais publicado.
 
 ### 1.6 Mercado Pago real
 
@@ -99,17 +105,15 @@ repositório já está conectado à Netlify (deploy automático), então eles va
 — conferir no navegador após o domínio novo, quando o HTTPS passa a valer de
 verdade.
 
-### 2.2 Os ícones e a imagem de prévia estão grandes (e são da marca antiga)
+### 2.2 Os ícones e a imagem de prévia — resolvidos no rebrand
 
-`og-image.png` tem 201 KB, e os ícones de 512 px uns 130 KB cada. Funcionam,
-mas acima de um certo tamanho alguns mensageiros deixam de exibir a prévia.
-Dá para recomprimir sem perda visível.
-
-Além do peso: esses PNGs (`og-image`, `icon-192`, `icon-512`,
-`icon-maskable-512`, `favicon-32`, `apple-touch-icon`) ainda mostram a marca
-antiga — não é possível regenerá-los a partir do SVG aqui. O símbolo novo já
-está no ar em `favicon.svg`; os raster seguem até alguém reexportá-los da
-prancha da Stellara.
+Os PNGs (`og-image`, `icon-192`, `icon-512`, `icon-maskable-512`,
+`favicon-32`, `apple-touch-icon`) foram regenerados na marca Stellara —
+símbolo, noite e dourado, com Playfair/Montserrat embutidas — e ficaram bem
+menores: o og-image caiu de 201 KB para ~32 KB e o ícone de 512 px de
+~137 KB para ~9 KB. Os arquivos valem para os dois sites (a pasta `public/`
+de cada build recebeu os mesmos). Se a arte mudar de novo, a geração é
+reproduzível a partir do `favicon.svg` e da prancha da marca.
 
 ---
 

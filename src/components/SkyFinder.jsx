@@ -601,7 +601,7 @@ export function SkyFinder({ onClose }) {
                       height: star.dedicated ? 14 : 7,
                       marginLeft: star.dedicated ? -7 : -3.5,
                       marginTop: star.dedicated ? -7 : -3.5,
-                      boxShadow: star.dedicated ? '0 0 20px rgba(232,200,114,0.9)' : 'none',
+                      boxShadow: star.dedicated ? '0 0 20px rgba(216,182,106,0.9)' : 'none',
                     }}
                   />
                 ))}
@@ -723,7 +723,7 @@ export function SkyFinder({ onClose }) {
                     step="1"
                     value={fov}
                     onChange={(event) => setFov(Number(event.target.value))}
-                    className="flex-1 accent-[#e8c872]"
+                    className="flex-1 accent-[#d8b66a]"
                     aria-label="Campo de visão da câmera, em graus"
                   />
                   <span className="w-12 text-right font-mono text-gold">{fov}°</span>

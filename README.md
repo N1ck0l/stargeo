@@ -182,8 +182,8 @@ o ponteiro.
 
 ## Painel de edição (`/admin`)
 
-Para mexer nos textos **sem tocar em código**. Senha padrão: `stargeo` (troque em
-`src/components/Admin.jsx`).
+Para mexer nos textos **sem tocar em código**. Senha padrão: `stellara` (troque
+em `src/components/Admin.jsx`).
 
 O site é estático e não tem servidor, então o painel não grava sozinho: ele
 **baixa um `conteudo.json`**. O caminho é:

@@ -86,13 +86,13 @@ export function Navbar({ onOpenCertificate, onOpenFinder }) {
 
   return (
     <header
-      className={`fixed inset-x-0 top-0 z-40 border-b bg-[#07061a]/70 backdrop-blur-md transition-all duration-300 ${
-        condensed ? 'border-white/10 bg-[#07061a]/85 py-1 shadow-[0_8px_30px_rgba(0,0,0,0.4)]' : 'border-white/5 py-0'
+      className={`fixed inset-x-0 top-0 z-40 border-b bg-[#090b20]/70 backdrop-blur-md transition-all duration-300 ${
+        condensed ? 'border-white/10 bg-[#090b20]/85 py-1 shadow-[0_8px_30px_rgba(0,0,0,0.4)]' : 'border-white/5 py-0'
       }`}
     >
       <div className="safe-top mx-auto flex max-w-6xl items-center justify-between gap-4 px-5">
         <a href="#inicio" className="font-display text-sm tracking-[0.28em] text-gold">
-          STARGEO
+          STELLARA
         </a>
 
         <nav className="hidden items-center gap-6 text-sm text-ivory/75 md:flex">
@@ -160,7 +160,7 @@ export function Navbar({ onOpenCertificate, onOpenFinder }) {
         <nav
           id="nav-mobile"
           ref={menuRef}
-          className="animate-dialog-in border-t border-white/5 bg-[#07061a]/95 md:hidden"
+          className="animate-dialog-in border-t border-white/5 bg-[#090b20]/95 md:hidden"
         >
           <ul className="mx-auto flex max-w-6xl flex-col px-5 py-2 text-sm text-ivory/80">
             {links.map((link) => (
@@ -193,7 +193,7 @@ export function Navbar({ onOpenCertificate, onOpenFinder }) {
       )}
 
       {/*
-        O cabeçalho só mostra a marca "STARGEO"; quem usa leitor de tela ouve
+        O cabeçalho só mostra a marca "STELLARA"; quem usa leitor de tela ouve
         a dedicação logo na primeira navegação. Fica no fim do header para não
         embaralhar a ordem de leitura dos links.
       */}

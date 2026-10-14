@@ -59,7 +59,7 @@ export function CertificateModal({ open, onClose }) {
       const dataUrl = await toPng(sheetRef.current, {
         cacheBust: true,
         pixelRatio: 2,
-        backgroundColor: '#100b2e',
+        backgroundColor: '#151a45',
       })
       const link = document.createElement('a')
       link.download = `certificado-${content.nomeCurto.toLowerCase()}-kaus-australis.png`
@@ -217,7 +217,7 @@ export function CertificateModal({ open, onClose }) {
             Certificado de dedicação celeste
           </p>
           <h2 id="certificate-title" className="cert-title font-serif mt-5 text-3xl sm:text-5xl">
-            StarGeo
+            Stellara
           </h2>
           <div className="cert-rule mx-auto mt-5 h-px w-32" />
           <p className="cert-body mt-6 font-serif text-base italic">Confere-se a</p>

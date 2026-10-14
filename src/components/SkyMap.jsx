@@ -364,7 +364,7 @@ export function SkyMap({ onOpenCertificate }) {
       // meridiano cruza a zona projetável e volta a ser `null`, e sem levantar
       // a caneta o `lineTo` ligaria o fim de um pedaço ao começo do outro,
       // riscando o mapa inteiro na diagonal.
-      ctx.strokeStyle = 'rgba(247, 241, 225, 0.07)'
+      ctx.strokeStyle = 'rgba(246, 241, 231, 0.07)'
       ctx.lineWidth = 1
       for (const ra of raGrid) {
         ctx.beginPath()
@@ -427,7 +427,7 @@ export function SkyMap({ onOpenCertificate }) {
         })
         .filter(Boolean)
 
-      ctx.strokeStyle = 'rgba(232, 200, 114, 0.35)'
+      ctx.strokeStyle = 'rgba(216, 182, 106, 0.35)'
       ctx.lineWidth = 1.4
       points.forEach(([p1, p2], index) => {
         // Cada segmento surge um pouco depois do anterior.
@@ -455,20 +455,20 @@ export function SkyMap({ onOpenCertificate }) {
         ctx.fill()
 
         ctx.beginPath()
-        ctx.fillStyle = star.dedicated ? '#ffe08a' : '#f7f1e1'
+        ctx.fillStyle = star.dedicated ? '#ffe08a' : '#f6f1e7'
         ctx.arc(point.x, point.y, radius, 0, Math.PI * 2)
         ctx.fill()
 
         if (star.dedicated) {
           const pulse = 16 + Math.sin(t * 2.2) * 5
-          ctx.strokeStyle = `rgba(232, 200, 114, ${0.35 + Math.sin(t * 2.2) * 0.3})`
+          ctx.strokeStyle = `rgba(216, 182, 106, ${0.35 + Math.sin(t * 2.2) * 0.3})`
           ctx.lineWidth = 1.4
           ctx.beginPath()
           ctx.arc(point.x, point.y, pulse, 0, Math.PI * 2)
           ctx.stroke()
 
           // Retículo de mira ao redor da estrela dedicada.
-          ctx.strokeStyle = 'rgba(232, 200, 114, 0.55)'
+          ctx.strokeStyle = 'rgba(216, 182, 106, 0.55)'
           ctx.lineWidth = 1
           const arm = radius + 12
           for (const [sx, sy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
@@ -486,8 +486,8 @@ export function SkyMap({ onOpenCertificate }) {
         // nunca é cortado.
         const label = star.dedicated ? dedicatedLabelRef.current : star.name
         ctx.font = star.dedicated
-          ? '600 13px Outfit, sans-serif'
-          : '11px Outfit, sans-serif'
+          ? '600 13px Montserrat, sans-serif'
+          : '11px Montserrat, sans-serif'
         const boxWidth = ctx.measureText(label).width
         const box = { x: point.x + 12, y: point.y - 22, w: boxWidth, h: 15 }
         const collides = placedLabels.some(
@@ -499,7 +499,7 @@ export function SkyMap({ onOpenCertificate }) {
         )
         if (!collides && box.x + box.w < width) {
           placedLabels.push(box)
-          ctx.fillStyle = star.dedicated ? '#e8c872' : 'rgba(247, 241, 225, 0.62)'
+          ctx.fillStyle = star.dedicated ? '#d8b66a' : 'rgba(246, 241, 231, 0.62)'
           ctx.fillText(label, box.x, box.y + 11)
         }
       }
@@ -509,8 +509,8 @@ export function SkyMap({ onOpenCertificate }) {
       // graus (ou horas) cabe do centro até a borda, descontando a folga do
       // texto. A escala é em pixels por radiano — daí dividir por `DEG`
       // (graus) e por `RAD_PER_HOUR` (horas).
-      ctx.fillStyle = 'rgba(247, 241, 225, 0.6)'
-      ctx.font = '10px Outfit, sans-serif'
+      ctx.fillStyle = 'rgba(246, 241, 231, 0.6)'
+      ctx.font = '10px Montserrat, sans-serif'
       const decSpan = Math.max(0.5, (height / 2 - 34) / view.scale / DEG)
       const raSpan = Math.max(0.5, (width / 2 - 46) / (view.scale * RAD_PER_HOUR))
       for (const dec of decGrid) {

@@ -1,65 +1,73 @@
-/* Fontes locais — geradas a partir do Google Fonts.
+/*
+   Fontes do site — geradas a partir do Google Fonts.
    Mantidas no projeto para que o site não dependa de rede externa:
    sem internet ou com o Google bloqueado, o desenho continua igual.
 
-   Os arquivos de cada família eram idênticos entre si: `cinzel-400`,
-   `cinzel-600` e `cinzel-700` tinham o mesmo conteúdo, byte a byte (SHA-256
-   igual), e o mesmo acontecia com os quatro pesos do Cormorant e do Outfit.
-   Isso significava duas coisas ruins: o navegador baixava `font-400.woff2` e
-   `font-500.woff2` para o mesmo desenho, porque deduplica por URL e não por
-   conteúdo; e o peso pedido nunca era servido — apontar `font-weight: 600` para
-   o mesmo arquivo não produz um seiscento.
+   A identidade é a mesma da loja (Stellara): títulos em Playfair Display,
+   textos em Montserrat. Os arquivos são os MESMOS woff2 de `loja/public/fonts`,
+   copiados para os dois `public/` porque os sites são builds separados.
 
-   A declaração abaixo é a honesta: um arquivo por família e estilo, com a
-   faixa de peso que ele realmente cobre. O navegador passa a sintetizar o
-   negrito em vez de fingir um desenho que não existe — o resultado na tela é
-   idêntico ao de antes, com 10 arquivos a menos. */
+   Declaração honesta, um arquivo por família e estilo:
 
-/*
- * Duas leituras de cada bloco abaixo:
- *
- * - `font-display: swap` → o texto aparece de imediato na fonte de sistema e
- *   troca quando o woff2 chega; sem ele a página fica em branco esperando.
- * - `unicode-range` → declara que o arquivo cobre só o alfabeto latino (mais
- *   alguns símbolos comuns). É o que impede o navegador de baixar a fonte ao
- *   encontrar um glifo que ela nem tem.
- *
- * Uma família com dois estilos (o itálico do Cormorant) usa DOIS arquivos —
- * aí sim o estilo é servido de verdade, e não é fingido pelo navegador.
- */
+   - Playfair Display e Montserrat são fontes VARIÁVEIS. O css2 do Google
+     devolve o MESMO woff2 para 400 e 700 (byte a byte idêntico), e quem
+     decide qual instância aparece é a faixa `font-weight: 400 700` abaixo —
+     um arquivo por peso só faria o navegador baixar o mesmo desenho duas
+     vezes, e apontar `font-weight: 700` para um arquivo único SEM faixa
+     deixaria o negrito falso (sintetizado pelo navegador).
+   - `font-display: swap` → o texto aparece de imediato na fonte de sistema e
+     troca quando o woff2 chega; sem ele a página fica em branco esperando.
+   - `unicode-range` → declara que o arquivo cobre só o alfabeto latino (mais
+     alguns símbolos comuns). É o que impede o navegador de baixar a fonte ao
+     encontrar um glifo que ela nem tem.
+   - O itálico do Montserrat é um arquivo separado — aí sim o estilo é
+     servido de verdade, e não fingido pelo navegador.
+
+   A EB Garamond itálica com alfabeto grego mora aqui também: é a única que
+   escreve "ε Sagittarii" com a letra correta em vez do fallback do sistema.
+*/
 
 @font-face {
-  font-family: 'Cinzel';
+  font-family: 'Playfair Display';
   font-style: normal;
-  font-weight: 400;
+  font-weight: 400 700;
   font-display: swap;
-  src: url('/fonts/cinzel-400.woff2') format('woff2');
+  src: url('/fonts/playfair-display-400-700.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-  font-family: 'Cormorant Garamond';
+  font-family: 'Montserrat';
   font-style: normal;
-  font-weight: 400;
+  font-weight: 400 600;
   font-display: swap;
-  src: url('/fonts/cormorant-garamond-400.woff2') format('woff2');
+  src: url('/fonts/montserrat-400-600.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-  font-family: 'Cormorant Garamond';
+  font-family: 'Montserrat';
   font-style: italic;
   font-weight: 400;
   font-display: swap;
-  src: url('/fonts/cormorant-garamond-400i.woff2') format('woff2');
+  src: url('/fonts/montserrat-400i.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
+/*
+ * Itálico com alfabeto grego — só para a linha "ε Sagittarii · Sagitário".
+ *
+ * As três fontes acima são subconjuntos só com latim: o "ε" não está em
+ * nenhuma delas. No navegador isso passa despercebido porque o fallback pega
+ * uma fonte do sistema; aqui o glifo tem casa garantida em qualquer aparelho.
+ *
+ * É o mesmo arquivo da loja, e o mesmo que o `shared/pdf.js` embute no
+ * certificado impresso.
+ */
 @font-face {
-  font-family: 'Outfit';
-  font-style: normal;
+  font-family: 'EB Garamond';
+  font-style: italic;
   font-weight: 400;
   font-display: swap;
-  src: url('/fonts/outfit-400.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  src: url('/fonts/eb-garamond-italic-grego.woff2') format('woff2');
 }

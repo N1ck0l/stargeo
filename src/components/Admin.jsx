@@ -14,7 +14,7 @@ import { useContent } from '../lib/contentContext'
  * curiosidade — não é segurança de verdade.
  */
 
-const PALAVRA = 'stargeo'
+const PALAVRA = 'stellara'
 
 /**
  * Campo de texto único do painel: `textarea` quando `rows > 1`, senão `input`.
@@ -109,7 +109,7 @@ export function Admin() {
               fill="currentColor"
             />
           </svg>
-          <h1 className="font-serif mt-5 text-2xl">Painel do StarGeo</h1>
+          <h1 className="font-serif mt-5 text-2xl">Painel da Stellara</h1>
           <p className="mt-2 text-sm text-ivory/60">Área de edição dos textos.</p>
           <input
             type="password"
@@ -136,7 +136,7 @@ export function Admin() {
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="font-display text-[10px] tracking-[0.3em] text-gold uppercase">
-              Painel do StarGeo
+              Painel da Stellara
             </p>
             <h1 className="font-serif mt-1 text-3xl">Editar os textos</h1>
           </div>
@@ -237,7 +237,7 @@ export function Admin() {
                   type="checkbox"
                   checked={content[campo] !== false}
                   onChange={(e) => set(campo)(e.target.checked)}
-                  className="h-4 w-4 accent-[#e8c872]"
+                  className="h-4 w-4 accent-[#d8b66a]"
                 />
                 {rotulo}
               </label>

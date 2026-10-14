@@ -23,7 +23,7 @@ export class ErrorBoundary extends Component {
 
   componentDidCatch(error, info) {
     // Fica no console para quem estiver olhando, mas nunca quebra a tela.
-    console.error('[StarGeo] falha ao renderizar:', error, info?.componentStack)
+    console.error('[stellara] falha ao renderizar:', error, info?.componentStack)
   }
 
   handleReset() {

@@ -70,7 +70,7 @@ export function Hero({ onOpenCertificate, onOpenFinder }) {
         >
           <path
             d="M36 4 L41.8 26.2 L65 29 L47 43.8 L52.5 66 L36 53.4 L19.5 66 L25 43.8 L7 29 L30.2 26.2 Z"
-            fill="#e8c872"
+            fill="#d8b66a"
           />
         </svg>
       </div>
@@ -113,7 +113,7 @@ export function Hero({ onOpenCertificate, onOpenFinder }) {
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
           <a
             href="#ceu"
-            className="rounded-full bg-gold px-6 py-3 text-sm font-medium text-night transition hover:bg-gold-soft hover:shadow-[0_0_28px_rgba(232,200,114,0.45)]"
+            className="rounded-full bg-gold px-6 py-3 text-sm font-medium text-night transition hover:bg-gold-soft hover:shadow-[0_0_28px_rgba(216,182,106,0.45)]"
           >
             Ver a estrela no céu
           </a>

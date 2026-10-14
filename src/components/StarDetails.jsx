@@ -71,7 +71,7 @@ export function StarDetails({ onOpenCertificate }) {
             <button
               type="button"
               onClick={onOpenCertificate}
-              className="animate-pulse-glow mt-8 rounded-full bg-gold px-6 py-3 text-sm font-medium text-night transition hover:bg-gold-soft hover:shadow-[0_0_30px_rgba(232,200,114,0.5)]"
+              className="animate-pulse-glow mt-8 rounded-full bg-gold px-6 py-3 text-sm font-medium text-night transition hover:bg-gold-soft hover:shadow-[0_0_30px_rgba(216,182,106,0.5)]"
             >
               Visualizar Certificado Digital
             </button>

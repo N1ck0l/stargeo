@@ -22,15 +22,15 @@
  * `--font-serif` dá `font-serif`. Trocar um valor aqui muda o site inteiro.
  */
 @theme {
-  --font-display: "Cinzel", serif;
-  --font-serif: "Cormorant Garamond", serif;
-  --font-sans: "Outfit", sans-serif;
-  --color-night: #07061a;
-  --color-deep: #100b2e;
-  --color-violet: #3b1d6e;
-  --color-gold: #e8c872;
-  --color-gold-soft: #f3e6b8;
-  --color-ivory: #f7f1e1;
+  --font-display: "Playfair Display", serif;
+  --font-serif: "Playfair Display", serif;
+  --font-sans: "Montserrat", sans-serif;
+  --color-night: #090b20;
+  --color-deep: #151a45;
+  --color-violet: #4a3f8f;
+  --color-gold: #d8b66a;
+  --color-gold-soft: #eadfb6;
+  --color-ivory: #f6f1e7;
 }
 
 html {
@@ -58,14 +58,14 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  background: #07061a;
-  color: #f7f1e1;
+  background: #090b20;
+  color: #f6f1e7;
   font-family: var(--font-sans);
 }
 
 ::selection {
-  background: #e8c872;
-  color: #07061a;
+  background: #d8b66a;
+  color: #090b20;
 }
 
 /*
@@ -97,7 +97,7 @@ canvas:focus-visible {
  */
 .sky-canvas {
   forced-color-adjust: none;
-  background-color: #07061a;
+  background-color: #090b20;
 }
 
 /*
@@ -108,14 +108,14 @@ canvas:focus-visible {
 .star-bg {
   background:
     radial-gradient(1200px 600px at 20% -10%, rgba(91, 54, 168, 0.35), transparent 55%),
-    radial-gradient(900px 500px at 90% 10%, rgba(232, 200, 114, 0.08), transparent 50%),
+    radial-gradient(900px 500px at 90% 10%, rgba(216, 182, 106, 0.08), transparent 50%),
     radial-gradient(800px 700px at 50% 100%, rgba(36, 20, 90, 0.55), transparent 60%),
-    #07061a;
+    #090b20;
 }
 
 /* Fio dourado que separa os títulos das seções. */
 .gold-line {
-  background: linear-gradient(90deg, transparent, #e8c872, transparent);
+  background: linear-gradient(90deg, transparent, #d8b66a, transparent);
   height: 1px;
 }
 
@@ -125,15 +125,15 @@ canvas:focus-visible {
  * tema é só trocar o valor das variáveis, e nada pode ficar divergente.
  */
 .certificate-paper {
-  --cert-bg: linear-gradient(180deg, #16112e 0%, #0c0820 100%);
-  --cert-wash: radial-gradient(circle at 50% 0%, rgba(232, 200, 114, 0.12), transparent 45%);
-  --cert-text: #f7f1e1;
-  --cert-muted: rgba(247, 241, 225, 0.82);
-  --cert-accent: #e8c872;
-  --cert-label: rgba(232, 200, 114, 0.85);
-  --cert-border: #e8c872;
-  --cert-frame: rgba(232, 200, 114, 0.4);
-  --cert-frame-soft: rgba(232, 200, 114, 0.2);
+  --cert-bg: linear-gradient(180deg, #151a45 0%, #090b20 100%);
+  --cert-wash: radial-gradient(circle at 50% 0%, rgba(216, 182, 106, 0.12), transparent 45%);
+  --cert-text: #f6f1e7;
+  --cert-muted: rgba(246, 241, 231, 0.82);
+  --cert-accent: #d8b66a;
+  --cert-label: rgba(216, 182, 106, 0.85);
+  --cert-border: #d8b66a;
+  --cert-frame: rgba(216, 182, 106, 0.4);
+  --cert-frame-soft: rgba(216, 182, 106, 0.2);
   background: var(--cert-wash), var(--cert-bg);
   color: var(--cert-text);
 }
@@ -145,14 +145,14 @@ canvas:focus-visible {
  */
 .certificate-light {
   --cert-bg: linear-gradient(180deg, #fffdf7 0%, #f2eada 100%);
-  --cert-wash: radial-gradient(circle at 50% 0%, rgba(184, 145, 47, 0.12), transparent 45%);
-  --cert-text: #2b2342;
-  --cert-muted: rgba(43, 35, 66, 0.85);
-  --cert-accent: #8a6a1c;
-  --cert-label: #8a6a1c;
-  --cert-border: #b8912f;
-  --cert-frame: rgba(138, 106, 28, 0.45);
-  --cert-frame-soft: rgba(138, 106, 28, 0.22);
+  --cert-wash: radial-gradient(circle at 50% 0%, rgba(143, 111, 31, 0.12), transparent 45%);
+  --cert-text: #1b1d33;
+  --cert-muted: rgba(86, 90, 117, 0.85);
+  --cert-accent: #8f6f1f;
+  --cert-label: #8f6f1f;
+  --cert-border: #8f6f1f;
+  --cert-frame: rgba(143, 111, 31, 0.45);
+  --cert-frame-soft: rgba(143, 111, 31, 0.22);
 }
 
 /*
@@ -216,10 +216,10 @@ canvas:focus-visible {
 @keyframes pulse-glow {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(232, 200, 114, 0.45);
+    box-shadow: 0 0 0 0 rgba(216, 182, 106, 0.45);
   }
   50% {
-    box-shadow: 0 0 0 16px rgba(232, 200, 114, 0);
+    box-shadow: 0 0 0 16px rgba(216, 182, 106, 0);
   }
 }
 
@@ -301,10 +301,10 @@ canvas:focus-visible {
 @keyframes shimmer {
   0%,
   100% {
-    filter: drop-shadow(0 0 6px rgba(232, 200, 114, 0.35));
+    filter: drop-shadow(0 0 6px rgba(216, 182, 106, 0.35));
   }
   50% {
-    filter: drop-shadow(0 0 18px rgba(232, 200, 114, 0.85));
+    filter: drop-shadow(0 0 18px rgba(216, 182, 106, 0.85));
   }
 }
 
@@ -401,7 +401,7 @@ canvas:focus-visible {
   background: linear-gradient(
     115deg,
     transparent 32%,
-    rgba(232, 200, 114, 0.55) 48%,
+    rgba(216, 182, 106, 0.55) 48%,
     rgba(243, 230, 184, 0.9) 52%,
     transparent 68%
   );
@@ -474,7 +474,7 @@ canvas:focus-visible {
   border-radius: inherit;
   background: radial-gradient(
     260px circle at var(--mx, 50%) var(--my, 50%),
-    rgba(232, 200, 114, 0.13),
+    rgba(216, 182, 106, 0.13),
     transparent 70%
   );
   opacity: 0;
@@ -565,14 +565,14 @@ canvas:focus-visible {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
     /* A borda dourada é desenhada por ::before, fora da regra do elemento. */
-    border-color: var(--cert-border, #e8c872) !important;
+    border-color: var(--cert-border, #d8b66a) !important;
   }
 
   #certificate-print::before {
     background: none;
     -webkit-mask: none;
     mask: none;
-    border: 1px solid var(--cert-frame, rgba(232, 200, 114, 0.4));
+    border: 1px solid var(--cert-frame, rgba(216, 182, 106, 0.4));
   }
 }
 
