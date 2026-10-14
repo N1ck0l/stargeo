@@ -31,6 +31,7 @@ import { EdicaoPagina } from './pagina/EdicaoPagina.jsx'
 import { AdminPagina } from './admin/AdminPagina.jsx'
 import Footer from './components/Footer.jsx'
 import { ScrollProgress } from './components/ScrollProgress.jsx'
+import { Simbolo } from './components/Simbolo.jsx'
 import { Starfield } from './components/Starfield.jsx'
 
 /**
@@ -159,14 +160,9 @@ function Cabecalho({ caminho }) {
       }`}
     >
       <div className="pilha flex h-16 items-center justify-between gap-4">
-        <Link para="/" className="flex items-center gap-2.5" aria-label="StarGeo, página inicial">
-          <svg width="28" height="28" viewBox="0 0 72 72" aria-hidden="true" className="animate-shimmer text-gold">
-            <path
-              d="M36 4 L41.8 26.2 L65 29 L47 43.8 L52.5 66 L36 53.4 L19.5 66 L25 43.8 L7 29 L30.2 26.2 Z"
-              fill="currentColor"
-            />
-          </svg>
-          <span className="font-display text-lg tracking-[0.2em] text-ivory">STARGEO</span>
+        <Link para="/" className="flex items-center gap-2.5" aria-label="Stellara, página inicial">
+          <Simbolo size={28} className="animate-shimmer text-gold" />
+          <span className="font-display text-lg tracking-[0.06em] text-ivory">Stellara</span>
         </Link>
 
         <nav className="hidden items-center gap-7 md:flex" aria-label="Principal">

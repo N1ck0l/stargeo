@@ -165,16 +165,21 @@ export async function buildCertificatePdf(data, opts = {}) {
   pdf.registerFontkit(fontkit)
 
   /*
-   * As três fontes do site: display (Cinzel, títulos), serifada (Cormorant,
-   * o texto e o itálico) e sem serifa (Outfit, rótulos).
+   * As fontes do site: Playfair Display (display — marca e título), Montserrat
+   * (regular, itálico — texto, nome e dados) e o itálico grego da EB Garamond
+   * (linha das designações de Bayer).
+   *
+   * Playfair e Montserrat são variáveis: o mesmo woff2 cobre a faixa de pesos
+   * declarada no CSS, e o pdf-lib embute a instância padrão (400) — que é o
+   * único peso que o desenho usa.
    *
    * `subset: true` embute só os glifos usados. Sem isso, cada certificado
    * carregaria ~120 KB de fonte para 40 glifos — e o e-mail ficaria pesado.
    */
-  const [display, serif, serifItalic, italicoGrego] = await Promise.all([
-    carregarTtf(`${base}/fonts/cinzel-400.woff2`),
-    carregarTtf(`${base}/fonts/cormorant-garamond-400.woff2`),
-    carregarTtf(`${base}/fonts/cormorant-garamond-400i.woff2`),
+  const [display, sans, sansItalic, italicoGrego] = await Promise.all([
+    carregarTtf(`${base}/fonts/playfair-display-400-700.woff2`),
+    carregarTtf(`${base}/fonts/montserrat-400-600.woff2`),
+    carregarTtf(`${base}/fonts/montserrat-400i.woff2`),
     /*
      * Itálico com alfabeto grego, para a linha "ε Sagittarii".
      *
@@ -188,8 +193,8 @@ export async function buildCertificatePdf(data, opts = {}) {
   ])
 
   const fonts = {
-    regular: await pdf.embedFont(serif, { subset: true }),
-    italic: await pdf.embedFont(serifItalic, { subset: true }),
+    regular: await pdf.embedFont(sans, { subset: true }),
+    italic: await pdf.embedFont(sansItalic, { subset: true }),
     display: await pdf.embedFont(display, { subset: true }),
     bayer: await pdf.embedFont(italicoGrego, { subset: true }),
   }
@@ -202,11 +207,11 @@ export async function buildCertificatePdf(data, opts = {}) {
   drawCertificate(pdf, emMilimetros(page), fonts, data, opts)
 
   pdf.setTitle(`Certificado de ${data.starName} para ${data.honoreeName}`)
-  pdf.setAuthor('StarGeo')
+  pdf.setAuthor('Stellara')
   pdf.setSubject('Certificado de dedicação celeste')
   pdf.setKeywords(['certificado', 'estrela', data.starName, data.bayer])
-  pdf.setProducer('StarGeo')
-  pdf.setCreator('StarGeo')
+  pdf.setProducer('Stellara')
+  pdf.setCreator('Stellara')
   pdf.setCreationDate(new Date())
 
   return pdf.save()

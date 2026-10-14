@@ -35,7 +35,7 @@ const raiz = resolve(loja, '..')
 /** Move o HTML gerado da raiz da saída. Ver a nota no topo do arquivo. */
 function achatarHtml() {
   return {
-    name: 'stargeo-achatar-html',
+    name: 'stellara-achatar-html',
     apply: 'build',
     // `closeBundle` roda depois que todo o bundle já está escrito em disco
     // (em `generateBundle` o `index.html` ainda não seria arquivo nenhum).

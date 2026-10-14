@@ -8,7 +8,7 @@
 #     daqui afeta o presente.
 #
 #  2. A LOJA: este arquivo é dela. Conecte o repositório ao Netlify (Import an
-#     existing project → GitHub → N1ck0l/stargeo) e o build sai daqui.
+#     existing project → GitHub → N1ck0l/stellara) e o build sai daqui.
 #
 # As regras de segurança e cache valem para qualquer um dos dois; só o
 # comando de build é específico da loja.

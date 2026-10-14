@@ -1,4 +1,5 @@
 import { Link } from '../lib/Link.jsx'
+import { Simbolo } from './Simbolo.jsx'
 
 // O ano do rodapé é fixo na sessão: nada aqui depende da virada do ano, e um
 // cálculo por render só serviria para gerar um número idêntico.
@@ -24,14 +25,10 @@ export default function Footer() {
         <div className="grid gap-10 md:grid-cols-4">
           <div className="md:col-span-2">
             <div className="flex items-center gap-2.5">
-              <svg width="24" height="24" viewBox="0 0 72 72" aria-hidden="true" className="text-gold">
-                <path
-                  d="M36 4 L41.8 26.2 L65 29 L47 43.8 L52.5 66 L36 53.4 L19.5 66 L25 43.8 L7 29 L30.2 26.2 Z"
-                  fill="currentColor"
-                />
-              </svg>
-              <span className="font-display tracking-[0.2em] text-ivory">STARGEO</span>
+              <Simbolo size={24} className="text-gold" />
+              <span className="font-display tracking-[0.06em] text-ivory">Stellara</span>
             </div>
+            <p className="mt-1 text-[11px] tracking-[0.28em] text-gold/70 uppercase">A star of your own</p>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-ivory/60">
               Certificados de estrela com coordenadas reais, conferidas com o SIMBAD. Ninguém é dono
               de uma estrela — mas todo mundo pode ter uma dedicada com nome.
@@ -73,7 +70,10 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="mailto:contato@stargeo.com" className="text-ivory/70 transition hover:text-gold">
+                <a
+                  href="mailto:nickolasfelipe225@gmail.com"
+                  className="text-ivory/70 transition hover:text-gold"
+                >
                   Falar com a gente
                 </a>
               </li>
@@ -92,9 +92,10 @@ export default function Footer() {
           7 dias de arrependimento por lei, e a pessoa tem que achar isso.
         */}
         <div className="mt-10 flex flex-col gap-3 border-t border-white/8 pt-6 text-xs text-ivory/45 md:flex-row md:items-center md:justify-between">
-          <p>© {ANO} StarGeo · Documento simbólico, com dados astronômicos conferidos.</p>
+          <p>© {ANO} Stellara · Documento simbólico, com dados astronômicos conferidos.</p>
           <p>
-            7 dias para arrependimento · <span className="text-gold/70">contato@stargeo.com</span>
+            7 dias para arrependimento ·{' '}
+            <span className="text-gold/70">nickolasfelipe225@gmail.com</span>
           </p>
         </div>
       </div>

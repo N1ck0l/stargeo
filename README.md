@@ -1,4 +1,4 @@
-# StarGeo — Kaus Australis para Geovanna
+# Stellara — Kaus Australis para Geovanna
 
 Aplicação web (SPA) romântica e interativa: um certificado de estrela dedicado a **Geovanna Beatriz Santos Trindade**, destacando **Kaus Australis (ε Sagittarii)**, a estrela mais brilhante de Sagitário.
 

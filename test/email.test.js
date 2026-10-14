@@ -68,7 +68,7 @@ beforeEach(() => {
   globalThis.Deno = {
     env: {
       get: (nome) =>
-        ({ RESEND_API_KEY: 'chave-de-teste', EMAIL_FROM: 'StarGeo <x@y.test>' })[nome],
+        ({ RESEND_API_KEY: 'chave-de-teste', EMAIL_FROM: 'Stellara <x@y.test>' })[nome],
     },
   }
 

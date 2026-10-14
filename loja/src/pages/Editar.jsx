@@ -100,7 +100,7 @@ export default function Editar() {
             Rastreie o pedido
           </Link>{' '}
           ou{' '}
-          <a href="mailto:contato@stargeo.com" className="text-gold transition hover:underline">
+          <a href="mailto:nickolasfelipe225@gmail.com" className="text-gold transition hover:underline">
             fale com a gente
           </a>
           .
@@ -113,14 +113,18 @@ export default function Editar() {
 /**
  * Código do último pedido feito NESTE navegador, se houver.
  *
- * O checkout grava `stargeo:ultimo-pedido` antes de sair para o Mercado
+ * O checkout grava `stellara:ultimo-pedido` antes de sair para o Mercado
  * Pago (o mesmo registro que a página de obrigado lê). É um conforto, não
  * uma dependência: storage bloqueado ou compra de outro aparelho deixam o
- * campo em branco, e a pessoa digita.
+ * campo em branco, e a pessoa digita. A chave antiga (`stargeo:...`) ainda é
+ * lida na falta da nova, para pedido feito antes do rename da marca.
  */
 function lerUltimoCodigo() {
   try {
-    const guardado = JSON.parse(localStorage.getItem('stargeo:ultimo-pedido'))
+    const guardado = JSON.parse(
+      localStorage.getItem('stellara:ultimo-pedido') ??
+        localStorage.getItem('stargeo:ultimo-pedido'),
+    )
     return guardado?.code ?? ''
   } catch {
     return ''

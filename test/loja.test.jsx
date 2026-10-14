@@ -1,5 +1,5 @@
 /**
- * Loja StarGeo: prévia do certificado (HTML que espelha o PDF), configurador
+ * Loja Stellara: prévia do certificado (HTML que espelha o PDF), configurador
  * do produto (formulário, validação, moderação de mensagem, preço) e
  * rastreamento de pedidos — mais a casca do App (rotas, rodapé) e as regras
  * de CSS das quais a prévia depende para escalar e para as utilities do
@@ -27,7 +27,7 @@ describe('CertificadoPreview', () => {
     render(<CertificadoPreview estrela={estrela} honoreeName="Geovanna" code="SG-TEST-TEST" />)
     const texto = document.body.textContent
 
-    expect(texto).toContain('StarGeo')
+    expect(texto).toContain('Stellara')
     expect(texto).toContain('Geovanna')
     expect(texto).toContain('Kaus Australis')
     // A letra grega e os símbolos astronômicos são o motivo de o PDF usar as
@@ -352,8 +352,19 @@ describe('acesso do cliente', () => {
   })
 
   it('pré-preenche o código do último pedido deste navegador', () => {
-    // O checkout grava `stargeo:ultimo-pedido` antes de sair para o pagamento
+    // O checkout grava `stellara:ultimo-pedido` antes de sair para o pagamento
     // — quem acabou de comprar não digita o código de novo.
+    localStorage.setItem(
+      'stellara:ultimo-pedido',
+      JSON.stringify({ code: 'SG-AB3K-9ZXM', email: 'ana@exemplo.com' }),
+    )
+    render(<Editar />)
+    expect(screen.getByLabelText(/Código da página/i).value).toBe('SG-AB3K-9ZXM')
+  })
+
+  it('lê a chave antiga de antes do renome, ainda sem a nova', () => {
+    // Navegador que comprou antes da troca de marca não pode ficar sem o
+    // código pré-preenchido — só trocamos o nome da chave, não a dívida.
     localStorage.setItem(
       'stargeo:ultimo-pedido',
       JSON.stringify({ code: 'SG-AB3K-9ZXM', email: 'ana@exemplo.com' }),
@@ -467,7 +478,7 @@ describe('casca da loja', () => {
 
   it('o rodapé mostra o ano corrente, e não uma variável solta', () => {
     render(<Loja />)
-    expect(screen.getByText(new RegExp(`© ${new Date().getFullYear()} StarGeo`))).toBeTruthy()
+    expect(screen.getByText(new RegExp(`© ${new Date().getFullYear()} Stellara`))).toBeTruthy()
   })
 })
 

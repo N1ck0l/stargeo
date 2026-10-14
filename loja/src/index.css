@@ -1,12 +1,13 @@
 /*
  * Tema visual da loja — folha de estilo única da SPA.
  *
- * Importado só por `loja/src/main.jsx`. Aqui vivem as fontes, o `@theme` do
- * Tailwind (cores e famílias que viram utilities), os componentes próprios
+ * Importado só por `loja/src/main.jsx`. Aqui vivem o `@theme` do Tailwind
+ * (cores e famílias que viram utilities), os componentes próprios
  * (`.btn`, `.campo`, `.cartao`, `.pilha`) e as animações herdadas do site
  * pessoal. O certificado é o único trecho que também existe no PDF — as
- * fontes são as MESMAS de `src/fonts.css`, porque prévia e folha impressa
- * precisam sair idênticas.
+ * fontes são as MESMAS que `shared/pdf.js` embute (declaradas em
+ * `loja/src/fonts.css`), porque prévia e folha impressa precisam sair
+ * idênticas.
  *
  * Convenções: comentários em português do Brasil; blocos comentados são os
  * complexos (camadas, keyframes, máscaras, prefers-reduced-motion, print) —
@@ -16,55 +17,35 @@
 @import "tailwindcss";
 
 /*
- * As mesmas fontes do site pessoal e do PDF.
+ * As fontes da loja — Playfair Display, Montserrat e o itálico grego da
+ * EB Garamond.
  *
  * Sem este import a loja não tem um único `@font-face`: os woff2 ficavam em
  * /fonts e eram pré-carregados pelo HTML, mas nada os declarava, e o navegador
  * caía em Georgia — que tem métricas diferentes, o que vaza texto da prévia e
  * faz a folha divergir do certificado que sai no e-mail.
  */
-@import "../../src/fonts.css";
+@import "./fonts.css";
 
 /*
- * Itálico com alfabeto grego — só para a linha "ε Sagittarii · Sagitário".
+ * Identidade da loja — Stellara.
  *
- * As quatro fontes acima são subconjuntos só com latim: o "ε" não está em
- * nenhuma delas. No navegador isso passa despercebido porque o fallback pega
- * uma fonte do sistema; no PDF não há fallback, e o glifo saía como a
- * caixinha de caractere inexistente. Esta é um subset da EB Garamond (parente
- * do Cormorant, de onde ele veio) cortado com o alfabeto grego inteiro, então
- * serve para α Centauri, β Orionis ou qualquer outra.
- *
- * O PDF usa o MESMO arquivo (embutido pelo `shared/pdf.js`), de modo que a
- * prévia e o certificado impresso saem com a mesma letra.
- */
-@font-face {
-  font-family: "EB Garamond";
-  font-style: italic;
-  font-weight: 400;
-  font-display: swap;
-  src: url("/fonts/eb-garamond-italic-grego.woff2") format("woff2");
-}
-
-/*
- * Identidade da loja — a mesma do site pessoal.
- *
- * As cores e as fontes não foram escolhidas de novo: são as mesmas, para que o
- * presente e a loja venham da mesma casa. O que muda aqui é o peso tipográfico,
- * porque a tela tem que fazer efeito de loja, não de carta.
+ * As cores vêm da prancha da marca (azul-noite, dourado, marfim e
+ * prata-lilás); as famílias são as mesmas do certificado e do PDF.
  */
 
 @theme {
-  --font-display: "Cinzel", serif;
-  --font-serif: "Cormorant Garamond", serif;
-  --font-sans: "Outfit", sans-serif;
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-sans: "Montserrat", system-ui, sans-serif;
 
-  --color-night: #07061a;
-  --color-deep: #100b2e;
-  --color-violet: #3b1d6e;
-  --color-gold: #e8c872;
-  --color-gold-soft: #f3e6b8;
-  --color-ivory: #f7f1e1;
+  --color-night: #090b20;
+  --color-deep: #151a45;
+  --color-violet: #4a3f8f;
+  --color-gold: #d8b66a;
+  --color-gold-soft: #eadfb6;
+  --color-ivory: #f6f1e7;
+  --color-lilac: #a9abc7;
 }
 
 html {
@@ -76,9 +57,9 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #07061a;
-  color: #f7f1e1;
-  font-family: "Outfit", system-ui, sans-serif;
+  background-color: #090b20;
+  color: #f6f1e7;
+  font-family: "Montserrat", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -102,7 +83,7 @@ body {
  */
 .sky-canvas {
   forced-color-adjust: none;
-  background-color: #07061a;
+  background-color: #090b20;
 }
 
 /* --------------------------------------------------------------------------
@@ -114,9 +95,9 @@ body {
    -------------------------------------------------------------------------- */
 .star-bg {
   background:
-    radial-gradient(120% 80% at 50% -10%, rgba(59, 29, 110, 0.55), transparent 60%),
-    radial-gradient(80% 60% at 10% 10%, rgba(232, 200, 114, 0.08), transparent 55%),
-    #07061a;
+    radial-gradient(120% 80% at 50% -10%, rgba(74, 63, 143, 0.5), transparent 60%),
+    radial-gradient(80% 60% at 10% 10%, rgba(216, 182, 106, 0.08), transparent 55%),
+    #090b20;
 }
 
 /* Gradiente dourado para texto e borda de destaque. */
@@ -126,7 +107,7 @@ body {
 }
 
 .gold-text {
-  background: linear-gradient(120deg, #f3e6b8, #e8c872 55%, #b8912f);
+  background: linear-gradient(120deg, #eadfb6, #d8b66a 55%, #a8842f);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -184,7 +165,7 @@ body {
 
   .btn-primary:hover:not(:disabled) {
     background: var(--color-gold-soft);
-    box-shadow: 0 0 30px rgba(232, 200, 114, 0.35);
+    box-shadow: 0 0 30px rgba(216, 182, 106, 0.35);
   }
 
   .btn-secundario {
@@ -211,7 +192,7 @@ body {
 }
 
 .campo::placeholder {
-  color: rgba(247, 241, 225, 0.38);
+  color: rgba(246, 241, 231, 0.38);
 }
 
 .campo:hover {
@@ -239,7 +220,7 @@ body {
   font-size: 0.75rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(232, 200, 114, 0.85);
+  color: rgba(216, 182, 106, 0.85);
 }
 
 /* Cartões ------------------------------------------------------------------ */
@@ -396,10 +377,10 @@ body {
 @keyframes pulse-glow {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(232, 200, 114, 0.45);
+    box-shadow: 0 0 0 0 rgba(216, 182, 106, 0.45);
   }
   50% {
-    box-shadow: 0 0 0 16px rgba(232, 200, 114, 0);
+    box-shadow: 0 0 0 16px rgba(216, 182, 106, 0);
   }
 }
 
@@ -423,10 +404,10 @@ body {
 @keyframes shimmer {
   0%,
   100% {
-    filter: drop-shadow(0 0 6px rgba(232, 200, 114, 0.35));
+    filter: drop-shadow(0 0 6px rgba(216, 182, 106, 0.35));
   }
   50% {
-    filter: drop-shadow(0 0 18px rgba(232, 200, 114, 0.85));
+    filter: drop-shadow(0 0 18px rgba(216, 182, 106, 0.85));
   }
 }
 
@@ -516,8 +497,8 @@ body {
   background: linear-gradient(
     115deg,
     transparent 32%,
-    rgba(232, 200, 114, 0.55) 48%,
-    rgba(243, 230, 184, 0.9) 52%,
+    rgba(216, 182, 106, 0.55) 48%,
+    rgba(234, 223, 182, 0.9) 52%,
     transparent 68%
   );
   background-size: 260% 100%;
@@ -599,7 +580,7 @@ body {
   border-radius: inherit;
   background: radial-gradient(
     260px circle at var(--mx, 50%) var(--my, 50%),
-    rgba(232, 200, 114, 0.13),
+    rgba(216, 182, 106, 0.13),
     transparent 70%
   );
   opacity: 0;

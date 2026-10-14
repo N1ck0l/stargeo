@@ -193,7 +193,7 @@ export default function Produto({ slug }) {
        */
       try {
         localStorage.setItem(
-          'stargeo:ultimo-pedido',
+          'stellara:ultimo-pedido',
           JSON.stringify({ code: resposta.code, email }),
         )
       } catch {

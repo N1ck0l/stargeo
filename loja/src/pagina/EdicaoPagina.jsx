@@ -387,20 +387,28 @@ function contarParagrafos(texto) {
 /*
  * Sessão do cliente no navegador.
  *
- * A chave é POR CÓDIGO (`stargeo:edicao:SG-XXXX-XXXX`): quem edita duas
+ * A chave é POR CÓDIGO (`stellara:edicao:SG-XXXX-XXXX`): quem edita duas
  * páginas em aberto não troca o token da uma pela outra. O token é de vida
  * curta e o `expiraEm` é conferido na leitura — vencido, a tela volta para o
  * login sem mandar um token velho para o servidor. Guardar em `localStorage`
  * existe para o F5 do meio da edição não deslogar; sem storage (modo privado
  * rígido) o `catch` mantém a sessão só em memória, que é o suficiente.
+ *
+ * A leitura ainda cai na chave antiga (`stargeo:edicao:...`) quando a nova não
+ * existe: sessão aberta antes do rename da marca não pode ser perdida no F5.
  */
 function chaveLocal(codigo) {
+  return `stellara:edicao:${codigo}`
+}
+
+function chaveLegada(codigo) {
   return `stargeo:edicao:${codigo}`
 }
 
 function lerSessao(codigo) {
   try {
-    const bruto = localStorage.getItem(chaveLocal(codigo))
+    const bruto =
+      localStorage.getItem(chaveLocal(codigo)) ?? localStorage.getItem(chaveLegada(codigo))
     if (!bruto) return null
     const dados = JSON.parse(bruto)
     if (!dados?.token || !dados?.expiraEm) return null
@@ -426,6 +434,7 @@ function guardarSessao(codigo, token, expiraEm) {
 function limparSessao(codigo) {
   try {
     localStorage.removeItem(chaveLocal(codigo))
+    localStorage.removeItem(chaveLegada(codigo))
   } catch {
     // ver acima
   }

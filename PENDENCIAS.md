@@ -42,15 +42,17 @@ norte) ela mandava virar para o lado errado. Ainda vale confirmar no escuro.
 
 ### 1.4 Domínio e Netlify
 
-O repositório já publica sozinho na Netlify (site `luxury-lamington-97da01`,
-publish `dist-loja`) — commit com push é deploy. O site antigo
-`papaya-dieffenbachia-483678` (site pessoal, build manual) pode ser encerrado
-no painel do Netlify.
+O repositório já publica sozinho na Netlify (site `stellara`, publish
+`dist-loja`) — commit com push é deploy. Os projetos antigos
+`luxury-lamington-97da01` (duplicata) e `papaya-dieffenbachia-483678` (site
+pessoal, build manual) foram apagados; `leafy-jelly-5aac6d` não é deste
+projeto e segue intocado.
 
-O `stargeo.com` ainda não tem DNS apontando: enquanto isso o `EMAIL_FROM` não
-entrega e a loja vive em `*.netlify.app`. Aponte o domínio (A/ALIAS ou CNAME
-para o Netlify), troque `PUBLIC_SITE_URL`, `FONTS_BASE_URL` e
-`ORIGENS_PERMITIDAS` nos *Environment variables* e faça um deploy.
+Não existe domínio próprio da marca ainda: a loja vive em `*.netlify.app`.
+Quando o domínio chegar, aponte-o (A/ALIAS ou CNAME para o Netlify), troque
+`PUBLIC_SITE_URL`, `FONTS_BASE_URL` e `ORIGENS_PERMITIDAS` nos *secrets* do
+Supabase (`supabase secrets set`) e faça um deploy. As variáveis `VITE_*`
+ficam nos *Environment variables* do site na Netlify.
 
 > A prévia ao compartilhar (`og:image`, `canonical`) é URL absoluta: confira
 > depois do domínio novo que o WhatsApp mostra a imagem.
@@ -58,9 +60,10 @@ para o Netlify), troque `PUBLIC_SITE_URL`, `FONTS_BASE_URL` e
 ### 1.5 Conta do painel
 
 O `/admin` da loja usa Supabase Auth — não há senha escrita no código. A conta
-`admin@stargeo.com` já existe (senha entregue fora do repositório, troque no
-dashboard → Authentication → Users → *Reset password* se quiser). Permissão é
-a linha em `public.admins`; sem ela, a conta loga e recebe 403.
+é `nickolasfelipe225@gmail.com` (a migration `0008` trocou o endereço antigo do
+domínio removido; a senha continua sendo a entregue fora do repositório —
+troque no dashboard → Authentication → Users → *Reset password* se quiser).
+Permissão é a linha em `public.admins`; sem ela, a conta loga e recebe 403.
 
 O `/admin` antigo do site pessoal (`src/components/Admin.jsx`, senha
 `stargeo`) só existe no build do site pessoal, que não é mais publicado.
@@ -96,11 +99,17 @@ repositório já está conectado à Netlify (deploy automático), então eles va
 — conferir no navegador após o domínio novo, quando o HTTPS passa a valer de
 verdade.
 
-### 2.2 Os ícones e a imagem de prévia estão grandes
+### 2.2 Os ícones e a imagem de prévia estão grandes (e são da marca antiga)
 
 `og-image.png` tem 201 KB, e os ícones de 512 px uns 130 KB cada. Funcionam,
 mas acima de um certo tamanho alguns mensageiros deixam de exibir a prévia.
 Dá para recomprimir sem perda visível.
+
+Além do peso: esses PNGs (`og-image`, `icon-192`, `icon-512`,
+`icon-maskable-512`, `favicon-32`, `apple-touch-icon`) ainda mostram a marca
+antiga — não é possível regenerá-los a partir do SVG aqui. O símbolo novo já
+está no ar em `favicon.svg`; os raster seguem até alguém reexportá-los da
+prancha da Stellara.
 
 ---
 
@@ -146,7 +155,7 @@ de 95 para **151 verificações**.
 | `/admin` | painel Supabase Auth (conta + linha em `admins`), sem senha no código |
 | Conteúdo | páginas no banco (`pages`); seed Geovanna `SG-GEOV-ANNA` publicada |
 | Loja e páginas | prontas e verificadas; Mercado Pago ainda em ambiente de teste |
-| E-mail | bloqueado pelo DNS (`stargeo.com` sem apontar) |
+| E-mail | saindo do endereço pessoal (`EMAIL_FROM` com Gmail); domínio próprio da marca pendente |
 
 ### Fluxo para mudar um texto
 

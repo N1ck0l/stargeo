@@ -181,14 +181,14 @@ export async function enviarEmail(
     ? `
       <p style="margin:0 0 28px">
         <a href="${urlDoSite()}/p/${escapeHtml(codigo)}"
-           style="display:inline-block;border:1.5px solid #2b2342;color:#2b2342;text-decoration:none;
-                  padding:14px 28px;border-radius:999px;font-family:system-ui,sans-serif;
+           style="display:inline-block;border:1.5px solid #1b1d33;color:#1b1d33;text-decoration:none;
+                  padding:14px 28px;border-radius:999px;font-family:'Segoe UI',system-ui,sans-serif;
                   font-weight:600;font-size:15px">
           Ver a página dedicada
         </a>
       </p>
 
-      <p style="font-size:14px;line-height:1.7;color:#5a5170;margin:0 0 24px">
+      <p style="font-size:14px;line-height:1.7;color:#565a75;margin:0 0 24px">
         A página fica no ar nesse endereço. Com o código
         <strong>${escapeHtml(codigo)}</strong> e o seu e-mail, você também pode
         editar o texto dela quando quiser.
@@ -199,9 +199,9 @@ export async function enviarEmail(
   const assunto = `${destino}, a sua estrela está pronta`
 
   const corpo = `
-    <div style="font-family:Georgia,'Times New Roman',serif;color:#2b2342;max-width:560px;margin:0 auto;padding:32px">
-      <p style="font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#8a6a1c;margin:0 0 24px">
-        StarGeo · certificado de dedicação celeste
+    <div style="font-family:'Segoe UI',Montserrat,system-ui,sans-serif;color:#1b1d33;max-width:560px;margin:0 auto;padding:32px">
+      <p style="font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#8f6f1f;margin:0 0 24px">
+        Stellara · certificado de dedicação celeste
       </p>
 
       <h1 style="font-size:26px;margin:0 0 20px">A sua estrela está pronta</h1>
@@ -214,18 +214,18 @@ export async function enviarEmail(
 
       <p style="margin:0 0 28px">
         <a href="${assinado.signedUrl}"
-           style="display:inline-block;background:#e8c872;color:#07061a;text-decoration:none;
-                  padding:14px 28px;border-radius:999px;font-family:system-ui,sans-serif;
+           style="display:inline-block;background:#d8b66a;color:#090b20;text-decoration:none;
+                  padding:14px 28px;border-radius:999px;font-family:'Segoe UI',system-ui,sans-serif;
                   font-weight:600;font-size:15px">
           Baixar o certificado (PDF)
         </a>
       </p>
       ${botaoPagina}
-      <p style="font-size:14px;line-height:1.7;color:#5a5170;margin:0 0 24px">
+      <p style="font-size:14px;line-height:1.7;color:#565a75;margin:0 0 24px">
         O link vale por 30 dias. Guarde o arquivo: ele fica em uma pasta só sua.
       </p>
 
-      <table style="width:100%;border-collapse:collapse;font-size:13px;color:#5a5170;margin:0 0 28px">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;color:#565a75;margin:0 0 28px">
         <tr><td style="padding:4px 0">Registro</td>
             <td style="text-align:right;font-family:monospace">${escapeHtml(codigo)}</td></tr>
         <tr><td style="padding:4px 0">Estrela</td>
@@ -234,7 +234,7 @@ export async function enviarEmail(
             <td style="text-align:right">${escapeHtml(constelacao)}</td></tr>
       </table>
 
-      <p style="font-size:12px;color:#8a8296;border-top:1px solid #e5e0d5;padding-top:16px;margin:0">
+      <p style="font-size:12px;color:#565a75;border-top:1px solid #efe9db;padding-top:16px;margin:0">
         Documento simbólico de afeto. As coordenadas foram conferidas com o SIMBAD.
         Se precisar de ajuda, responda este e-mail quoting o registro
         <strong>${escapeHtml(codigo)}</strong>.

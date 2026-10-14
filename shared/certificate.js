@@ -12,18 +12,18 @@
  * precisa.
  */
 
-/** Paleta, espelhando as variáveis CSS do site (`src/index.css`). */
+/** Paleta, espelhando as variáveis CSS do tema (`loja/src/index.css`). */
 export const PALETTE = {
-  night: '#07061a',
-  deep: '#100b2e',
-  gold: '#e8c872',
-  goldSoft: '#f3e6b8',
-  ivory: '#f7f1e1',
+  night: '#090b20',
+  deep: '#151a45',
+  gold: '#d8b66a',
+  goldSoft: '#eadfb6',
+  ivory: '#f6f1e7',
   paper: '#fffdf7',
   paperEdge: '#f2eada',
-  ink: '#2b2342',
-  inkMuted: '#5a5170',
-  goldInk: '#8a6a1c',
+  ink: '#1b1d33',
+  inkMuted: '#565a75',
+  goldInk: '#8f6f1f',
 }
 
 /** A4 paisagem, em milímetros. */
@@ -293,7 +293,7 @@ export function drawCertificate(pdf, page, fonts, data, opts = {}) {
    * Não é o corpo da fonte, e sim a altura VISUAL — da base até o topo das
    * maiúsculas (≈ 0,72 × corpo). O desenho posiciona cada linha pela linha de
    * base, que fica ACIMA do topo da linha anterior; usar o corpo inteiro como
-   * avanço fazia o "StarGeo" de 40 pt subir por cima do título que estava
+   * avanço fazia o "Stellara" de 40 pt subir por cima do título que estava
    * logo acima dele.
    */
 
@@ -348,7 +348,7 @@ export function drawCertificate(pdf, page, fonts, data, opts = {}) {
     {
       chave: 'marca',
       altura: altura.marca,
-      desenhar: (b) => textCentered(page, 'StarGeo', fonts.display, b, { size: 40, color: C(c.text) }),
+      desenhar: (b) => textCentered(page, 'Stellara', fonts.display, b, { size: 40, color: C(c.text) }),
     },
     {
       chave: 'selo',

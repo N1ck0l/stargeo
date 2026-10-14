@@ -31,7 +31,7 @@ export class ErroDeTela extends Component {
     // O console é o único lugar onde o detalhe técnico chega hoje. Numa loja
     // real, este é o ponto para onde vai o Sentry — o resto da tela continua
     // genérico de propósito.
-    console.error('[stargeo-loja] falha na tela:', erro, info?.componentStack)
+    console.error('[stellara-loja] falha na tela:', erro, info?.componentStack)
   }
 
   render() {
@@ -54,7 +54,7 @@ export class ErroDeTela extends Component {
             gente.
           </p>
 
-          <a href="mailto:contato@stargeo.com" className="btn btn-secundario mt-8">
+          <a href="mailto:nickolasfelipe225@gmail.com" className="btn btn-secundario mt-8">
             Falar com a gente
           </a>
           <button type="button" onClick={() => window.location.reload()} className="btn btn-primary mt-3">

@@ -63,7 +63,7 @@ export function Starfield() {
 
       const clouds = [
         { x: 0.18, y: 0.12, r: 0.55, color: 'rgba(96, 58, 180, 0.30)' },
-        { x: 0.82, y: 0.22, r: 0.45, color: 'rgba(232, 200, 114, 0.10)' },
+        { x: 0.82, y: 0.22, r: 0.45, color: 'rgba(216, 182, 106, 0.10)' },
         { x: 0.5, y: 0.92, r: 0.6, color: 'rgba(46, 26, 108, 0.34)' },
         { x: 0.1, y: 0.75, r: 0.38, color: 'rgba(140, 70, 190, 0.16)' },
         { x: 0.95, y: 0.7, r: 0.34, color: 'rgba(70, 90, 200, 0.14)' },
@@ -143,7 +143,7 @@ export function Starfield() {
         const y = star.y + oy
 
         ctx.beginPath()
-        ctx.fillStyle = `rgba(247, 241, 225, ${star.a * twinkle})`
+        ctx.fillStyle = `rgba(246, 241, 231, ${star.a * twinkle})`
         ctx.arc(x, y, star.r, 0, Math.PI * 2)
         ctx.fill()
 

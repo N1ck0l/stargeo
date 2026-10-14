@@ -53,12 +53,14 @@ const LARGURA_MENSAGEM = 225
 
 /*
  * Reserva, em caracteres, para quando não dá para medir: jsdom nos testes e o
- * primeiro quadro antes da fonte carregar. Os números vêm de medir o woff2
- * com fontkit — 4,33 mm por caractere no nome a 30 pt e 1,39 mm na mensagem a
- * 11 pt — divididos pela largura de quebra (245 e 225 mm).
+ * primeiro quadro antes da fonte carregar. Os números são estimativas para o
+ * Montserrat (a fonte do nome e da mensagem): ~6,1 mm por caractere no nome a
+ * 30 pt (245 ÷ 6,1 ≈ 40) e ~2,1 mm na mensagem a 11 pt (225 ÷ 2,1 ≈ 105) —
+ * deliberadamente apertadas, porque reservar de menos quebra linha demais na
+ * tela e de mais só encolhe o nome uma vez a fonte chegar.
  */
-const RESERVA_NOME = 56
-const RESERVA_MENSAGEM = 161
+const RESERVA_NOME = 40
+const RESERVA_MENSAGEM = 105
 
 /**
  * Mede um texto com a fonte REAL do certificado.
@@ -68,7 +70,7 @@ const RESERVA_MENSAGEM = 161
  * métricas do navegador. Devolve `null` quando não há canvas e quem chama cai
  * na reserva de caracteres.
  *
- * @param {string} fonteCss corpo já em px e família, ex.: `italic 14.67px "Cormorant Garamond"`.
+ * @param {string} fonteCss corpo já em px e família, ex.: `italic 14.67px "Montserrat"`.
  * @returns {((texto: string) => number) | null}
  */
 function medidor(fonteCss) {
@@ -142,8 +144,8 @@ export function CertificadoPreview({ estrela, honoreeName, message, fromName, de
     if (typeof document === 'undefined' || !document.fonts || !document.fonts.load) return undefined
     let vivo = true
     Promise.all([
-      document.fonts.load('30px "Cormorant Garamond"'),
-      document.fonts.load('italic 11px "Cormorant Garamond"'),
+      document.fonts.load('30px "Montserrat"'),
+      document.fonts.load('italic 11px "Montserrat"'),
     ])
       .catch(() => undefined)
       .then(() => {
@@ -163,7 +165,7 @@ export function CertificadoPreview({ estrela, honoreeName, message, fromName, de
   const quebrarNome = (tamanho) =>
     quebrar(nome, {
       larguraMm: LARGURA_NOME,
-      fonteCss: `${tamanho * PX_POR_PT}px "Cormorant Garamond"`,
+      fonteCss: `${tamanho * PX_POR_PT}px "Montserrat"`,
       reserva: Math.round((RESERVA_NOME * tamanho) / 30),
       pronta: fontePronta,
     })
@@ -178,7 +180,7 @@ export function CertificadoPreview({ estrela, honoreeName, message, fromName, de
   const mensagemSize = 11
   const mensagemLinhas = quebrar(message, {
     larguraMm: LARGURA_MENSAGEM,
-    fonteCss: `italic ${mensagemSize * PX_POR_PT}px "Cormorant Garamond"`,
+    fonteCss: `italic ${mensagemSize * PX_POR_PT}px "Montserrat"`,
     reserva: RESERVA_MENSAGEM,
     pronta: fontePronta,
   })
@@ -234,19 +236,19 @@ export function CertificadoPreview({ estrela, honoreeName, message, fromName, de
   const cores = light
     ? {
         fundo: 'linear-gradient(180deg, #fffdf7 0%, #f2eada 100%)',
-        moldura: '#8a6a1c',
-        texto: '#2b2342',
-        suave: '#5a5170',
-        destaque: '#8a6a1c',
-        rotulo: '#8a6a1c',
+        moldura: '#8f6f1f',
+        texto: '#1b1d33',
+        suave: '#565a75',
+        destaque: '#8f6f1f',
+        rotulo: '#8f6f1f',
       }
     : {
-        fundo: 'linear-gradient(180deg, #16112e 0%, #0c0820 100%)',
-        moldura: '#e8c872',
-        texto: '#f7f1e1',
-        suave: 'rgba(247,241,225,0.82)',
-        destaque: '#e8c872',
-        rotulo: '#f3e6b8',
+        fundo: 'linear-gradient(180deg, #151a45 0%, #090b20 100%)',
+        moldura: '#d8b66a',
+        texto: '#f6f1e7',
+        suave: 'rgba(246,241,231,0.88)',
+        destaque: '#d8b66a',
+        rotulo: '#eadfb6',
       }
 
   // Os mesmos seis campos do rodapé do PDF, na mesma ordem, formatados com
@@ -269,7 +271,7 @@ export function CertificadoPreview({ estrela, honoreeName, message, fromName, de
         height: `${PAGE.height}mm`,
         background: cores.fundo,
         color: cores.texto,
-        fontFamily: '"Cormorant Garamond", Georgia, serif',
+        fontFamily: '"Montserrat", system-ui, sans-serif',
       }}
     >
       {/* Moldura dupla, como no PDF. */}
@@ -312,7 +314,7 @@ export function CertificadoPreview({ estrela, honoreeName, message, fromName, de
 
       {/* Cada bloco é posicionado pela LINHA DE BASE, como no PDF.
           O `bottom` em mm a partir do rodapé equivale ao Y do PDF. */}
-      <Bloco baseY={posicoes.titulo} style={{ fontSize: corpo(9), letterSpacing: '0.6mm', color: cores.rotulo, fontFamily: '"Cinzel", serif' }}>
+      <Bloco baseY={posicoes.titulo} style={{ fontSize: corpo(9), letterSpacing: '0.6mm', color: cores.rotulo, fontFamily: '"Playfair Display", Georgia, serif' }}>
         <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5mm' }}>
           <span style={{ width: '22mm', height: '0.35mm', background: cores.moldura }} />
           <span>CERTIFICADO DE DEDICAÇÃO CELESTE</span>
@@ -320,8 +322,8 @@ export function CertificadoPreview({ estrela, honoreeName, message, fromName, de
         </span>
       </Bloco>
 
-      <Bloco baseY={posicoes.marca} style={{ fontSize: corpo(40), color: cores.texto, fontFamily: '"Cinzel", serif' }}>
-        StarGeo
+      <Bloco baseY={posicoes.marca} style={{ fontSize: corpo(40), color: cores.texto, fontFamily: '"Playfair Display", Georgia, serif' }}>
+        Stellara
       </Bloco>
 
       <Bloco baseY={posicoes.selo} style={{ fontSize: corpo(7), letterSpacing: '0.5mm', color: cores.suave }}>
@@ -353,7 +355,7 @@ export function CertificadoPreview({ estrela, honoreeName, message, fromName, de
           fontStyle: 'italic',
           // A EB Garamond é a única com alfabeto grego: sem ela o navegador
           // cai numa fonte do sistema e a prévia deixa de bater com o PDF.
-          fontFamily: '"EB Garamond", "Cormorant Garamond", serif',
+          fontFamily: '"EB Garamond", "Playfair Display", serif',
         }}
       >
         {estrela.bayer} · {estrela.constellation}
@@ -393,7 +395,7 @@ export function CertificadoPreview({ estrela, honoreeName, message, fromName, de
       >
         {estrelas.map(([rotulo, valor]) => (
           <div key={rotulo} style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: corpo(6), color: cores.rotulo, letterSpacing: '0.3mm', fontFamily: '"Outfit", sans-serif' }}>
+            <div style={{ fontSize: corpo(6), color: cores.rotulo, letterSpacing: '0.3mm', fontFamily: '"Montserrat", system-ui, sans-serif' }}>
               {rotulo.toUpperCase()}
             </div>
             <div style={{ fontSize: corpo(11), color: cores.texto, marginTop: '0.4mm' }}>{valor}</div>
@@ -408,7 +410,7 @@ export function CertificadoPreview({ estrela, honoreeName, message, fromName, de
       >
         <div className="flex items-end justify-between">
           <div>
-            <div style={{ fontSize: corpo(8), color: cores.rotulo, fontFamily: '"Outfit", sans-serif' }}>
+            <div style={{ fontSize: corpo(8), color: cores.rotulo, fontFamily: '"Montserrat", system-ui, sans-serif' }}>
               REGISTRO {code}
             </div>
             {dedicationDate && (

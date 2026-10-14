@@ -1,4 +1,4 @@
-# Publicar o StarGeo
+# Publicar o Stellara
 
 O projeto é uma página estática: não há servidor, banco de dados nem API.
 Tudo o que você precisa é gerar a pasta `dist/` e Placesem qualquer hospedagem
@@ -50,12 +50,12 @@ Dá um pouco mais de trabalho porque o Pages publica em subpasta.
 arquivos precisam do prefixo `/<nome-do-repo>/`:
 
 ```bash
-# troque "stargeo" pelo nome do seu repositório
-$env:BASE_URL="/stargeo/"
+# troque "stellara" pelo nome do seu repositório
+$env:BASE_URL="/stellara/"
 npm run build
 ```
 
-> No Linux/macOS: `BASE_URL=/stargeo/ npm run build`
+> No Linux/macOS: `BASE_URL=/stellara/ npm run build`
 
 **2. Publique pelo GitHub Actions.** Crie `.github/workflows/deploy.yml`:
 
@@ -83,7 +83,7 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
-          BASE_URL: /stargeo/
+          BASE_URL: /stellara/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
@@ -101,7 +101,7 @@ jobs:
 **3. Ative o Pages** no repositório:
 **Settings → Pages → Build and deployment → Source: *GitHub Actions***.
 
-O site sai em `https://<seu-usuario>.github.io/stargeo/`.
+O site sai em `https://<seu-usuario>.github.io/stellara/`.
 
 ## Detalhes que costumam dar problema
 

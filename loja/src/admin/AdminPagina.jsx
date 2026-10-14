@@ -94,7 +94,7 @@ export function AdminPagina() {
             <p className="font-display text-[11px] tracking-[0.3em] text-gold uppercase">
               Painel administrativo
             </p>
-            <h1 className="font-serif mt-2 text-3xl text-ivory sm:text-4xl">StarGeo</h1>
+            <h1 className="font-serif mt-2 text-3xl text-ivory sm:text-4xl">Stellara</h1>
             <p className="mt-1 text-sm text-ivory/45">{sessao.user?.email}</p>
           </div>
           <button type="button" onClick={aoSair} className="btn btn-secundario text-sm">

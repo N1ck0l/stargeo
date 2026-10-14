@@ -1,4 +1,4 @@
-# StarGeo — Loja
+# Stellara — Loja
 
 Transformação do projeto de presente pessoal em loja de certificados de estrela.
 O site pessoal continua existindo, intocado, em `src/` — esta é a estrutura de
@@ -100,9 +100,9 @@ supabase functions deploy admin-api --no-verify-jwt
 supabase secrets set \
   MERCADO_PAGO_ACCESS_TOKEN=... \
   MERCADO_PAGO_WEBHOOK_SECRET=... \
-  MP_STATEMENT_DESCRIPTOR=STARGEO \
+  MP_STATEMENT_DESCRIPTOR=STELLARA \
   RESEND_API_KEY=... \
-  EMAIL_FROM="StarGeo <certificado@seudominio.com.br>" \
+  EMAIL_FROM="Stellara <nickolasfelipe225@gmail.com>" \
   PUBLIC_SITE_URL=https://seudominio.com.br \
   FONTS_BASE_URL=https://seudominio.com.br \
   ORIGENS_PERMITIDAS=https://seudominio.com.br

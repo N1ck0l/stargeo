@@ -89,8 +89,11 @@ export default function Obrigado() {
  * manda a pessoa para o rastreamento, e funciona.
  */
 async function rastrearUltimo() {
-  const chave = 'stargeo:ultimo-pedido'
-  const guardado = localStorage.getItem(chave)
+  // A chave nova primeiro; a antiga (pré-rename) só na leitura, para pedido
+  // feito no navegador da marca antiga continuar aparecendo aqui.
+  const guardado =
+    localStorage.getItem('stellara:ultimo-pedido') ??
+    localStorage.getItem('stargeo:ultimo-pedido')
 
   if (!guardado) throw new ErroApi('sem_codigo', 'Nenhum pedido guardado neste navegador.')
 

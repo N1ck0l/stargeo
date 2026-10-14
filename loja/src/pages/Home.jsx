@@ -183,14 +183,14 @@ function Hero() {
             delay={220}
             className="font-display mt-5 text-4xl leading-[1.1] text-ivory sm:text-5xl lg:text-6xl"
           >
-            Dê a alguém
+            Transforme uma homenagem
             <br />
-            <span className="gold-text">uma estrela com nome</span>
+            <span className="gold-text">em algo inesquecível</span>
           </Reveal>
 
           <Reveal as="p" delay={360} className="mt-6 max-w-lg text-lg leading-relaxed text-ivory/75">
-            Escolha uma estrela do céu do Brasil, escreva o nome de quem recebe e receba o
-            certificado por e-mail em minutos. As coordenadas são reais, conferidas com o SIMBAD.
+            Nomeie uma estrela e eternize o que realmente importa. Coordenadas reais, conferidas
+            com o SIMBAD — o certificado chega por e-mail em minutos.
           </Reveal>
 
           <Reveal delay={500} className="mt-9 flex flex-wrap gap-4">
@@ -201,7 +201,7 @@ function Hero() {
               o herói apresenta, a seção vende.
             */}
             <a href="#certificados" className="btn btn-primary animate-pulse-glow">
-              Ver o certificado
+              Criar minha homenagem
             </a>
             <a href="#como-funciona" className="btn btn-secundario">
               Como funciona
@@ -230,7 +230,7 @@ function Hero() {
         >
           <div
             className="animar-flutuar pointer-events-none absolute -inset-8 rounded-full opacity-40 blur-3xl"
-            style={{ background: 'radial-gradient(circle, rgba(232,200,114,0.25), transparent 70%)' }}
+            style={{ background: 'radial-gradient(circle, rgba(216,182,106,0.25), transparent 70%)' }}
             aria-hidden="true"
           />
           <EstrelaGrande />
@@ -288,14 +288,14 @@ function EstrelaGrande() {
       <svg viewBox="0 0 200 200" className="animar-girar w-full" aria-hidden="true">
         <defs>
           <radialGradient id="brilho">
-            <stop offset="0%" stopColor="#f3e6b8" stopOpacity="0.9" />
-            <stop offset="60%" stopColor="#e8c872" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#e8c872" stopOpacity="0" />
+            <stop offset="0%" stopColor="#eadfb6" stopOpacity="0.9" />
+            <stop offset="60%" stopColor="#d8b66a" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#d8b66a" stopOpacity="0" />
           </radialGradient>
         </defs>
         <circle cx="100" cy="100" r="95" fill="url(#brilho)" />
-        <circle cx="100" cy="100" r="62" fill="none" stroke="#e8c872" strokeWidth="0.5" opacity="0.35" />
-        <circle cx="100" cy="100" r="38" fill="none" stroke="#e8c872" strokeWidth="0.4" opacity="0.25" />
+        <circle cx="100" cy="100" r="62" fill="none" stroke="#d8b66a" strokeWidth="0.5" opacity="0.35" />
+        <circle cx="100" cy="100" r="38" fill="none" stroke="#d8b66a" strokeWidth="0.4" opacity="0.25" />
         {Array.from({ length: 24 }, (_, i) => {
           const a = (Math.PI * 2 * i) / 24
           return (
@@ -305,7 +305,7 @@ function EstrelaGrande() {
               y1={100 + Math.sin(a) * 38}
               x2={100 + Math.cos(a) * 62}
               y2={100 + Math.sin(a) * 62}
-              stroke="#e8c872"
+              stroke="#d8b66a"
               strokeWidth="0.6"
               opacity="0.4"
             />
@@ -314,7 +314,7 @@ function EstrelaGrande() {
         <path
           className="animate-shimmer"
           d="M100 58 L104 96 L140 100 L104 104 L100 142 L96 104 L60 100 L96 96 Z"
-          fill="#e8c872"
+          fill="#d8b66a"
         />
       </svg>
     </div>
@@ -509,7 +509,7 @@ function Estrelas() {
                   aria-pressed={ativa}
                   className={`rounded-2xl border p-4 text-left transition ${
                     ativa
-                      ? 'border-gold/70 bg-gold/10 shadow-[0_0_24px_rgba(232,200,114,0.15)]'
+                      ? 'border-gold/70 bg-gold/10 shadow-[0_0_24px_rgba(216,182,106,0.15)]'
                       : 'border-white/10 bg-white/[0.03] hover:border-white/25'
                   }`}
                 >
@@ -677,7 +677,7 @@ function ChamadaFinal() {
               coisa.
             </p>
             <Link para="/produto/certificado-digital" className="btn btn-primary animate-pulse-glow mt-8">
-              Montar o meu certificado
+              Criar minha homenagem
             </Link>
             {/* Quem já comprou não quer um segundo certificado — quer a
                 página daquele. O atalho sai do mesmo bloco, em tamanho de
