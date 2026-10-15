@@ -107,8 +107,12 @@ function telaPara(caminho) {
   return <Home />
 }
 
-export default function App() {
+export default function App({ telaPronta }) {
   const caminho = useRota()
+  // O fade de troca de tela só vale para NAVEGAÇÃO: no primeiro carregamento
+  // ele escondia (opacidade 0) o conteúdo — e, na página pré-renderizada,
+  // apagaria o título que já veio pintado no HTML.
+  const [caminhoInicial] = useState(caminho)
 
   // Uma visita por carregamento da loja (anônima — `lib/metricas.js`). A
   // página dedicada e o painel não são funil de compra: ficam de fora.
@@ -146,11 +150,11 @@ export default function App() {
           componente novo nasça junto com a animação — sem ela, o React
           reaproveitaria a árvore e o `animation` não dispararia.
         */}
-        <div key={caminho} className="animate-fade-in">
+        <div key={caminho} className={caminho === caminhoInicial ? undefined : 'animate-fade-in'}>
           {/* A altura reservada é a da TELA: com menos (era 60vh), o rodapé
               aparecia no meio da tela enquanto a página carregava e depois
               pulava para baixo — o "pulo" que o Lighthouse mede (CLS). */}
-          <Suspense fallback={<div className="min-h-dvh" aria-busy="true" />}>{telaPara(caminho)}</Suspense>
+          <Suspense fallback={<div className="min-h-dvh" aria-busy="true" />}>{telaPronta ?? telaPara(caminho)}</Suspense>
         </div>
       </main>
 

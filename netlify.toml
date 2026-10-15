@@ -7,6 +7,13 @@
   # falhar, a Netlify mantém no ar a última versão boa.
   command = "npm run verificar && npm run build"
   publish = "dist-loja"
+  # Pula o build (e o crédito de deploy) quando o push só mexe no que NÃO vai
+  # para o site: documentação, testes, CI, Supabase (publicado por
+  # `npm run publicar:supabase`) e scripts de manutenção. `git diff --quiet`
+  # sai com 0 quando nada fora dessa lista mudou desde o último deploy — e
+  # 0 é "pode pular". Sem deploy anterior em cache, o diff falha e o build
+  # roda (o seguro). O lint e os testes continuam no CI do GitHub.
+  ignore = "[ -n \"$CACHED_COMMIT_REF\" ] && git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude)*.md' ':(exclude)test/' ':(exclude)shared/*.test.mjs' ':(exclude).github/' ':(exclude)supabase/' ':(exclude)scripts/gerar-*.mjs' ':(exclude)scripts/carregar-catalogo.mjs' ':(exclude)scripts/publicar-supabase.mjs' ':(exclude)marca/' ':(exclude).gitignore'"
 
 [build.environment]
   # Vite 8 exige Node 20.19+ ou 22.12+; 20 genérico poderia pegar uma versão
@@ -18,6 +25,13 @@
 # inexistente. O mesmo resultado já está no `_redirects` da pasta public da
 # loja (que vai para dist-loja/); manter os dois é inofensivo e cobre quem
 # copiar só um.
+# O produto tem HTML próprio, com o título já pintado no build
+# (`scripts/prerender-produto.mjs`). Antes da regra geral.
+[[redirects]]
+  from = "/produto/*"
+  to = "/produto.html"
+  status = 200
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

@@ -424,15 +424,7 @@ export default function Produto({ slug }) {
   return (
     <div className="espaco-secao">
       <form onSubmit={finalizar} className="pilha">
-        <nav aria-label="Trilha" className="mb-8 text-sm text-ivory/50">
-          <Link para="/" className="transition hover:text-gold">
-            Início
-          </Link>
-          <span className="mx-2">/</span>
-          <span className="text-ivory/80">{produto.nome}</span>
-        </nav>
-
-        <h1 className="mb-8 font-display text-3xl text-ivory sm:text-4xl">Monte o seu certificado</h1>
+        <TopoDoProduto nome={produto.nome} />
 
         {/*
           Prévia em A4 RETRATO: a coluna dela tem o teto da própria folha
@@ -1003,6 +995,49 @@ function Campo({
       )}
 
       {!erro && dica && <p className="mt-2 text-xs text-ivory/50">{dica}</p>}
+    </div>
+  )
+}
+
+/**
+ * Trilha e título do produto — o mesmo componente na página de verdade e na
+ * casca pré-renderizada (`CascaDoProduto`): os dois não têm como divergir, e
+ * o título fica no mesmo pixel quando o React assume a página.
+ */
+function TopoDoProduto({ nome }) {
+  return (
+    <>
+      <nav aria-label="Trilha" className="mb-8 text-sm text-ivory/50">
+        <Link para="/" className="transition hover:text-gold">
+          Início
+        </Link>
+        <span className="mx-2">/</span>
+        <span className="text-ivory/80">{nome}</span>
+      </nav>
+
+      <h1 className="mb-8 font-display text-3xl text-ivory sm:text-4xl">Monte o seu certificado</h1>
+    </>
+  )
+}
+
+/**
+ * A casca do produto, gerada no BUILD (`scripts/prerender-produto.mjs`) e
+ * servida pela Netlify em `/produto/…` (`produto.html`).
+ *
+ * Sem ela, quem chega direto no produto (anúncio, link de parceria) via o
+ * HTML vazio da SPA até o JavaScript baixar, rodar e pedir o pacote desta
+ * página — ~3,6 s até o título num celular lento (Lighthouse). Com ela, o
+ * título vem pintado no HTML. Só o que não depende do endereço entra aqui
+ * (a estrela e o cupom vêm da URL): trilha, título e o espaço da página, com
+ * a altura da tela para o rodapé não aparecer e depois pular.
+ */
+export function CascaDoProduto() {
+  return (
+    <div className="espaco-secao">
+      <div className="pilha">
+        <TopoDoProduto nome={PRODUTOS['certificado-digital'].nome} />
+        <div className="min-h-dvh" aria-busy="true" />
+      </div>
     </div>
   )
 }

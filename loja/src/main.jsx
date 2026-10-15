@@ -7,7 +7,7 @@
  * `loja/vite.config.js`). Não exporta nada.
  */
 import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import { createRoot, hydrateRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import { ErroDeTela } from './components/ErroDeTela.jsx'
@@ -24,12 +24,27 @@ const raiz = document.getElementById('root')
  * de uma página branca — que é a pior coisa que uma loja pode mostrar a
  * alguém que está com o cartão na mão.
  */
-if (raiz) {
-  createRoot(raiz).render(
-    <StrictMode>
-      <ErroDeTela>
-        <App />
-      </ErroDeTela>
-    </StrictMode>,
-  )
+const arvore = (
+  <StrictMode>
+    <ErroDeTela>
+      <App />
+    </ErroDeTela>
+  </StrictMode>
+)
+
+/*
+ * Página pré-renderizada (hoje, só o produto — `produto.html`): o HTML já
+ * traz cabeçalho, título e rodapé, e o React os APROVEITA (`hydrateRoot`) em
+ * vez de apagar e redesenhar — nada pisca nem pula. O miolo da página é
+ * diferente de propósito (a casca não tem o formulário), e o React o refaz
+ * no lugar: é esse o "erro recuperável" esperado, que não vai para o painel.
+ */
+if (raiz?.firstElementChild) {
+  hydrateRoot(raiz, arvore, {
+    onRecoverableError: (erro) => {
+      if (import.meta.env.DEV) console.warn('[stellara-loja] casca refeita no cliente:', erro)
+    },
+  })
+} else if (raiz) {
+  createRoot(raiz).render(arvore)
 }

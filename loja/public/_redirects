@@ -10,4 +10,7 @@
 # Netlify e Cloudflare Pages leem este arquivo. Na Vercel, o equivalente é um
 # rewrite em vercel.json:
 #   { "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }
+# O produto tem HTML próprio, com o título já pintado (scripts/prerender-produto.mjs).
+# Tem de vir ANTES da regra geral: a primeira que casa é a que vale.
+/produto/*    /produto.html   200
 /*    /index.html   200

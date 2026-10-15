@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --config loja/vite.config.js",
-    "build": "vite build --config loja/vite.config.js",
+    "build": "vite build --config loja/vite.config.js && node scripts/prerender-produto.mjs",
     "lint": "oxlint",
     "preview": "vite preview --config loja/vite.config.js",
     "typecheck": "tsc -p tsconfig.functions.json",
