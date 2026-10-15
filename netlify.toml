@@ -70,9 +70,10 @@
     # (ex.: preview futuro) quebraria sem nenhum ganho de segurança externo.
     X-Frame-Options = "SAMEORIGIN"
     # Câmera, localização e sensores de orientação só para a própria origem:
-    # a Mira celeste da página dedicada usa os três. Microfone e sensor de luz
-    # ninguém usa, então ficam fechados.
-    Permissions-Policy = "camera=(self), microphone=(), geolocation=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self), ambient-light-sensor=()"
+    # a Mira celeste da página dedicada usa os três. Microfone ninguém usa,
+    # então fica fechado. (`ambient-light-sensor` saiu: o Chrome não reconhece
+    # mais o nome e reclamava no console de toda página.)
+    Permissions-Policy = "camera=(self), microphone=(), geolocation=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)"
     # 604800 s = 7 dias. Curto de propósito: HSTS com includeSubDomains é
     # difícil de desfazer (o navegador recusa HTTP por esse tempo em TODOS os
     # subdomínios), então o primeiro passo é pequeno e só depois se sobe.
