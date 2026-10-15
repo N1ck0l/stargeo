@@ -72,6 +72,12 @@ const casos = {
     parEstrela: 'HD 224700',
     parNome: 'João Pedro Albuquerque de Vasconcelos Cavalcanti Figueiredo Pessoa Neto'.slice(0, LIMITES.honoreeName.max),
   }),
+  'grupo de seis no pior caso': dados('canopus', {
+    honoreeName: 'Maria Eduarda Albuquerque de Vasconcelos Cavalcanti Figueiredo Pessoa Junior'.slice(0, LIMITES.honoreeName.max),
+    message: mensagemLonga.slice(0, LIMITES.message.max),
+    starNickname: 'A Estrela Mais Brilhante da Vovó Lúcia e do Vovô'.slice(0, LIMITES.starNickname.max),
+    grupoLinha: `Uma das seis estrelas · ${'Família Albuquerque de Vasconcelos Pessoa'.slice(0, LIMITES.groupName.max)}`,
+  }),
   'nome da estrela sem espaços': dados('sirius', {
     starNickname: 'WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW'.slice(0, LIMITES.starNickname.max),
   }),

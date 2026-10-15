@@ -104,3 +104,8 @@ verify_jwt = false
 # Dados públicos do catálogo para as edge functions da Netlify (prévia social
 # de /estrelas/<slug> e sitemap). Só o que a loja já mostra a qualquer um.
 verify_jwt = false
+
+[functions.get-group]
+# Página de um grupo de estrelas (/g/CODE): o código do grupo é a credencial,
+# como o da página dedicada.
+verify_jwt = false

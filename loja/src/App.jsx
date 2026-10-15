@@ -39,6 +39,7 @@ const Catalogo = lazy(() => import('./pages/Catalogo.jsx'))
 const Estrela = lazy(() => import('./pages/Estrela.jsx'))
 const Politicas = lazy(() => import('./pages/Politicas.jsx'))
 const PaginaDedicada = lazy(() => import('./pagina/PaginaDedicada.jsx').then((m) => ({ default: m.PaginaDedicada })))
+const PaginaGrupo = lazy(() => import('./pagina/PaginaGrupo.jsx').then((m) => ({ default: m.PaginaGrupo })))
 const CartaoPresente = lazy(() => import('./pagina/CartaoPresente.jsx').then((m) => ({ default: m.CartaoPresente })))
 const EdicaoPagina = lazy(() => import('./pagina/EdicaoPagina.jsx').then((m) => ({ default: m.EdicaoPagina })))
 const AdminPagina = lazy(() => import('./admin/AdminPagina.jsx').then((m) => ({ default: m.AdminPagina })))
@@ -86,6 +87,8 @@ function telaPara(caminho) {
     // é o roteador.
     return <Produto slug={limpo.slice('/produto/'.length)} />
   }
+  // Grupo de estrelas compradas juntas: todas no mesmo céu (0021).
+  if (limpo.startsWith('/g/')) return <PaginaGrupo codigo={limpo.slice('/g/'.length).toUpperCase()} />
   if (limpo.startsWith('/p/')) {
     // Página dedicada de um cliente, ou a edição dela. O código é o do pedido
     // (`SG-XXXX-XXXX`); a validação de formato é do servidor, aqui só
@@ -111,7 +114,7 @@ export default function App() {
   // página dedicada e o painel não são funil de compra: ficam de fora.
   useEffect(() => {
     const p = window.location.pathname
-    if (!p.startsWith('/p/') && !p.startsWith('/admin')) {
+    if (!p.startsWith('/p/') && !p.startsWith('/g/') && !p.startsWith('/admin')) {
       registrar('visita')
       preCarregarProduto()
     }

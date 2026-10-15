@@ -21,7 +21,7 @@
 import { comHandler, ErroApp, ipDe, json, lerJson } from '../_shared/http.ts'
 import { admin } from '../_shared/supabase.ts'
 import { limitar } from '../_shared/limite.ts'
-import { dadosDoPar } from '../_shared/par.ts'
+import { dadosDoGrupo } from '../_shared/par.ts'
 
 /**
  * O que volta para o cliente.
@@ -132,8 +132,9 @@ Deno.serve(
       .eq('status', 'published')
       .maybeSingle()
 
-    // Par de estrelas (0020): a outra página, para a tela de obrigado mandar as duas.
-    const par = await dadosDoPar(db, pedido.id, pedido.group_id)
+    // Grupo de estrelas (0020/0021): as outras páginas e a do grupo, para a
+    // tela de obrigado mandar todas.
+    const grupo = await dadosDoGrupo(db, pedido.id, pedido.group_id)
 
     return json(request, {
       pedido: {
@@ -152,7 +153,13 @@ Deno.serve(
         pagina: pagina?.code ?? null,
         // Revelação na data (0019): a mensagem de envio não entrega a estrela.
         revelaEm: pedido.reveal_on ?? null,
-        par: par ? { pagina: par.pagina, paraQuem: par.honoreeName, estrela: par.starName } : null,
+        grupo: grupo
+          ? {
+              code: grupo.code,
+              nome: grupo.nome,
+              outras: grupo.outros.map((o) => ({ pagina: o.pagina, paraQuem: o.honoreeName, estrela: o.starName })),
+            }
+          : null,
       },
     })
   }, 'track-order'),

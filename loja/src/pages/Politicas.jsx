@@ -40,7 +40,7 @@ const SECOES = [
     paragrafos: [
       'O pagamento é feito no Mercado Pago, por Pix ou cartão (em até 12x, com os juros do parcelamento informados pelo Mercado Pago). A Stellara não recebe nem guarda dados do seu cartão.',
       'O preço depende da faixa da estrela (pelo brilho e por ela ter ou não nome próprio) e é mostrado antes de pagar, no resumo do pedido. O valor cobrado é sempre o calculado pelo nosso servidor.',
-      'No par de estrelas, as duas estrelas saem com 10% de desconto sobre a soma das faixas (arredondado para baixo até o real), num pagamento só. Cada pessoa recebe o próprio certificado e a própria página; o reembolso de um par devolve as duas estrelas.',
+      'Com mais de uma estrela na mesma compra (até 6), há desconto sobre a soma das faixas, arredondado para baixo até o real: 10% para 2 estrelas, 15% para 3 e 20% de 4 a 6, num pagamento só. Cada pessoa recebe o próprio certificado e a própria página; o reembolso da compra devolve todas as estrelas dela.',
       'Durante o pagamento, a estrela fica reservada para você por cerca de 30 minutos. Se o pagamento não for concluído nesse prazo, nada é cobrado e a estrela volta ao catálogo.',
     ],
   },

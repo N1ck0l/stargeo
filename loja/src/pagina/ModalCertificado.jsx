@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { linhaDoGrupo } from '../../../shared/grupo.js'
 import { createPortal } from 'react-dom'
 import { Folha } from '../components/Folha.jsx'
 import { baixarPdf, nomeDoArquivo } from '../lib/certificado.js'
@@ -38,7 +39,14 @@ export function ModalCertificado({ open, onClose }) {
     message: content.mensagemPessoal,
     fromName: content.assinatura,
     starNickname: content.apelidoEstrela,
-    par: content.par ? { estrela: content.par.estrela, nome: content.par.nome } : undefined,
+    // Grupo (0020/0021): a mesma linha do PDF — "Em par com …" / "Uma das …".
+    grupoLinha: content.grupo
+      ? linhaDoGrupo({
+          total: content.grupo.total,
+          nome: content.grupo.nome,
+          outros: content.grupo.outras.map((o) => ({ estrela: o.estrela, nome: o.nome })),
+        })
+      : undefined,
     dedicationDate: content.data,
     code: content.registro,
   }

@@ -23,7 +23,8 @@ supabase/
 │                    completo, faixas e busca (0010–0015); nome dado à
 │                    estrela (0016); contadores anônimos do funil (0017);
 │                    depoimentos com aprovação (0018); revelação da
-│                    página numa data (0019); par de estrelas (0020)
+│                    página numa data (0019); par de estrelas (0020);
+│                    grupos de até 6 com página /g/CODE (0021)
 └── functions/       create-checkout, mp-webhook, track-order,
 │                    resend-certificate, get-page, page-auth, page-update,
 │                    admin-api, testimonial (depoimento do comprador),
@@ -166,6 +167,7 @@ supabase functions deploy page-update --no-verify-jwt
 supabase functions deploy admin-api --no-verify-jwt
 supabase functions deploy testimonial --no-verify-jwt
 supabase functions deploy star-public --no-verify-jwt
+supabase functions deploy get-group --no-verify-jwt
 
 supabase secrets set \
   MERCADO_PAGO_ACCESS_TOKEN=... \

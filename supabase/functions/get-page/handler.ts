@@ -22,7 +22,7 @@ import { comHandler, ErroApp, json, lerJson } from '../_shared/http.ts'
 import { admin } from '../_shared/supabase.ts'
 import { aindaGuardada } from '../_shared/datas.ts'
 import { sessaoDe } from '../_shared/token.ts'
-import { dadosDoPar } from '../_shared/par.ts'
+import { dadosDoGrupo } from '../_shared/par.ts'
 import {
   conteudoDaLinha,
   primeiroNome,
@@ -112,17 +112,30 @@ export const paginaPublica = comHandler(async (request) => {
       throw new ErroApp('estrela_ausente', 'Não foi possível abrir a página.', 500, `star_slug ${linha.star_slug}`)
     }
 
-    // Par de estrelas (0020): o link para a página da outra estrela, se ela
-    // estiver publicada. Só nome, estrela e endereço — nada do pedido.
-    let par: { code: string; para: string; nome: string; estrela: string } | null = null
+    // Grupo de estrelas (0020/0021): as outras estrelas (links para as páginas
+    // publicadas) e o endereço da página do grupo. Só nome, estrela e
+    // endereço — nada do pedido. `nome` completo é o que o certificado imprime.
+    let grupo: {
+      code: string | null
+      nome: string | null
+      total: number
+      outras: Array<{ pagina: string | null; para: string; nome: string; estrela: string }>
+    } | null = null
     if (linha.order_id) {
       const { data: pedido } = await db.from('orders').select('group_id').eq('id', linha.order_id).maybeSingle()
-      const dados = await dadosDoPar(db, linha.order_id, pedido?.group_id)
-      if (dados?.pagina) par = { code: dados.pagina, para: dados.para, nome: dados.honoreeName, estrela: dados.starName }
+      const dados = await dadosDoGrupo(db, linha.order_id, pedido?.group_id)
+      if (dados) {
+        grupo = {
+          code: dados.code,
+          nome: dados.nome,
+          total: dados.total,
+          outras: dados.outros.map((o) => ({ pagina: o.pagina, para: o.para, nome: o.honoreeName, estrela: o.starName })),
+        }
+      }
     }
 
     return json(request, {
-      par,
+      grupo,
       pagina: {
         code: linha.code,
         // O conteúdo no formato do `conteudo.json` do site pessoal: os

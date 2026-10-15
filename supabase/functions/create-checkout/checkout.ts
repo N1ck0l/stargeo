@@ -14,27 +14,34 @@
  * e pagar R$ 0,01: o cliente manda o `productSlug` e a estrela, e o valor é o
  * que a loja definiu para a faixa dela.
  *
- * Par de estrelas (migration 0020): com `par` no corpo, nascem DOIS pedidos
- * ligados por `group_id` — cada um com a sua estrela e o seu nome — numa
- * preferência só, com o desconto do par (`shared/preco.js`) repartido entre
- * os dois. O primeiro é o `external_reference`; o
- * webhook trata o grupo inteiro.
+ * Várias estrelas (migrations 0020 e 0021): com `outras` no corpo (até 5,
+ * além da primeira), nasce um GRUPO (`grupos`, com nome opcional e a página
+ * `/g/CODE`) e um pedido por pessoa — cada um com a sua estrela e o seu nome —
+ * numa preferência só, com o desconto progressivo (`shared/preco.js`)
+ * repartido entre eles. `par` é o formato antigo, de duas. O primeiro pedido
+ * é o `external_reference`; o webhook trata o grupo inteiro.
  *
  * Endereço: `https://<ref>.supabase.co/functions/v1/create-checkout`,
  * publicada com `--no-verify-jwt` (ver `LOJA.md`) — quem compra não tem
  * sessão nenhuma, e a proteção é o preço no servidor, não o token.
  *
  * Invariante: nada é gravado antes do texto passar pela moderação; e se a
- * preferência falhar depois do INSERT, o pedido fica `pending` e as estrelas
- * voltam ao catálogo.
+ * preferência falhar depois do INSERT, os pedidos ficam `pending` e as
+ * estrelas voltam ao catálogo.
  */
 import { comHandler, ErroApp, idRequisicao, json, lerJson } from '../_shared/http.ts'
 import { admin } from '../_shared/supabase.ts'
 import { limitarPorIp } from '../_shared/limite.ts'
 import { criarPreferencia } from '../_shared/mercadoPago.ts'
-import { explicarErros, limpar, validarPedido } from '../../../shared/moderation.js'
+import { explicarErros, limpar, validarPedido, validarTexto } from '../../../shared/moderation.js'
 import { validarRevelacao } from '../_shared/datas.ts'
-import { DESCONTO_PAR_PERCENTUAL, precoDoPar } from '../../../shared/preco.js'
+import { MAX_ESTRELAS, precoDoGrupo } from '../../../shared/preco.js'
+
+interface Pessoa {
+  starSlug?: string
+  honoreeName?: string
+  starNickname?: string
+}
 
 interface Entrada {
   productSlug?: string
@@ -48,8 +55,12 @@ interface Entrada {
   customerEmail?: string
   customerName?: string
   customerDoc?: string
-  /** Par de estrelas: a segunda pessoa e a segunda estrela. */
-  par?: { starSlug?: string; honoreeName?: string; starNickname?: string } | null
+  /** Mais estrelas na mesma compra (0021): uma por pessoa, até 5 além da primeira. */
+  outras?: Pessoa[] | null
+  /** Nome do grupo, opcional ("Família Souza"): vai no certificado de 3+. */
+  nomeGrupo?: string | null
+  /** Formato antigo do par (0020) — o mesmo que `outras: [par]`. */
+  par?: Pessoa | null
 }
 
 type Db = ReturnType<typeof admin>
@@ -72,7 +83,16 @@ export const checkout = comHandler(async (request) => {
   await limitarPorIp(db, request, 'checkout', { maximo: 10, janelaSegundos: 600 })
 
   const corpo = (await lerJson(request)) as Entrada
-  const par = corpo.par && typeof corpo.par === 'object' ? corpo.par : null
+  const outras: Pessoa[] = Array.isArray(corpo.outras)
+    ? corpo.outras.filter((o) => o && typeof o === 'object')
+    : corpo.par && typeof corpo.par === 'object'
+      ? [corpo.par]
+      : []
+  const pessoas: Pessoa[] = [
+    { starSlug: corpo.starSlug, honoreeName: corpo.honoreeName, starNickname: corpo.starNickname },
+    ...outras,
+  ]
+  const emGrupo = pessoas.length > 1
 
   // --- 1. Campos obrigatórios ---------------------------------------
   if (!corpo.productSlug) {
@@ -81,33 +101,42 @@ export const checkout = comHandler(async (request) => {
   if (!corpo.customerEmail) {
     throw new ErroApp('email_ausente', 'Precisamos do seu e-mail para entregar o certificado.')
   }
+  if (pessoas.length > MAX_ESTRELAS) {
+    throw new ErroApp('estrelas_demais', `Cada compra leva até ${MAX_ESTRELAS} estrelas.`, 422)
+  }
 
   // --- 2. Moderação do texto ----------------------------------------
-  const pedidoTexto = validarPedido({
-    honoreeName: corpo.honoreeName,
-    fromName: corpo.fromName,
-    starNickname: corpo.starNickname,
-    message: corpo.message,
-    customerName: corpo.customerName,
-    customerEmail: corpo.customerEmail,
-  })
-  const parTexto = par
-    ? validarPedido({
-        honoreeName: par.honoreeName,
-        starNickname: par.starNickname,
-        customerName: corpo.customerName,
-        customerEmail: corpo.customerEmail,
-      })
-    : { ok: true, erros: [] }
-
-  if (!pedidoTexto.ok || !parTexto.ok) {
-    const erros = [...pedidoTexto.erros, ...parTexto.erros]
+  const erros = [
+    ...validarPedido({
+      honoreeName: corpo.honoreeName,
+      fromName: corpo.fromName,
+      starNickname: corpo.starNickname,
+      message: corpo.message,
+      customerName: corpo.customerName,
+      customerEmail: corpo.customerEmail,
+    }).erros,
+    ...outras.flatMap(
+      (o) =>
+        validarPedido({
+          honoreeName: o.honoreeName,
+          starNickname: o.starNickname,
+          customerName: corpo.customerName,
+          customerEmail: corpo.customerEmail,
+        }).erros,
+    ),
+  ]
+  const nomeGrupo = emGrupo ? limpar(corpo.nomeGrupo ?? '') : ''
+  if (nomeGrupo) {
+    const erro = validarTexto('groupName', nomeGrupo)
+    if (erro) erros.push({ campo: 'groupName', motivo: erro })
+  }
+  if (erros.length) {
     console.warn(`[checkout ${id}] texto bloqueado:`, erros)
     throw new ErroApp('texto_nao_permitido', explicarErros(erros), 422)
   }
 
-  // Revelação da página numa data (0019): opcional, até um ano. No par, vale
-  // para as duas páginas.
+  // Revelação da página numa data (0019): opcional, até um ano. No grupo,
+  // vale para todas as páginas.
   const revelacao = validarRevelacao(corpo.revealOn)
   if ('erro' in revelacao) throw new ErroApp('data_invalida', revelacao.erro, 422)
 
@@ -125,26 +154,37 @@ export const checkout = comHandler(async (request) => {
     throw new ErroApp('produto_inexistente', 'Esse produto não está disponível.', 404)
   }
 
-  if (!corpo.starSlug) {
-    throw new ErroApp('estrela_ausente', 'Escolha uma estrela para continuar.')
+  if (pessoas.some((p) => !p.starSlug)) {
+    throw new ErroApp('estrela_ausente', emGrupo ? 'Escolha a estrela de cada pessoa.' : 'Escolha uma estrela para continuar.')
   }
-  if (par && !par.starSlug) {
-    throw new ErroApp('estrela_ausente', 'Escolha a segunda estrela do par.')
-  }
-  if (par && par.starSlug === corpo.starSlug) {
-    throw new ErroApp('estrelas_iguais', 'O par precisa de duas estrelas diferentes.', 422)
+  if (new Set(pessoas.map((p) => p.starSlug)).size !== pessoas.length) {
+    throw new ErroApp('estrelas_iguais', 'Cada pessoa precisa de uma estrela diferente.', 422)
   }
 
-  const estrela = await carregarEstrela(db, produto, String(corpo.starSlug))
-  const estrela2 = par ? await carregarEstrela(db, produto, String(par.starSlug)) : null
+  const estrelas: EstrelaDoPedido[] = []
+  for (const p of pessoas) estrelas.push(await carregarEstrela(db, produto, String(p.starSlug)))
 
-  // --- 4. Grava o(s) pedido(s) -------------------------------------------
-  const groupId = par ? crypto.randomUUID() : null
-  // Par: 10% sobre a soma, repartido na proporção de cada estrela. A conta é
-  // a mesma que o site mostra, e roda AQUI com os preços do banco.
-  const precos = estrela2
-    ? precoDoPar(estrela.precoCentavos, estrela2.precoCentavos).partes
-    : [estrela.precoCentavos]
+  // Desconto progressivo do grupo (10%/15%/20%), repartido na proporção de
+  // cada estrela. A conta é a mesma que o site mostra (`shared/preco.js`), e
+  // roda AQUI com os preços do banco.
+  const preco = precoDoGrupo(estrelas.map((e) => e.precoCentavos))
+
+  // --- 4. Grava o grupo e os pedidos ------------------------------------
+  let groupId: string | null = null
+  let codigoGrupo: string | null = null
+  if (emGrupo) {
+    const { data: grupo, error: erroGrupo } = await db
+      .from('grupos')
+      .insert({ nome: nomeGrupo || null })
+      .select('id, code')
+      .single()
+    if (erroGrupo || !grupo) {
+      throw new ErroApp('pedido_falhou', 'Não foi possível registrar seu pedido.', 500, erroGrupo?.message)
+    }
+    groupId = grupo.id
+    codigoGrupo = grupo.code
+  }
+
   const comum = {
     product_id: produto.id,
     // Snapshot do nome: se o produto mudar de nome depois, o pedido antigo
@@ -162,24 +202,13 @@ export const checkout = comHandler(async (request) => {
     group_id: groupId,
   }
 
-  const insercoes = [
-    {
-      ...comum,
-      amount_cents: precos[0],
-      star_slug: estrela.slug,
-      honoree_name: limpar(corpo.honoreeName),
-      star_nickname: corpo.starNickname ? limpar(corpo.starNickname) || null : null,
-    },
-  ]
-  if (par && estrela2) {
-    insercoes.push({
-      ...comum,
-      amount_cents: precos[1],
-      star_slug: estrela2.slug,
-      honoree_name: limpar(par.honoreeName),
-      star_nickname: par.starNickname ? limpar(par.starNickname) || null : null,
-    })
-  }
+  const insercoes = pessoas.map((p, i) => ({
+    ...comum,
+    amount_cents: preco.partes[i],
+    star_slug: estrelas[i].slug,
+    honoree_name: limpar(p.honoreeName),
+    star_nickname: p.starNickname ? limpar(p.starNickname) || null : null,
+  }))
 
   const pedidos: Array<{ id: string; code: string; amount_cents: number }> = []
   for (const insercao of insercoes) {
@@ -199,8 +228,8 @@ export const checkout = comHandler(async (request) => {
   // Atômica no banco (`reservar_estrela`, migration 0010): entre duas
   // compras simultâneas da mesma estrela, só uma reserva vence. A reserva
   // dura um pouco mais que o prazo do pagamento, para o Pix pago no último
-  // minuto ainda encontrar a estrela guardada. No par, se a segunda não
-  // reservar, a primeira volta ao catálogo — é tudo ou nada.
+  // minuto ainda encontrar a estrela guardada. No grupo é tudo ou nada: se
+  // uma não reservar, as outras voltam ao catálogo.
   const reservadas: Array<{ slug: string; order: string }> = []
   for (const [i, pedido] of pedidos.entries()) {
     const slug = insercoes[i].star_slug
@@ -222,11 +251,11 @@ export const checkout = comHandler(async (request) => {
   // --- 6. Preferência de pagamento ------------------------------------
   try {
     const preferencia = await criarPreferencia({
-      itens: [estrela, estrela2].filter((e): e is EstrelaDoPedido => Boolean(e)).map((e, i) => ({
+      itens: estrelas.map((e, i) => ({
         titulo: `Certificado de ${e.name}`,
-        descricao: estrela2 ? `${produto.name} · par de estrelas (${DESCONTO_PAR_PERCENTUAL}% off)` : produto.name,
+        descricao: emGrupo ? `${produto.name} · ${pessoas.length} estrelas (${preco.percentual}% off)` : produto.name,
         quantidade: 1,
-        precoUnitario: precos[i],
+        precoUnitario: preco.partes[i],
       })),
       payerEmail: comum.customer_email,
       payerName: comum.customer_name,
@@ -237,7 +266,9 @@ export const checkout = comHandler(async (request) => {
     return json(request, {
       orderId: pedidos[0].id,
       code: pedidos[0].code,
+      codes: pedidos.map((p) => p.code),
       codePar: pedidos[1]?.code ?? null,
+      grupo: codigoGrupo,
       amountCents: pedidos.reduce((soma, p) => soma + Number(p.amount_cents), 0),
       preferenceId: preferencia.id,
       initPoint: preferencia.init_point,

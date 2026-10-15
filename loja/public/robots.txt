@@ -5,6 +5,7 @@ Allow: /
 
 Disallow: /admin
 Disallow: /p/
+Disallow: /g/
 Disallow: /editar
 Disallow: /rastrear
 Disallow: /obrigado

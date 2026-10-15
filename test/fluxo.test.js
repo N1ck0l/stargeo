@@ -47,6 +47,7 @@ vi.mock('../supabase/functions/_shared/certificado.ts', () => ({
 const { checkout } = await import('../supabase/functions/create-checkout/checkout.ts')
 const { webhook } = await import('../supabase/functions/mp-webhook/webhook.ts')
 const { paginaPublica } = await import('../supabase/functions/get-page/handler.ts')
+const { paginaDoGrupo } = await import('../supabase/functions/get-group/handler.ts')
 const { gerarEGuardar } = await import('../supabase/functions/_shared/certificado.ts')
 
 // ---------------------------------------------------------------------------
@@ -63,6 +64,7 @@ function criarBanco() {
       { slug: 'hip-1', name: 'HD 224700', bayer: 'HIP 1', constellation: 'Peixes', constellation_latin: 'Pisces', ra_hours: 0, dec_degrees: 1, magnitude: 9.1, distance_ly: null, story: 'z', active: true, status: 'disponivel', order_id: null, faixas: { price_cents: 4900 } },
     ],
     orders: [],
+    grupos: [],
     pages: [],
     certificate_drafts: [],
   }
@@ -73,10 +75,14 @@ function criarBanco() {
       let resultado
       if (q.op === 'insert') {
         seq += 1
+        // `created_at` crescente: a ordem da compra é a ordem de inserção.
+        const criado = new Date(Date.UTC(2026, 9, 15, 12, 0, seq)).toISOString()
         const linha =
           tabela === 'orders'
-            ? { id: `pedido-${seq}`, code: `SG-TST${seq}-AAAA`, status: 'pending', delivered_at: null, delivery_started_at: null, created_at: new Date().toISOString(), ...q.valores }
-            : { id: `${tabela}-${seq}`, status: 'published', created_at: new Date().toISOString(), ...q.valores }
+            ? { id: `pedido-${seq}`, code: `SG-TST${seq}-AAAA`, status: 'pending', delivered_at: null, delivery_started_at: null, created_at: criado, ...q.valores }
+            : tabela === 'grupos'
+              ? { id: `grupo-${seq}`, code: `GR-TST${seq}-AAAA`, created_at: criado, ...q.valores }
+              : { id: `${tabela}-${seq}`, status: 'published', created_at: criado, ...q.valores }
         tabelas[tabela].push(linha)
         resultado = { data: { ...linha }, error: null }
       } else {
@@ -231,7 +237,7 @@ describe('compra de ponta a ponta', () => {
     const pagina = await (await abrirPagina(pedido.code)).json()
     expect(pagina.pagina.conteudo).toMatchObject({ nome: 'Helena Martins', apelidoEstrela: 'Nossa Luz' })
     expect(pagina.estrela.commonName).toBe('Vega')
-    expect(pagina.par).toBeNull()
+    expect(pagina.grupo).toBeNull()
   })
 
   it('par de estrelas: um pagamento, dois pedidos entregues, cada página aponta para a outra', async () => {
@@ -251,12 +257,47 @@ describe('compra de ponta a ponta', () => {
     expect(estado.banco.estrela('altair').status).toBe('dedicada')
     expect(estado.banco.tabelas.pages).toHaveLength(2)
     // Cada certificado sai com a linha "Em par com …" da outra estrela.
-    const linhas = gerarEGuardar.mock.calls.map(([, p]) => `${p.star_slug}→${p.par_estrela}/${p.par_nome}`)
-    expect(linhas).toContain('vega→Altair/Pedro Lima')
-    expect(linhas).toContain('altair→Vega/Helena Martins')
+    const linhas = gerarEGuardar.mock.calls.map(([, p]) => `${p.star_slug}→${p.grupo_linha}`)
+    expect(linhas).toContain('vega→Em par com Altair, dedicada a Pedro Lima')
+    expect(linhas).toContain('altair→Em par com Vega, dedicada a Helena Martins')
 
     const daHelena = await (await abrirPagina(pedido.code)).json()
-    expect(daHelena.par).toMatchObject({ code: pedido.codePar, para: 'Pedro', estrela: 'Altair' })
+    expect(daHelena.grupo).toMatchObject({ total: 2, outras: [{ pagina: pedido.codePar, para: 'Pedro', estrela: 'Altair' }] })
+  })
+
+  it('três estrelas com nome do grupo: 15%, a linha do grupo nas folhas e a página do grupo com as três', async () => {
+    const r = await comprar({
+      starSlug: 'vega',
+      honoreeName: 'Helena Souza',
+      outras: [
+        { starSlug: 'altair', honoreeName: 'Pedro Souza' },
+        { starSlug: 'hip-1', honoreeName: 'Lia Souza', starNickname: 'Caçula' },
+      ],
+      nomeGrupo: 'Família Souza',
+    })
+    const pedido = await r.json()
+    // 249 + 249 + 49 = R$ 547, com 15%: R$ 464.
+    expect(pedido.amountCents).toBe(46400)
+    expect(pedido.codes).toHaveLength(3)
+    expect(pedido.grupo).toMatch(/^GR-/)
+    expect(estado.preferencias[0].itens.reduce((s, i) => s + i.precoUnitario, 0)).toBe(46400)
+
+    await aprovar(pedido.orderId, 464)
+    expect(['vega', 'altair', 'hip-1'].map((s) => estado.banco.estrela(s).status)).toEqual(['dedicada', 'dedicada', 'dedicada'])
+    expect(new Set(gerarEGuardar.mock.calls.map(([, p]) => p.grupo_linha))).toEqual(new Set(['Uma das três estrelas · Família Souza']))
+
+    const grupo = await (
+      await paginaDoGrupo(new Request('https://x.test/functions/v1/get-group', { method: 'POST', body: JSON.stringify({ code: pedido.grupo }) }))
+    ).json()
+    expect(grupo.nome).toBe('Família Souza')
+    expect(grupo.estrelas.map((e) => `${e.para}:${e.estrela}`)).toEqual(['Helena:Vega', 'Pedro:Altair', 'Lia:HD 224700'])
+  })
+
+  it('grupo: mais de seis estrelas é recusado, e estrela repetida também', async () => {
+    const sete = Array.from({ length: 6 }, (_, i) => ({ starSlug: `x-${i}`, honoreeName: 'Ana Lima' }))
+    expect((await comprar({ starSlug: 'vega', honoreeName: 'Helena', outras: sete })).status).toBe(422)
+    const repetida = await comprar({ starSlug: 'vega', honoreeName: 'Helena', outras: [{ starSlug: 'vega', honoreeName: 'Pedro' }] })
+    expect(await repetida.json()).toMatchObject({ erro: 'estrelas_iguais' })
   })
 
   it('par: pagar o preço cheio de uma estrela só não entrega nenhum dos dois', async () => {

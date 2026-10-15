@@ -159,6 +159,7 @@ function misturar(a, b, t) {
  * @property {string} [starNickname]    nome dado à estrela nesta homenagem
  * @property {string} [parEstrela]      par de estrelas (0020): a estrela do outro
  * @property {string} [parNome]         e a quem ela foi dedicada
+ * @property {string} [grupoLinha]      grupo de 3+ (0021): a linha pronta (`shared/grupo.js`)
  */
 
 /**
@@ -361,9 +362,9 @@ function blocoCentral(add, texto, dados, p, { topo, base }) {
     let apelidoPt = 17
     while (apelido && apelidoPt > 11 && medir('serifItalico', apelidoTexto, apelidoPt) > 160) apelidoPt -= 0.5
     // Par de estrelas: uma linha discreta sob o nome, ligando as duas folhas.
-    const parTexto = par ? `Em par com ${par.estrela}, dedicada a ${par.nome}` : ''
+    const parTexto = String(dados.grupoLinha ?? '').trim() || (par ? `Em par com ${par.estrela}, dedicada a ${par.nome}` : '')
     let parPt = 8.5
-    while (par && parPt > 6 && medir('sansItalico', parTexto, parPt) > 156) parPt -= 0.25
+    while (parTexto && parPt > 6 && medir('sansItalico', parTexto, parPt) > 156) parPt -= 0.25
     const passoNome = pt * MM_POR_PT * 1.18
     const passoMsg = msgPt * MM_POR_PT * 1.5
 
@@ -392,7 +393,7 @@ function blocoCentral(add, texto, dados, p, { topo, base }) {
         pt * MM_POR_PT * 0.28 + 3,
         (y) => nomeLinhas.forEach((linha, i) => texto(linha, { y: y + i * passoNome, fonte: 'serifItalico', pt, cor: p.texto })),
       ],
-      ...(par
+      ...(parTexto
         ? [[caixaAlta(parPt), caixaAlta(parPt), 5, (y) => texto(parTexto, { y, fonte: 'sansItalico', pt: parPt, cor: p.destaque, opacidade: 0.9 })]]
         : []),
       [0.2, 0.2, msgLinhas.length ? 6.5 : 0, (y) => add({ tipo: 'linha', x1: CENTRO_X - 22, y1: y, x2: CENTRO_X + 22, y2: y, cor: p.moldura, espessura: 0.2, opacidade: 0.6 })],

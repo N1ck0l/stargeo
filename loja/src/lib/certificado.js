@@ -7,13 +7,15 @@ import { formatDec, formatRa } from '../../../shared/stars.js'
  * (`baixarPdf`): se cada um montasse os dados, o PDF baixado poderia sair
  * diferente da folha que a pessoa está vendo.
  */
-export function dadosDaFolha({ estrela, honoreeName, message, fromName, dedicationDate, code, starNickname, par }) {
+export function dadosDaFolha({ estrela, honoreeName, message, fromName, dedicationDate, code, starNickname, par, grupoLinha }) {
   return {
     honoreeName,
     starNickname,
     // Par de estrelas: `{ estrela, nome }` do outro pedido.
     parEstrela: par?.estrela,
     parNome: par?.nome,
+    // Grupo de 3+: a linha pronta (`shared/grupo.js`).
+    grupoLinha,
     starName: estrela.name,
     slug: estrela.slug,
     sigla: estrela.sigla,

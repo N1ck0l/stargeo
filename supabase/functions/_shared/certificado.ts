@@ -78,6 +78,8 @@ export async function gerarEGuardar(
     // Par de estrelas (0020): quem chama põe `par_estrela`/`par_nome` no pedido.
     parEstrela: pedido.par_estrela ? String(pedido.par_estrela) : undefined,
     parNome: pedido.par_nome ? String(pedido.par_nome) : undefined,
+    // Grupo de 3+ (0021): a linha pronta, de `shared/grupo.js`.
+    grupoLinha: pedido.grupo_linha ? String(pedido.grupo_linha) : undefined,
     message: pedido.message ? String(pedido.message) : undefined,
   }
 

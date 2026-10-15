@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react'
 import { getStar } from '../../../shared/stars.js'
-import { validarPedido, explicarErros } from '../../../shared/moderation.js'
+import { validarPedido, validarTexto, explicarErros } from '../../../shared/moderation.js'
 import { Folha } from '../components/Folha.jsx'
 import { ExploradorDeEstrelas } from '../components/ExploradorDeEstrelas.jsx'
 import { MiniCeuSobDemanda } from '../components/MiniCeuSobDemanda.jsx'
@@ -11,7 +11,9 @@ import { Link } from '../lib/Link.jsx'
 import { buscarEstrela, comoSeVe, normalizar, reais } from '../lib/catalogo.js'
 import { ocasiaoPorSlug, SUGESTOES_GERAIS } from '../lib/ocasioes.js'
 import { registrar } from '../lib/metricas.js'
-import { DESCONTO_PAR_PERCENTUAL, precoDoPar } from '../../../shared/preco.js'
+import { precoDoGrupo } from '../../../shared/preco.js'
+import { linhaDoGrupo } from '../../../shared/grupo.js'
+import { MaisEstrelas } from '../components/MaisEstrelas.jsx'
 import { EMAIL_ATIVO } from '../lib/config.js'
 
 /**
@@ -129,20 +131,19 @@ export default function Produto({ slug }) {
   const indisponivel = Boolean(estrela.status) && estrela.status !== 'disponivel'
 
   /*
-   * Par de estrelas (migration 0020): uma estrela para cada pessoa — casal,
-   * irmãos, mãe e filha. São dois certificados e duas páginas, ligados ("Em
-   * par com …"), pagos juntos. O preço é a soma das faixas das duas.
+   * Mais de uma estrela (migrations 0020 e 0021): de 2 a 6 pessoas, cada uma
+   * com a sua estrela, o seu certificado e a sua página, todas no mesmo céu
+   * (`/g/CODE`) e pagas juntas, com desconto progressivo (`shared/preco.js`,
+   * a mesma conta do servidor). `outras` = `[{ id, nome, apelido, estrela }]`.
    */
-  const [emPar, setEmPar] = useState(false)
-  const [estrela2, setEstrela2] = useState(null)
-  const [paraQuem2, setParaQuem2] = useState('')
-  const [apelido2, setApelido2] = useState('')
-  // Qual das duas folhas a prévia mostra.
-  const [folhaVisivel, setFolhaVisivel] = useState(1)
-  const indisponivel2 = Boolean(estrela2?.status) && estrela2.status !== 'disponivel'
-  // O par tem desconto (`shared/preco.js` — a mesma conta do servidor).
-  const doPar = emPar && estrela2 ? precoDoPar(estrela.precoCentavos, estrela2.precoCentavos) : null
-  const totalCentavos = doPar ? doPar.total : estrela.precoCentavos
+  const [outras, setOutras] = useState([])
+  const [nomeGrupo, setNomeGrupo] = useState('')
+  // Qual folha a prévia mostra: 0 = a primeira pessoa; i = outras[i - 1].
+  const [folhaVisivel, setFolhaVisivel] = useState(0)
+  const emGrupo = outras.length > 0
+  const comEstrela = outras.filter((o) => o.estrela)
+  const doGrupo = emGrupo ? precoDoGrupo([estrela, ...comEstrela.map((o) => o.estrela)].map((e) => e.precoCentavos)) : null
+  const totalCentavos = doGrupo ? doGrupo.total : estrela.precoCentavos
   const preco = reais(totalCentavos)
   const [paraQuem, setParaQuem] = useState('')
   const [assinatura, setAssinatura] = useState('')
@@ -186,20 +187,26 @@ export default function Produto({ slug }) {
     customerEmail: email,
   })
 
-  // A segunda pessoa do par passa pela mesma régua (nome e nome da estrela).
-  const validacao2 = emPar
-    ? validarPedido({ honoreeName: paraQuem2, starNickname: apelido2, customerName: 'Comprador', customerEmail: 'a@b.co' })
-    : { ok: true, erros: [] }
+  // Cada pessoa a mais passa pela mesma régua (nome e nome da estrela), e o
+  // nome do grupo também.
+  const validacaoOutras = Object.fromEntries(
+    outras.map((o) => [
+      o.id,
+      validarPedido({ honoreeName: o.nome, starNickname: o.apelido, customerName: 'Comprador', customerEmail: 'a@b.co' }),
+    ]),
+  )
+  const erroNomeGrupo = outras.length >= 2 && nomeGrupo.trim() ? validarTexto('groupName', nomeGrupo) : null
 
   /** Mensagem de erro do campo, nula enquanto a pessoa não tiver tocado nele. */
   const erroDe = (campo) => {
     if (!tocou[campo]) return null
     return validacao.erros.find((e) => e.campo === campo)?.motivo ?? null
   }
-  /** O mesmo, para os campos da segunda pessoa (`par.honoreeName`, …). */
-  const erroDe2 = (campo) => {
-    if (!tocou[`par.${campo}`]) return null
-    return validacao2.erros.find((e) => e.campo === campo)?.motivo ?? null
+  /** O mesmo, para os campos das outras pessoas (`id` nulo = nome do grupo). */
+  const erroDeOutra = (id, campo) => {
+    if (id === null) return tocou.groupName ? erroNomeGrupo : null
+    if (!tocou[`outra.${id}.${campo}`]) return null
+    return validacaoOutras[id]?.erros.find((e) => e.campo === campo)?.motivo ?? null
   }
 
   /** Marca o campo como tocado. É idempotente: repetir devolve o mesmo objeto e não re-renderiza. */
@@ -238,22 +245,27 @@ export default function Produto({ slug }) {
       setErro('Esta estrela já tem dono. Escolha outra no catálogo acima — são milhares livres.')
       return
     }
-    if (emPar) {
-      if (!estrela2) {
-        setErro('Escolha a segunda estrela do par — ou desmarque "Dar um par de estrelas".')
+    if (emGrupo) {
+      if (outras.some((o) => !o.estrela)) {
+        setErro('Escolha a estrela de cada pessoa — ou remova quem ainda não tem estrela.')
         return
       }
-      if (estrela2.slug === estrela.slug) {
-        setErro('O par precisa de duas estrelas diferentes.')
+      if (outras.some((o) => Boolean(o.estrela.status) && o.estrela.status !== 'disponivel')) {
+        setErro('Uma das estrelas escolhidas já tem dono. Troque por outra.')
         return
       }
-      if (indisponivel2) {
-        setErro('A segunda estrela já tem dono. Escolha outra.')
-        return
-      }
-      if (!validacao2.ok) {
-        setTocou((t) => ({ ...t, 'par.honoreeName': true, 'par.starNickname': true }))
-        setErro(explicarErros(validacao2.erros))
+      const invalidas = outras.filter((o) => !validacaoOutras[o.id].ok)
+      if (invalidas.length || erroNomeGrupo) {
+        setTocou((t) => ({
+          ...t,
+          groupName: true,
+          ...Object.fromEntries(outras.flatMap((o) => [[`outra.${o.id}.honoreeName`, true], [`outra.${o.id}.starNickname`, true]])),
+        }))
+        setErro(
+          erroNomeGrupo && !invalidas.length
+            ? 'Revise o nome do grupo.'
+            : explicarErros(invalidas.flatMap((o) => validacaoOutras[o.id].erros)),
+        )
         return
       }
     }
@@ -280,10 +292,10 @@ export default function Produto({ slug }) {
         fromName: assinatura || undefined,
         starNickname: apelido.trim() || undefined,
         revealOn: guardar && revelarEm ? revelarEm : undefined,
-        par:
-          emPar && estrela2
-            ? { starSlug: estrela2.slug, honoreeName: paraQuem2, starNickname: apelido2.trim() || undefined }
-            : undefined,
+        outras: emGrupo
+          ? outras.map((o) => ({ starSlug: o.estrela.slug, honoreeName: o.nome, starNickname: o.apelido.trim() || undefined }))
+          : undefined,
+        nomeGrupo: outras.length >= 2 && nomeGrupo.trim() ? nomeGrupo.trim() : undefined,
         message: mensagem || undefined,
         dedicationDate: data || undefined,
         customerEmail: email,
@@ -319,9 +331,43 @@ export default function Produto({ slug }) {
       // banco, e a tela passa a mostrá-la como indisponível.
       if (falha instanceof ErroApi && falha.codigo === 'estrela_indisponivel') {
         buscarEstrela(estrela.slug).then((e) => e && setEstrela(e)).catch(() => {})
-        if (estrela2) buscarEstrela(estrela2.slug).then((e) => e && setEstrela2(e)).catch(() => {})
+        for (const o of outras) {
+          if (!o.estrela) continue
+          buscarEstrela(o.estrela.slug)
+            .then((e) => e && setOutras((lista) => lista.map((x) => (x.id === o.id ? { ...x, estrela: e } : x))))
+            .catch(() => {})
+        }
       }
       setEnviando(false)
+    }
+  }
+
+  /**
+   * A folha que a prévia mostra: a da primeira pessoa ou a de uma das outras,
+   * com a linha do grupo (`shared/grupo.js` — a mesma do PDF).
+   */
+  function folhaDaPrevia() {
+    const pessoas = [
+      { nome: paraQuem, apelido, estrela },
+      ...outras.filter((o) => o.estrela).map((o) => ({ nome: o.nome, apelido: o.apelido, estrela: o.estrela, id: o.id })),
+    ]
+    const alvo = folhaVisivel === 0 ? 0 : pessoas.findIndex((p) => p.id === outras[folhaVisivel - 1]?.id)
+    const atual = pessoas[alvo > 0 ? alvo : 0]
+    const grupoLinha =
+      pessoas.length > 1
+        ? linhaDoGrupo({
+            total: outras.length + 1,
+            nome: nomeGrupo.trim() || null,
+            outros: pessoas.filter((p) => p !== atual).map((p) => ({ estrela: p.estrela.name, nome: p.nome.trim() || 'quem recebe' })),
+          })
+        : undefined
+    return {
+      estrela: atual.estrela,
+      honoreeName: atual.nome,
+      starNickname: atual.apelido,
+      message: mensagem,
+      fromName: assinatura,
+      grupoLinha,
     }
   }
 
@@ -435,74 +481,16 @@ export default function Produto({ slug }) {
                 />
               </div>
 
-              <div className="mt-8 rounded-2xl border border-gold/25 bg-gold/[0.04] p-5">
-                <label className="flex cursor-pointer items-start gap-2.5 text-sm text-ivory/90">
-                  <input
-                    type="checkbox"
-                    checked={emPar}
-                    onChange={(e) => {
-                      setEmPar(e.target.checked)
-                      if (!e.target.checked) setFolhaVisivel(1)
-                    }}
-                    className="mt-1 accent-[#d8b66a]"
-                  />
-                  <span>
-                    Dar um par de estrelas
-                    <span className="mt-0.5 block text-xs text-ivory/55">
-                      Uma estrela para cada pessoa — casal, irmãos, mãe e filha. Cada uma ganha o próprio
-                      certificado e a própria página, ligados um ao outro (“em par com…”). No par, as duas
-                      estrelas saem com {DESCONTO_PAR_PERCENTUAL}% de desconto.
-                    </span>
-                  </span>
-                </label>
-
-                {emPar && (
-                  <div className="mt-5 space-y-5">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <Campo
-                        name="par-nome"
-                        rotulo="Nome da segunda pessoa"
-                        obrigatorio
-                        value={paraQuem2}
-                        onChange={setParaQuem2}
-                        onBlur={() => marcarTocado('par.honoreeName')}
-                        erro={erroDe2('honoreeName')}
-                        placeholder="Ex.: Pedro Henrique Lima"
-                        maxLength={80}
-                      />
-                      <Campo
-                        name="par-apelido"
-                        rotulo="Nome para a segunda estrela (opcional)"
-                        value={apelido2}
-                        onChange={setApelido2}
-                        onBlur={() => marcarTocado('par.starNickname')}
-                        erro={erroDe2('starNickname')}
-                        maxLength={40}
-                      />
-                    </div>
-
-                    {estrela2 ? (
-                      <p className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-ivory/85">
-                        Segunda estrela: <span className="font-serif text-ivory">{estrela2.name}</span>
-                        <span className="text-ivory/50"> · {estrela2.constellation} · {reais(estrela2.precoCentavos)}</span>
-                        {indisponivel2 && <span className="block text-xs text-amber-200">Esta já tem dono — escolha outra.</span>}
-                      </p>
-                    ) : (
-                      <p className="text-xs text-ivory/55">Escolha abaixo a estrela da segunda pessoa.</p>
-                    )}
-
-                    <ExploradorDeEstrelas
-                      selecionada={estrela2?.slug}
-                      aoEscolher={(e) => {
-                        if (e.slug === estrela.slug) return
-                        setEstrela2(e)
-                        setFolhaVisivel(2)
-                      }}
-                      titulo="Escolher a segunda estrela"
-                    />
-                  </div>
-                )}
-              </div>
+              <MaisEstrelas
+                principal={estrela}
+                outras={outras}
+                setOutras={setOutras}
+                nomeGrupo={nomeGrupo}
+                setNomeGrupo={setNomeGrupo}
+                erroDe={erroDeOutra}
+                marcarTocado={marcarTocado}
+                aoVerFolha={setFolhaVisivel}
+              />
             </Secao>
 
             <Secao numero="3" titulo="Sua mensagem (opcional)">
@@ -640,12 +628,10 @@ export default function Produto({ slug }) {
                   ['Estrela', `${estrela.name} · ${estrela.constellation}`],
                   ['Dedicada a', paraQuem.trim() || '—'],
                   ...(apelido.trim() ? [['Nome da homenagem', `“${apelido.trim()}”`]] : []),
-                  ...(emPar
-                    ? [
-                        ['Segunda estrela', estrela2 ? `${estrela2.name} · ${estrela2.constellation}` : '—'],
-                        ['Segunda dedicada a', paraQuem2.trim() || '—'],
-                      ]
-                    : []),
+                  ...outras.map((o, i) => [
+                    `Estrela ${i + 2}`,
+                    `${o.estrela ? `${o.estrela.name} · ` : ''}${o.nome.trim() || '—'}`,
+                  ]),
                   ...(guardar && revelarEm ? [['Página revelada em', dataEmPortugues(revelarEm)]] : []),
                   ['Formato', 'Certificado digital em PDF A4 (versões escura e clara) + página da estrela'],
                   [
@@ -660,11 +646,13 @@ export default function Produto({ slug }) {
                     <dd className="text-right text-ivory/85">{valor}</dd>
                   </div>
                 ))}
-                {doPar && (
+                {doGrupo?.desconto > 0 && (
                   <div className="flex justify-between gap-4">
-                    <dt className="shrink-0 text-ivory/50">Desconto do par ({DESCONTO_PAR_PERCENTUAL}%)</dt>
+                    <dt className="shrink-0 text-ivory/50">
+                      Desconto de {comEstrela.length + 1} estrelas ({doGrupo.percentual}%)
+                    </dt>
                     <dd className="text-right text-emerald-300">
-                      <span className="mr-2 text-ivory/40 line-through">{reais(doPar.cheio)}</span>− {reais(doPar.desconto)}
+                      <span className="mr-2 text-ivory/40 line-through">{reais(doGrupo.cheio)}</span>− {reais(doGrupo.desconto)}
                     </dd>
                   </div>
                 )}
@@ -680,7 +668,7 @@ export default function Produto({ slug }) {
                 {enviando ? 'Abrindo o pagamento…' : `Finalizar · ${preco}`}
               </button>
               <p className="text-xs text-ivory/45">
-                Você paga no Mercado Pago, por Pix ou cartão em até 12x. {emPar ? 'As estrelas ficam reservadas' : 'A estrela fica reservada'} para
+                Você paga no Mercado Pago, por Pix ou cartão em até 12x. {emGrupo ? 'As estrelas ficam reservadas' : 'A estrela fica reservada'} para
                 você por 30 minutos enquanto paga.{' '}
                 <Link para="/politicas" className="underline decoration-white/30 hover:text-gold">
                   Entrega, reembolso e privacidade
@@ -728,51 +716,26 @@ export default function Produto({ slug }) {
                 ela fique mais alta que a tela no desktop.
               */}
               <div className="shimmer-border mx-auto max-w-[30rem] overflow-hidden rounded-2xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
-                {emPar && estrela2 && folhaVisivel === 2 ? (
-                  <Folha
-                    estrela={estrela2}
-                    honoreeName={paraQuem2}
-                    message={mensagem}
-                    fromName={assinatura}
-                    starNickname={apelido2}
-                    par={{ estrela: estrela.name, nome: paraQuem.trim() || 'quem recebe' }}
-                    dedicationDate={dataEmPortugues(data)}
-                    code="SG-XXXX-XXXX"
-                    light={versaoClara}
-                  />
-                ) : (
-                  <Folha
-                    estrela={estrela}
-                    honoreeName={paraQuem}
-                    message={mensagem}
-                    fromName={assinatura}
-                    starNickname={apelido}
-                    par={emPar && estrela2 ? { estrela: estrela2.name, nome: paraQuem2.trim() || 'a segunda pessoa' } : undefined}
-                    dedicationDate={dataEmPortugues(data)}
-                    code="SG-XXXX-XXXX"
-                    light={versaoClara}
-                  />
-                )}
+                <Folha {...folhaDaPrevia()} dedicationDate={dataEmPortugues(data)} code="SG-XXXX-XXXX" light={versaoClara} />
               </div>
 
-              {emPar && estrela2 && (
-                <div role="group" aria-label="Qual folha do par" className="mt-3 flex justify-center gap-2 text-xs">
-                  {[
-                    [1, paraQuem.trim().split(' ')[0] || 'Primeira'],
-                    [2, paraQuem2.trim().split(' ')[0] || 'Segunda'],
-                  ].map(([n, rotulo]) => (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => setFolhaVisivel(n)}
-                      aria-pressed={folhaVisivel === n}
-                      className={`rounded-full border px-3 py-1.5 transition ${
-                        folhaVisivel === n ? 'border-gold/70 bg-gold/15 text-gold' : 'border-white/15 text-ivory/70'
-                      }`}
-                    >
-                      Folha de {rotulo}
-                    </button>
-                  ))}
+              {comEstrela.length > 0 && (
+                <div role="group" aria-label="Qual folha mostrar" className="mt-3 flex flex-wrap justify-center gap-2 text-xs">
+                  {[[0, paraQuem], ...outras.map((o, i) => [i + 1, o.nome, o])]
+                    .filter(([n, , o]) => n === 0 || o?.estrela)
+                    .map(([n, nomeDaFolha]) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setFolhaVisivel(n)}
+                        aria-pressed={folhaVisivel === n}
+                        className={`rounded-full border px-3 py-1.5 transition ${
+                          folhaVisivel === n ? 'border-gold/70 bg-gold/15 text-gold' : 'border-white/15 text-ivory/70'
+                        }`}
+                      >
+                        Folha de {String(nomeDaFolha).trim().split(' ')[0] || `quem recebe ${n + 1}`}
+                      </button>
+                    ))}
                 </div>
               )}
 

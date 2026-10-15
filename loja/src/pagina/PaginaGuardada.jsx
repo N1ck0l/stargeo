@@ -12,7 +12,7 @@ import { Link } from '../lib/Link.jsx'
  * A data é do calendário de Brasília: revela à meia-noite de lá (UTC−3, sem
  * horário de verão desde 2019).
  */
-export function PaginaGuardada({ revelaEm, para, codigo }) {
+export function PaginaGuardada({ revelaEm, para, codigo, titulo }) {
   const alvo = new Date(`${revelaEm}T00:00:00-03:00`).getTime()
   const [agora, setAgora] = useState(() => Date.now())
 
@@ -42,10 +42,10 @@ export function PaginaGuardada({ revelaEm, para, codigo }) {
       <SimboloOficial className="animate-floaty animate-shimmer w-20" />
       <p className="mt-8 font-display text-[11px] tracking-[0.3em] text-gold/80 uppercase">Uma surpresa nas estrelas</p>
       <h1 className="mt-4 font-serif text-4xl leading-tight text-ivory sm:text-5xl">
-        {para ? `${para}, uma estrela espera por você` : 'Uma estrela espera por você'}
+        {titulo ?? (para ? `${para}, uma estrela espera por você` : 'Uma estrela espera por você')}
       </h1>
       <p className="mt-5 text-lg leading-relaxed text-ivory/70">
-        Ela se revela em <span className="text-gold">{dataPorExtenso}</span>. Guarde este link — no dia, é só abrir de novo.
+        A surpresa se revela em <span className="text-gold">{dataPorExtenso}</span>. Guarde este link — no dia, é só abrir de novo.
       </p>
 
       <dl className="mt-10 grid grid-cols-4 gap-3 sm:gap-5" aria-label="Tempo até a revelação">
@@ -62,9 +62,11 @@ export function PaginaGuardada({ revelaEm, para, codigo }) {
         ))}
       </dl>
 
-      <Link para={`/p/${codigo}/editar`} className="mt-14 text-xs text-ivory/40 transition hover:text-gold">
-        Esta página é sua? Entre para ver e editar antes da data.
-      </Link>
+      {codigo && (
+        <Link para={`/p/${codigo}/editar`} className="mt-14 text-xs text-ivory/40 transition hover:text-gold">
+          Esta página é sua? Entre para ver e editar antes da data.
+        </Link>
+      )}
     </section>
   )
 }

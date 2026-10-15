@@ -134,9 +134,9 @@ const FAQ = [
       'Só o necessário para fazer e entregar o certificado: seu nome, seu e-mail e o texto que você escreve. Os dados do cartão ficam com o Mercado Pago. Os detalhes estão em Políticas, no rodapé.',
   },
   {
-    pergunta: 'Dá para dar estrelas para duas pessoas?',
+    pergunta: 'Dá para dar estrelas para várias pessoas?',
     resposta:
-      'Dá: marque "Dar um par de estrelas" no produto. Cada pessoa ganha a própria estrela, o próprio certificado e a própria página — e um cita o outro ("em par com…"). No par, as duas estrelas saem com 10% de desconto, num pagamento só.',
+      'Dá, até 6 numa compra: no produto, use "Adicionar outra pessoa". Cada pessoa ganha a própria estrela, o próprio certificado e a própria página, e todas aparecem juntas numa página do grupo, no mesmo céu. Desconto: 2 estrelas, 10%; 3, 15%; 4 a 6, 20% — num pagamento só.',
   },
   {
     pergunta: 'Posso comprar antes e entregar no dia?',

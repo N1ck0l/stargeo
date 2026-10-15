@@ -43,7 +43,8 @@ import {
 import { explicarErros, limpar, validarPedido, validarTextoLivre } from '../../../shared/moderation.js'
 import { enviarEmail, gerarEGuardar } from '../_shared/certificado.ts'
 import { entregasTravadas, type PedidoPago } from './entregas.ts'
-import { dadosDoPar } from '../_shared/par.ts'
+import { dadosDoGrupo, linhaParaCertificado } from '../_shared/par.ts'
+import { linhaDoGrupo } from '../../../shared/grupo.js'
 
 const RE_CODIGO = /^SG-[A-Z0-9]{4}-[A-Z0-9]{4}$/
 const RE_DATA = /^\d{4}-\d{2}-\d{2}$/
@@ -465,27 +466,25 @@ async function corrigirPedido(db: ReturnType<typeof admin>, corpo: Record<string
   const { data: estrela } = await db.from('stars').select('*').eq('slug', pedido.star_slug).maybeSingle()
   if (!estrela) throw new ErroApp('estrela_inexistente', 'A estrela do pedido não está no catálogo.', 409)
 
-  const par = await dadosDoPar(db, orderId, pedido.group_id)
-  const corrigido = { ...pedido, ...colunas, ...comPar(par) }
+  const grupo = await dadosDoGrupo(db, orderId, pedido.group_id)
+  const corrigido = { ...pedido, ...colunas, ...linhaParaCertificado(grupo) }
   const caminho = await refazerPdfs(db, corrigido, estrela as Record<string, unknown>)
 
-  // Par de estrelas: a folha do OUTRO pedido diz "dedicada a <este nome>" —
-  // se o nome mudou, ela é refeita também (sem e-mail).
+  // Par: a folha do OUTRO pedido diz "dedicada a <este nome>" — se o nome
+  // mudou, ela é refeita também (sem e-mail). Em grupos de 3+ a linha não
+  // cita nomes, e nada mais muda.
+  const par = grupo?.total === 2 ? grupo.outros[0] : null
   if (par && colunas.honoree_name !== pedido.honoree_name) {
     const { data: outro } = await db.from('orders').select('*').eq('id', par.orderId).maybeSingle()
     const { data: estrelaOutro } = await db.from('stars').select('*').eq('slug', par.starSlug).maybeSingle()
     if (outro?.status === 'approved' && estrelaOutro) {
-      await refazerPdfs(db, { ...outro, par_estrela: estrela.name, par_nome: colunas.honoree_name }, estrelaOutro as Record<string, unknown>)
+      const linha = linhaDoGrupo({ total: 2, outros: [{ estrela: String(estrela.name), nome: colunas.honoree_name }] })
+      await refazerPdfs(db, { ...outro, grupo_linha: linha }, estrelaOutro as Record<string, unknown>)
     }
   }
 
   if (corpo.reenviar !== true) return { corrigido: true, reenviado: false }
   return { corrigido: true, ...(await tentarEmail(db, corrigido, estrela as Record<string, unknown>, caminho)) }
-}
-
-/** Campos da linha "Em par com …" do certificado, quando o pedido é de um par. */
-function comPar(par: Awaited<ReturnType<typeof dadosDoPar>>) {
-  return par ? { par_estrela: par.starName, par_nome: par.honoreeName } : {}
 }
 
 /** Gera as duas versões do PDF no lugar de sempre e grava o caminho no pedido. */
@@ -532,7 +531,7 @@ async function refazerEntrega(db: ReturnType<typeof admin>, corpo: Record<string
     throw new ErroApp('estrela_de_outro', 'A estrela deste pedido já é de outro pedido — reembolse ou troque a estrela.', 409)
   }
 
-  const comLinhaDoPar = { ...pedido, ...comPar(await dadosDoPar(db, orderId, pedido.group_id)) }
+  const comLinhaDoPar = { ...pedido, ...linhaParaCertificado(await dadosDoGrupo(db, orderId, pedido.group_id)) }
   const caminho = await refazerPdfs(db, comLinhaDoPar, estrela as Record<string, unknown>)
   const paginaId = await criarPaginaDoPedido(db, pedido, estrela as Record<string, unknown>)
   if (!paginaId) throw new ErroApp('pagina_falhou', 'O PDF saiu, mas a página não pôde ser criada. Tente de novo.', 500)

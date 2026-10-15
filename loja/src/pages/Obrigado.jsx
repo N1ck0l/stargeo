@@ -37,7 +37,7 @@ export default function Obrigado() {
   // Código do pedido: sem e-mail de entrega, esta tela é onde ele aparece.
   const [codigo, setCodigo] = useState(null)
   // Para a mensagem do WhatsApp: primeiro nome e data de revelação.
-  const [envio, setEnvio] = useState({ para: '', revelaEm: null, par: null })
+  const [envio, setEnvio] = useState({ para: '', revelaEm: null, grupo: null })
 
   useEffect(() => {
     let cancelado = false
@@ -60,7 +60,7 @@ export default function Obrigado() {
         setEstado(novo)
         setPagina(pedido.pagina ?? null)
         setCodigo(pedido.code ?? null)
-        setEnvio({ para: String(pedido.paraQuem ?? '').trim().split(/\s+/)[0], revelaEm: pedido.revelaEm ?? null, par: pedido.par ?? null })
+        setEnvio({ para: String(pedido.paraQuem ?? '').trim().split(/\s+/)[0], revelaEm: pedido.revelaEm ?? null, grupo: pedido.grupo ?? null })
         const final = novo === 'recusado' || (novo === 'aprovado' && pedido.pagina)
         if (!final && tentativas < 15) timer = setTimeout(consultar, 4000)
       } catch {
@@ -197,17 +197,24 @@ function Aprovado({ pagina, codigo, envio }) {
           <CompartilharPagina codigo={pagina} para={envio?.para} revelaEm={envio?.revelaEm} />
         </div>
       )}
-      {envio?.par?.pagina && (
-        <div className="mt-8">
-          <p className="mb-3 text-sm text-ivory/60">
-            E a estrela do par ({envio.par.estrela}), para {envio.par.paraQuem}:
-          </p>
-          <CompartilharPagina
-            codigo={envio.par.pagina}
-            para={String(envio.par.paraQuem).trim().split(' ')[0]}
-            revelaEm={envio?.revelaEm}
-          />
-        </div>
+      {/* Grupo de estrelas: a página de cada pessoa, e o céu de todas. */}
+      {envio?.grupo?.outras
+        ?.filter((o) => o.pagina)
+        .map((o) => (
+          <div key={o.pagina} className="mt-8">
+            <p className="mb-3 text-sm text-ivory/60">
+              A estrela de {o.paraQuem} ({o.estrela}):
+            </p>
+            <CompartilharPagina codigo={o.pagina} para={String(o.paraQuem).trim().split(' ')[0]} revelaEm={envio.revelaEm} />
+          </div>
+        ))}
+      {envio?.grupo?.code && (
+        <p className="mt-8 text-sm text-ivory/65">
+          Todas as estrelas juntas, no mesmo céu:{' '}
+          <Link para={`/g/${envio.grupo.code}`} className="text-gold hover:underline">
+            ver a constelação{envio.grupo.nome ? ` · ${envio.grupo.nome}` : ''}
+          </Link>
+        </p>
       )}
       {codigo && (
         <div className="mx-auto mt-8 max-w-sm rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4">

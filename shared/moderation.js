@@ -38,6 +38,8 @@ export const LIMITES = {
   fromName: { min: 2, max: 60 },
   // Nome dado à estrela: uma linha no certificado, em corpo grande.
   starNickname: { min: 2, max: 40 },
+  // Nome do grupo de estrelas (0021): vai numa linha do certificado de 3+.
+  groupName: { min: 2, max: 40 },
   message: { min: 1, max: 600 },
   customerName: { min: 2, max: 120 },
   customerEmail: { min: 5, max: 254 },
@@ -223,6 +225,7 @@ export function explicarErros(erros) {
     honoreeName: 'o nome de quem recebe',
     fromName: 'a assinatura',
     starNickname: 'o nome da estrela',
+    groupName: 'o nome do grupo',
     message: 'a mensagem',
     customerName: 'o nome do comprador',
     customerEmail: 'o e-mail',

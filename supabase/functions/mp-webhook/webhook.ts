@@ -42,7 +42,7 @@ import { admin } from '../_shared/supabase.ts'
 import { buscarPagamento, ehAprovado, valorConfere, verificarAssinatura } from '../_shared/mercadoPago.ts'
 import { enviarEmail, gerarEGuardar } from '../_shared/certificado.ts'
 import { criarPaginaDoPedido } from '../_shared/pagina.ts'
-import { dadosDoPar } from '../_shared/par.ts'
+import { dadosDoGrupo, linhaParaCertificado } from '../_shared/par.ts'
 import { validarPedido } from '../../../shared/moderation.js'
 
 /** Campos que a entrega precisa. Estão na lista porque `select *` num pedido
@@ -216,9 +216,9 @@ async function entregarPedido(
   id: string,
   pedidoId: string,
 ): Promise<Response> {
-  // A linha "Em par com …" do certificado (0020).
-  const par = await dadosDoPar(db, pedidoId, pedidoOriginal.group_id)
-  const pedido = par ? { ...pedidoOriginal, par_estrela: par.starName, par_nome: par.honoreeName } : pedidoOriginal
+  // A linha do grupo no certificado (0020/0021): "Em par com …" ou "Uma das …".
+  const grupo = await dadosDoGrupo(db, pedidoId, pedidoOriginal.group_id)
+  const pedido = grupo ? { ...pedidoOriginal, ...linhaParaCertificado(grupo) } : pedidoOriginal
 
   // --- 4. A estrela passa a ser DESTE pedido ----------------------------
   // Cada estrela é exclusiva. Se a reserva venceu e outra pessoa comprou a

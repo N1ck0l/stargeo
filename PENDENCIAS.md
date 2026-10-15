@@ -132,6 +132,19 @@ bloqueante antes, sem nenhuma violação.
   o site deixa claro que o certificado é digital e que a moldura da prévia é
   só ilustração.
 
+### 1.13 Várias estrelas numa compra (15/10)
+
+- De 2 a 6 pessoas por compra, cada uma com estrela, certificado e página
+  próprios. Desconto progressivo sobre a soma: 2 → 10%, 3 → 15%, 4 a 6 → 20%
+  (`descontoPara` em `shared/preco.js`; vale para o site e para a cobrança).
+- Certificado: par diz "Em par com Altair, dedicada a Pedro"; 3+ diz "Uma das
+  quatro estrelas · Família Souza" (nome do grupo opcional).
+- Página do grupo `/g/GR-XXXX-XXXX`: todas as estrelas no mapa do céu inteiro,
+  ligadas na ordem da compra, com link para a página de cada pessoa. Respeita
+  a revelação na data. Fora do Google (robots.txt).
+- Pendente de conferência humana: a página do grupo só aparece de verdade
+  depois de uma compra paga de 2+ estrelas — vale olhar na primeira.
+
 ### 1.12 Rodada de 15/10 (noite)
 
 - **Promessa de e-mail sob chave**: enquanto `VITE_EMAIL_ATIVO` não for `1`

@@ -28,6 +28,7 @@ export default async function sitemap(request: Request): Promise<Response> {
       '# Painel e edição não são conteúdo; páginas dedicadas são presentes pessoais.',
       'Disallow: /admin',
       'Disallow: /p/',
+      'Disallow: /g/',
       'Disallow: /editar',
       'Disallow: /rastrear',
       'Disallow: /obrigado',

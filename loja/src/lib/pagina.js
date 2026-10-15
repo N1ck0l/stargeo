@@ -16,6 +16,11 @@ export function buscarPagina(code, token) {
   return chamar('get-page', token ? { code, token } : { code })
 }
 
+/** A página de um grupo de estrelas (`/g/GR-XXXX-XXXX`, migration 0021). */
+export function buscarGrupo(code) {
+  return chamar('get-group', { code })
+}
+
 /** O token de edição guardado neste navegador para a página, se houver. */
 export function tokenGuardado(code) {
   try {

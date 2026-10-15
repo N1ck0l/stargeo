@@ -66,7 +66,7 @@ export function PaginaDedicada({ codigo }) {
   const conteudo = useMemo(
     () =>
       estado.fase === 'pronta' && !estado.dados.guardada
-        ? { ...montarConteudo(estado.dados.pagina, estado.dados.estrela, estado.ceu), par: estado.dados.par ?? null }
+        ? { ...montarConteudo(estado.dados.pagina, estado.dados.estrela, estado.ceu), grupo: estado.dados.grupo ?? null }
         : null,
     [estado],
   )
@@ -139,20 +139,8 @@ export function PaginaDedicada({ codigo }) {
       <LoveLetter />
       <PersonalMessage />
 
-      {/* Par de estrelas (0020): o caminho até a outra estrela. */}
-      {conteudo.par && (
-        <section className="mx-auto max-w-xl px-5 pb-12 text-center">
-          <div className="cartao">
-            <p className="font-display text-[11px] tracking-[0.3em] text-gold/80 uppercase">Esta estrela tem um par</p>
-            <p className="mt-3 font-serif text-xl text-ivory">
-              {conteudo.par.estrela}, a estrela de {conteudo.par.para}
-            </p>
-            <Link para={`/p/${conteudo.par.code}`} className="btn btn-secundario mt-5 text-sm">
-              Ver a estrela do par
-            </Link>
-          </div>
-        </section>
-      )}
+      {/* Grupo de estrelas (0020/0021): o caminho até as outras e o céu de todas. */}
+      {conteudo.grupo && <OutrasDoGrupo grupo={conteudo.grupo} />}
 
       {/* Porta de entrada do cliente: daqui ele vai para o login de edição
           (código + e-mail). Discreto — quem só lê a carta passa reto. */}
@@ -213,5 +201,41 @@ function Esqueleto() {
         Abrindo a página das estrelas…
       </p>
     </div>
+  )
+}
+
+/**
+ * As outras estrelas compradas junto com esta: no par, "esta estrela tem um
+ * par"; no grupo, a lista e o céu de todas juntas (`/g/CODE`).
+ */
+function OutrasDoGrupo({ grupo }) {
+  const comPagina = grupo.outras.filter((o) => o.pagina)
+  if (!comPagina.length && !grupo.code) return null
+  const par = grupo.total === 2
+  return (
+    <section className="mx-auto max-w-2xl px-5 pb-12 text-center">
+      <div className="cartao">
+        <p className="font-display text-[11px] tracking-[0.3em] text-gold/80 uppercase">
+          {par ? 'Esta estrela tem um par' : `Uma das ${grupo.total} estrelas${grupo.nome ? ` · ${grupo.nome}` : ''}`}
+        </p>
+        <ul className="mt-4 flex flex-wrap justify-center gap-2">
+          {comPagina.map((o) => (
+            <li key={o.pagina}>
+              <Link
+                para={`/p/${o.pagina}`}
+                className="inline-block rounded-full border border-white/15 px-4 py-2 text-sm text-ivory/85 transition hover:border-gold hover:text-gold"
+              >
+                {o.estrela}, de {o.para}
+              </Link>
+            </li>
+          ))}
+        </ul>
+        {grupo.code && (
+          <Link para={`/g/${grupo.code}`} className="btn btn-secundario mt-5 text-sm">
+            {par ? 'Ver as duas no mesmo céu' : 'Ver todas no mesmo céu'}
+          </Link>
+        )}
+      </div>
+    </section>
   )
 }
