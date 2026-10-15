@@ -7,6 +7,15 @@
  * não quebrar, sem simular comportamento além do necessário.
  */
 import { vi } from 'vitest'
+import { configure } from '@testing-library/react'
+
+/*
+ * Espera de `findBy…`/`waitFor`: 1 s por padrão. A máquina de build da
+ * Netlify é bem mais lenta que a de quem desenvolve, e partes da loja chegam
+ * em segundo plano (a folha do certificado, o explorador); lá, 1 s não
+ * bastava. Folga larga — quando o elemento aparece, o teste segue na hora.
+ */
+configure({ asyncUtilTimeout: 8000 })
 
 /**
  * jsdom não implementa o contexto 2D de canvas. Os componentes desenham de

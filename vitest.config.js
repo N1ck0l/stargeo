@@ -39,6 +39,10 @@ export default defineConfig({
     // `forks` não subiu workers nesta máquina (timeout no Windows/OneDrive);
     // `threads` é mais confiável e suficiente para estes testes.
     pool: 'threads',
+    // Máquina de build lenta (Netlify): o limite padrão de 5 s por teste
+    // estourava lá, e teste vermelho segura o deploy. Folga larga; um teste
+    // travado de verdade ainda cai.
+    testTimeout: 30_000,
     // Só os testes de componente. A verificação numérica da projeção roda
     // separada, com `node shared/astro.test.mjs`, porque ela encerra o
     // processo com process.exit e não se sairia bem dentro do vitest.
