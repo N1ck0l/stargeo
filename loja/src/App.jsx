@@ -20,6 +20,7 @@
  */
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { useRota } from './lib/rota.js'
+import { registrar } from './lib/metricas.js'
 import { Link } from './lib/Link.jsx'
 import Home from './pages/Home.jsx'
 import Produto from './pages/Produto.jsx'
@@ -84,6 +85,13 @@ function telaPara(caminho) {
 
 export default function App() {
   const caminho = useRota()
+
+  // Uma visita por carregamento da loja (anônima — `lib/metricas.js`). A
+  // página dedicada e o painel não são funil de compra: ficam de fora.
+  useEffect(() => {
+    const p = window.location.pathname
+    if (!p.startsWith('/p/') && !p.startsWith('/admin')) registrar('visita')
+  }, [])
 
   return (
     <div className="star-bg relative flex min-h-dvh flex-col overflow-x-clip">

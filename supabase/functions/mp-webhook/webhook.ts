@@ -48,7 +48,7 @@ import { validarPedido } from '../../../shared/moderation.js'
  *  traz dado de pagamento que não tem por que sair daqui. */
 const CAMPOS_PEDIDO = [
   'id', 'code', 'status', 'customer_email', 'customer_name', 'honoree_name',
-  'from_name', 'message', 'dedication_date', 'star_slug', 'product_name',
+  'from_name', 'star_nickname', 'message', 'dedication_date', 'star_slug', 'product_name',
   'amount_cents', 'delivered_at',
 ]
 
@@ -246,6 +246,7 @@ async function entregar(
   const checagem = validarPedido({
     honoreeName: pedido.honoree_name,
     fromName: pedido.from_name,
+    starNickname: pedido.star_nickname,
     message: pedido.message,
     customerName: pedido.customer_name,
     customerEmail: pedido.customer_email,

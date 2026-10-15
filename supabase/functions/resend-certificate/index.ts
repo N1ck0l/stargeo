@@ -52,7 +52,7 @@ export const reenvio = comHandler(async (request) => {
 
   const { data: pedido, error } = await db
     .from('orders')
-    .select('id, code, status, customer_email, customer_name, honoree_name, from_name, message, dedication_date, star_slug, product_name, certificate_path, delivered_at, email_error')
+    .select('id, code, status, customer_email, customer_name, honoree_name, from_name, star_nickname, message, dedication_date, star_slug, product_name, certificate_path, delivered_at, email_error')
     .eq('id', orderId)
     .maybeSingle()
 

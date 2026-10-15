@@ -1,8 +1,9 @@
 # Stellara
 
-Loja de certificados de estrela: a pessoa escolhe uma das 12 estrelas, escreve
-o nome de quem vai receber, paga pelo Mercado Pago e recebe por e-mail o
-certificado em PDF e uma página dedicada (`/p/SG-XXXX-XXXX`) com a estrela, o
+Loja de certificados de estrela: a pessoa escolhe uma estrela do catálogo
+Hipparcos (~118 mil, cada uma exclusiva, com preço por faixa de brilho),
+escreve o nome de quem vai receber (e, se quiser, um nome para a estrela),
+paga pelo Mercado Pago e recebe o certificado em PDF e uma página dedicada (`/p/SG-XXXX-XXXX`) com a estrela, o
 mapa do céu, a carta e a Mira celeste (câmera + bússola apontando a estrela).
 
 - **O que falta para vender:** [PENDENCIAS.md](PENDENCIAS.md)
@@ -44,7 +45,8 @@ shared/            núcleo usado pela loja e pelo servidor: estrelas, projeção
 supabase/
   functions/       Edge Functions (Deno): checkout, webhook, rastreio,
                    páginas, edição, painel, reenvio
-  migrations/      schema, RLS, seeds (0001–0009)
+  migrations/      schema, RLS, seeds, catálogo, busca, métricas e
+                   depoimentos (0001–0018)
 netlify/
   edge-functions/  prévia social por página (/p/CODE no WhatsApp)
 test/              vitest: componentes, e-mail, webhook, reenvio, prévia
@@ -73,7 +75,7 @@ tipografia: Playfair Display (nome) e Montserrat (slogan e textos).
 ## Pontos que valem saber antes de mexer
 
 - **Preço vive no banco** (`products.price_cents`). O checkout lê no servidor;
-  a tela lê pelo Data API (`loja/src/lib/preco.js`). Nenhum dos dois confia no
+  a tela lê pelo Data API (`loja/src/lib/catalogo.js`). Nenhum dos dois confia no
   navegador.
 - **O webhook é a única porta de entrega.** Confere a assinatura, consulta o
   pagamento na API do Mercado Pago, confere valor e moeda, reserva o pedido e

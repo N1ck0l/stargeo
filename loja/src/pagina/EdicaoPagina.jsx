@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ErroApi } from '../lib/api.js'
 import { entrarEdicao, salvarEdicao } from '../lib/pagina.js'
 import { Link } from '../lib/Link.jsx'
+import { Depoimento } from './Depoimento.jsx'
 
 /**
  * Edição do cliente — `/p/SG-XXXX-XXXX/editar`.
@@ -402,6 +403,8 @@ export function EdicaoPagina({ codigo }) {
             </button>
           </div>
         </form>
+
+        <Depoimento token={sessao.token} />
       </div>
     </div>
   )

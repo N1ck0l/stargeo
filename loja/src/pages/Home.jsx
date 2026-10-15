@@ -5,7 +5,7 @@ import { Vitrine } from '../components/Vitrine.jsx'
 import { OCASIOES } from '../lib/ocasioes.js'
 import { SimboloOficial } from '../components/SimboloOficial.jsx'
 import { Link } from '../lib/Link.jsx'
-import { estadoDasEstrelas, reais, useFaixas } from '../lib/catalogo.js'
+import { buscarDepoimentos, estadoDasEstrelas, reais, useFaixas } from '../lib/catalogo.js'
 import { useEffect, useState } from 'react'
 import { Reveal } from '../components/Reveal.jsx'
 import { useScroll, useTypewriter } from '../lib/useReveal.js'
@@ -132,6 +132,11 @@ const FAQ = [
       'Só o necessário para fazer e entregar o certificado: seu nome, seu e-mail e o texto que você escreve. Os dados do cartão ficam com o Mercado Pago. Os detalhes estão em Políticas, no rodapé.',
   },
   {
+    pergunta: 'Posso dar um nome à estrela?',
+    resposta:
+      'Pode. É opcional: escreva um nome como "Nossa Luz" no campo "Um nome para a estrela" e ele sai no certificado ("chamada, nesta homenagem, de…") e na página. É um nome simbólico, desta homenagem — nos catálogos dos astrônomos, a estrela continua com o nome oficial, que também aparece na folha.',
+  },
+  {
     pergunta: 'Posso escrever uma mensagem?',
     resposta:
       'Sim, e é a melhor parte. O campo de mensagem aparece na prévia e sai impresso no certificado. Não aceitamos telefone, e-mail ou endereço de rede social: um documento desses pode ser usado para golpe, e não queremos participar disso.',
@@ -185,6 +190,7 @@ export default function Home() {
       <ComoFunciona />
       <Manifesto />
       <Confianca />
+      <Depoimentos />
       <Faq />
       <ChamadaFinal />
     </>
@@ -453,6 +459,48 @@ function Confianca() {
             </div>
           </Reveal>
         ))}
+      </div>
+    </section>
+  )
+}
+
+/**
+ * Depoimentos de quem comprou — REAIS: vêm da edição da página de um pedido
+ * pago, com autorização do comprador e aprovação no painel (migration 0018).
+ * Enquanto não houver nenhum aprovado, a seção não existe: nada de texto de
+ * exemplo nem "clientes satisfeitos" inventados.
+ */
+function Depoimentos() {
+  const [lista, setLista] = useState([])
+  useEffect(() => {
+    let vivo = true
+    buscarDepoimentos()
+      .then((r) => vivo && setLista(Array.isArray(r) ? r : []))
+      .catch(() => {})
+    return () => {
+      vivo = false
+    }
+  }, [])
+
+  if (!lista.length) return null
+
+  return (
+    <section aria-labelledby="depoimentos-titulo" className="espaco-secao">
+      <div className="pilha">
+        <Reveal as="h2" id="depoimentos-titulo" className="text-center font-serif text-3xl text-ivory sm:text-4xl">
+          Quem já deu uma estrela
+        </Reveal>
+        <ul className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {lista.map((d, i) => (
+            <Reveal as="li" key={d.id} delay={i * 90} className="cartao flex flex-col">
+              <blockquote className="flex-1 font-serif text-lg leading-relaxed text-ivory/85 italic">“{d.texto}”</blockquote>
+              <p className="mt-5 text-sm text-gold/85">
+                {d.nome_exibicao}
+                {d.cidade ? <span className="text-ivory/45"> · {d.cidade}</span> : null}
+              </p>
+            </Reveal>
+          ))}
+        </ul>
       </div>
     </section>
   )

@@ -97,6 +97,12 @@ Deno.serve(
       case 'paginaAtualizar':
         return json(request, await atualizarPagina(db, corpo, operador))
 
+      case 'depoimentos':
+        return json(request, await listarDepoimentos(db, corpo))
+
+      case 'depoimentoDecidir':
+        return json(request, await decidirDepoimento(db, corpo))
+
       default:
         throw new ErroApp('acao_desconhecida', 'Ação não reconhecida.', 422)
     }
@@ -171,7 +177,10 @@ async function visaoGeral(db: ReturnType<typeof admin>) {
     return status ? q.eq('status', status) : q
   }
 
-  const [resumo, recentes, paginas, publicadas, rascunhos, paginasRecentes] = await Promise.all([
+  // Funil dos últimos 30 dias (migration 0017): só contadores, sem pessoa.
+  const desde = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10)
+
+  const [resumo, recentes, paginas, publicadas, rascunhos, paginasRecentes, metricas, depoimentosPendentes, compras] = await Promise.all([
     db.rpc('resumo_pedidos'),
     db
       .from('orders')
@@ -186,9 +195,13 @@ async function visaoGeral(db: ReturnType<typeof admin>) {
       .select('code, status, honoree_name, star_slug, created_at')
       .order('created_at', { ascending: false })
       .limit(8),
+    db.from('metricas_diarias').select('evento, total').gte('dia', desde),
+    db.from('depoimentos').select('id', { count: 'exact', head: true }).eq('status', 'pendente'),
+    // Compras: os pedidos pagos de verdade, não um evento do navegador.
+    db.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'approved').gte('created_at', desde),
   ])
 
-  for (const r of [resumo, recentes, paginas, publicadas, rascunhos, paginasRecentes]) {
+  for (const r of [resumo, recentes, paginas, publicadas, rascunhos, paginasRecentes, metricas, depoimentosPendentes, compras]) {
     if (r.error) throw new ErroApp('consulta_falhou', 'Falha ao montar o painel.', 500, r.error.message)
   }
 
@@ -215,7 +228,56 @@ async function visaoGeral(db: ReturnType<typeof admin>) {
       rascunhos: rascunhos.count ?? 0,
       recentes: paginasRecentes.data ?? [],
     },
+    funil: { ...somarPorEvento(metricas.data ?? []), compra_aprovada: compras.count ?? 0 },
+    depoimentosPendentes: depoimentosPendentes.count ?? 0,
   }
+}
+
+/** Soma os contadores diários por evento (as faixas entram juntas). */
+function somarPorEvento(linhas: Array<{ evento: string; total: number }>): Record<string, number> {
+  const soma: Record<string, number> = {}
+  for (const { evento, total } of linhas) soma[evento] = (soma[evento] ?? 0) + Number(total)
+  return soma
+}
+
+// ---------------------------------------------------------------------------
+// Depoimentos (migration 0018)
+// ---------------------------------------------------------------------------
+
+/** Depoimentos por status (padrão: pendentes), com o código do pedido. */
+async function listarDepoimentos(db: ReturnType<typeof admin>, corpo: Record<string, unknown>) {
+  const status = ['pendente', 'aprovado', 'recusado'].includes(String(corpo.status))
+    ? String(corpo.status)
+    : 'pendente'
+  const { data, error } = await db
+    .from('depoimentos')
+    .select('id, nome_exibicao, cidade, texto, autoriza_publicar, status, created_at, updated_at, decidido_em, orders(code)')
+    .eq('status', status)
+    .order('updated_at', { ascending: false })
+    .limit(100)
+  if (error) throw new ErroApp('consulta_falhou', 'Não foi possível listar os depoimentos.', 500, error.message)
+  return { depoimentos: data ?? [] }
+}
+
+/** Aprova ou recusa. Aprovar exige a autorização de publicação do comprador. */
+async function decidirDepoimento(db: ReturnType<typeof admin>, corpo: Record<string, unknown>) {
+  const id = String(corpo.id ?? '')
+  const status = String(corpo.status ?? '')
+  if (!/^[0-9a-f-]{36}$/i.test(id)) throw new ErroApp('id_invalido', 'Depoimento inválido.', 422)
+  if (status !== 'aprovado' && status !== 'recusado') {
+    throw new ErroApp('status_invalido', 'Status deve ser aprovado ou recusado.', 422)
+  }
+  const { data: atual } = await db.from('depoimentos').select('autoriza_publicar').eq('id', id).maybeSingle()
+  if (!atual) throw new ErroApp('nao_encontrado', 'Depoimento não encontrado.', 404)
+  if (status === 'aprovado' && !atual.autoriza_publicar) {
+    throw new ErroApp('sem_autorizacao', 'O comprador não autorizou a publicação.', 422)
+  }
+  const { error } = await db
+    .from('depoimentos')
+    .update({ status, decidido_em: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw new ErroApp('grava_falhou', 'Não foi possível salvar.', 500, error.message)
+  return { ok: true }
 }
 
 // ---------------------------------------------------------------------------
@@ -637,7 +699,7 @@ function mesclarConteudo(base: ConteudoPagina, patch: unknown): ConteudoPagina {
   const conteudo: ConteudoPagina = { ...base }
 
   for (const campo of [
-    'nome', 'assinatura', 'data', 'tituloHero', 'fraseHero', 'tituloEstrela',
+    'nome', 'assinatura', 'apelidoEstrela', 'data', 'tituloHero', 'fraseHero', 'tituloEstrela',
     'descricaoEstrela', 'tituloCarta', 'mensagemPessoal',
   ] as const) {
     if (typeof p[campo] === 'string') Object.assign(conteudo, { [campo]: p[campo] })

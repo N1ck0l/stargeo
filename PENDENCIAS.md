@@ -128,13 +128,27 @@ bloqueante antes, sem nenhuma violação.
 - **Reembolso**: o estorno feito no Mercado Pago já devolve a estrela ao
   catálogo e tira a página do ar sozinho (webhook). O estorno em si continua
   sendo feito por você, no painel do Mercado Pago.
-- **Sem analytics**: não instalei rastreador nenhum (a política diz que o
-  site não usa rastreadores de anúncio). Se quiser medir conversão, um
-  analytics sem cookie (Plausible, por exemplo) cabe na política atual.
-- **Não implementado de propósito**: nome personalizado para a estrela (além
-  do nome de quem recebe), produto impresso, moldura e embalagem — o site
-  deixa claro que o certificado é digital e que a moldura da prévia é só
-  ilustração.
+- **Não implementado de propósito**: produto impresso, moldura e embalagem —
+  o site deixa claro que o certificado é digital e que a moldura da prévia é
+  só ilustração.
+
+### 1.10 Nome da estrela, funil e depoimentos (15/10)
+
+- **Nome dado à estrela** (opcional, até 40 caracteres): sai no certificado
+  ("chamada, nesta homenagem, de “…”"), no e-mail e na página; o nome oficial
+  continua na folha. Corrigir um nome errado: painel → página → "Nome dado à
+  estrela" (a página muda na hora; o PDF já enviado não — reenvie pelo painel
+  depois de corrigir o pedido no banco, se precisar).
+- **Funil** (painel → Visão geral): contadores anônimos por dia — visitas,
+  produto aberto, personalização, ida ao pagamento — e as compras pagas, lidas
+  dos pedidos. Sem cookie, sem IP, sem serviço externo, sem conta nova; quem
+  usa "não rastrear" não é contado. As etapas do navegador são aproximadas
+  (bloqueadores), as compras são exatas.
+- **Depoimentos**: o comprador escreve na edição da página dele (só pedido
+  pago, um por pedido, com autorização explícita). Você aprova ou recusa no
+  painel → Depoimentos. A home só mostra a seção quando há ao menos um
+  aprovado — hoje não há nenhum, e nenhum foi inventado. Vale pedir, no
+  contato pós-venda, que a pessoa conte como foi.
 
 ## 2. Melhorias que dá para fazer
 

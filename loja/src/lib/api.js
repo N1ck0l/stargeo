@@ -86,6 +86,7 @@ export async function chamar(caminho, corpo, opcoes = {}) {
  * @param {string} entrada.honoreeName
  * @param {string} [entrada.message]
  * @param {string} [entrada.fromName]
+ * @param {string} [entrada.starNickname]  nome dado à estrela (simbólico)
  * @param {string} [entrada.dedicationDate]  ISO, YYYY-MM-DD
  * @param {string} entrada.customerEmail
  * @param {string} entrada.customerName

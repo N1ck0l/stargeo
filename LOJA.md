@@ -5,13 +5,13 @@ na tag `site-pessoal-legado`).
 
 ```
 shared/              núcleo usado pela loja e pelo servidor
-├── stars.js         12 estrelas vendáveis, dados conferidos com o SIMBAD
+├── stars.js         12 estrelas curadas (o catálogo inteiro mora no banco)
 ├── moderation.js    filtro do texto que o cliente escreve no certificado
 ├── certificado/     a folha (Edição Midnight, A4 retrato) como lista de
 │                    itens em mm + larguras das fontes (metricas.js)
 ├── pdf.js           traduz a folha para PDF (pdf-lib, sem navegador)
 ├── marca.js         geometria do símbolo; marcaTexto.js = nome em curvas
-├── ceu.js           céu em volta das 12 estrelas (Hipparcos), p/ o mapa
+├── ceu.js           céu global até mag 5 + linhas das 88 constelações
 ├── astro.js         projeção gnomônica do mapa do céu
 └── sky.js           posição celeste no céu, agora e aqui
 
@@ -19,10 +19,13 @@ supabase/
 ├── migrations/      schema: stars, products, orders, pages, page_edit_tokens,
 │                    admins, rate_limits (0001–0009, inclui registro do
 │                    certificado, seed da primeira página, trava de entrega,
-│                    limite de requisições e resumo do painel)
+│                    limite de requisições e resumo do painel); catálogo
+│                    completo, faixas e busca (0010–0015); nome dado à
+│                    estrela (0016); contadores anônimos do funil (0017);
+│                    depoimentos com aprovação (0018)
 └── functions/       create-checkout, mp-webhook, track-order,
 │                    resend-certificate, get-page, page-auth, page-update,
-│                    admin-api
+│                    admin-api, testimonial (depoimento do comprador)
 
 loja/                app da loja (Vite + React)
 └── src/             home, produto, rastreio, obrigado, prévia do certificado,
@@ -159,6 +162,7 @@ supabase functions deploy get-page --no-verify-jwt
 supabase functions deploy page-auth --no-verify-jwt
 supabase functions deploy page-update --no-verify-jwt
 supabase functions deploy admin-api --no-verify-jwt
+supabase functions deploy testimonial --no-verify-jwt
 
 supabase secrets set \
   MERCADO_PAGO_ACCESS_TOKEN=... \

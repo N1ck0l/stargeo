@@ -6,6 +6,7 @@ import { VisaoGeral } from './VisaoGeral.jsx'
 import { Pedidos } from './Pedidos.jsx'
 import { Paginas } from './Paginas.jsx'
 import { EditorAdmin } from './EditorAdmin.jsx'
+import { Depoimentos } from './Depoimentos.jsx'
 
 /**
  * `/admin` — o painel da plataforma.
@@ -110,6 +111,7 @@ export function AdminPagina() {
               ['visao', 'Visão geral'],
               ['pedidos', 'Pedidos'],
               ['paginas', 'Páginas'],
+              ['depoimentos', 'Depoimentos'],
             ].map(([id, rotulo]) => (
               <button
                 key={id}
@@ -143,6 +145,8 @@ export function AdminPagina() {
             />
           ) : aba === 'pedidos' ? (
             <Pedidos aoExpirar={aoExpirar} aoAbrirPagina={setCodigoAberto} />
+          ) : aba === 'depoimentos' ? (
+            <Depoimentos aoExpirar={aoExpirar} />
           ) : (
             <Paginas aoExpirar={aoExpirar} aoAbrirPagina={setCodigoAberto} />
           )}

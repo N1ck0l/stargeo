@@ -74,6 +74,7 @@ export async function gerarEGuardar(
       typeof pedido.dedication_date === 'string' ? pedido.dedication_date : null,
     ),
     fromName: pedido.from_name ? String(pedido.from_name) : undefined,
+    starNickname: pedido.star_nickname ? String(pedido.star_nickname) : undefined,
     message: pedido.message ? String(pedido.message) : undefined,
   }
 
@@ -203,6 +204,7 @@ export async function enviarEmail(
   const nomeComprador = String(pedido.customer_name ?? '').split(' ')[0]
   const destino = String(pedido.honoree_name ?? '')
   const nomeEstrela = String(estrela.name ?? '')
+  const apelido = pedido.star_nickname ? String(pedido.star_nickname) : ''
   const constelacao = String(estrela.constellation ?? '')
   const bayer = String(estrela.bayer ?? '')
   const ra = Number(estrela.ra_hours)
@@ -248,7 +250,12 @@ export async function enviarEmail(
             <p style="margin:0;font-family:${EMAIL.serif};font-size:13px;letter-spacing:3px;color:${EMAIL.dourado}">CERTIFICADO DE DEDICAÇÃO</p>
             <p style="margin:4px 0 22px;font-size:9px;letter-spacing:3px;color:${EMAIL.douradoSuave}">DE UMA ESTRELA</p>
             <p style="margin:0;font-size:12px;color:${EMAIL.apagado}">Certificamos que a estrela</p>
-            <p style="margin:6px 0 2px;font-family:${EMAIL.serif};font-size:26px;color:${EMAIL.dourado}">${escapeHtml(nomeEstrela)}</p>
+            <p style="margin:6px 0 2px;font-family:${EMAIL.serif};font-size:26px;color:${EMAIL.dourado}">${escapeHtml(nomeEstrela)}</p>${
+              apelido
+                ? `
+            <p style="margin:2px 0 0;font-family:${EMAIL.serif};font-style:italic;font-size:17px;color:${EMAIL.dourado}">chamada, nesta homenagem, de “${escapeHtml(apelido)}”</p>`
+                : ''
+            }
             <p style="margin:0 0 16px;font-family:${EMAIL.serif};font-style:italic;font-size:14px;color:${EMAIL.apagado}">${escapeHtml(bayer)}${bayer && constelacao ? ' · ' : ''}${escapeHtml(constelacao)}</p>
             <p style="margin:0;font-size:12px;color:${EMAIL.apagado}">foi dedicada a</p>
             <p style="margin:8px 0 0;font-family:${EMAIL.serif};font-style:italic;font-size:28px;line-height:1.25;color:${EMAIL.marfim}">${escapeHtml(destino)}</p>

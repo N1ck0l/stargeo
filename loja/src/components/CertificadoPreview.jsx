@@ -41,13 +41,14 @@ export function CertificadoPreview({
   fromName,
   dedicationDate,
   code,
+  starNickname,
   light = false,
   className = '',
 }) {
   const id = useId().replace(/:/g, '')
 
   const folha = desenharCertificado(
-    dadosDaFolha({ estrela, honoreeName, message, fromName, dedicationDate, code }),
+    dadosDaFolha({ estrela, honoreeName, message, fromName, dedicationDate, code, starNickname }),
     { claro: light },
   )
 

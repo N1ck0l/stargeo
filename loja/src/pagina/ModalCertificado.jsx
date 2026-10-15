@@ -37,6 +37,7 @@ export function ModalCertificado({ open, onClose }) {
     honoreeName: content.nome,
     message: content.mensagemPessoal,
     fromName: content.assinatura,
+    starNickname: content.apelidoEstrela,
     dedicationDate: content.data,
     code: content.registro,
   }

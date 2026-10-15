@@ -25,3 +25,13 @@ export function entrarEdicao({ code, email, token }) {
 export function salvarEdicao(token, conteudo) {
   return chamar('page-update', { token, conteudo })
 }
+
+/** O depoimento do comprador desta página (e se ele pode escrever um). */
+export function lerDepoimento(token) {
+  return chamar('testimonial', { token, acao: 'ler' })
+}
+
+/** Envia (ou reescreve) o depoimento — entra como pendente de aprovação. */
+export function enviarDepoimento(token, { nome, cidade, texto, autorizaPublicar }) {
+  return chamar('testimonial', { token, acao: 'enviar', nome, cidade, texto, autorizaPublicar })
+}

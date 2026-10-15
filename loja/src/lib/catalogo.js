@@ -201,3 +201,13 @@ export function comoSeVe(magnitude) {
   if (magnitude <= 9) return 'visível com binóculo'
   return 'visível com telescópio'
 }
+
+/**
+ * Depoimentos aprovados (migration 0018): só de compradores, só com
+ * autorização e aprovação. Sem banco, ou sem nenhum, lista vazia — e a home
+ * simplesmente não mostra a seção.
+ */
+export async function buscarDepoimentos(limite = 6) {
+  if (!configurado) return []
+  return rest('rpc/depoimentos_aprovados', { method: 'POST', body: JSON.stringify({ p_limite: limite }) })
+}

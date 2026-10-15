@@ -83,6 +83,12 @@ export function Hero({ onOpenCertificate, onOpenFinder }) {
           {content.nome}, este pedaço do universo foi escolhido para você:{' '}
           <span className="text-gold not-italic">{estrela.commonName}</span> (
           {estrela.bayer}), {comoSeVeDaqui(estrela)}.
+          {content.apelidoEstrela ? (
+            <span className="mt-2 block text-base text-ivory/65 sm:text-lg">
+              Nesta homenagem, ela se chama{' '}
+              <span className="text-gold not-italic">“{content.apelidoEstrela}”</span>.
+            </span>
+          ) : null}
         </Reveal>
       </div>
 

@@ -202,6 +202,23 @@ describe('configurador', () => {
     expect(container.textContent).toContain('Beatriz Souza')
   })
 
+  it('o nome dado à estrela entra na prévia e no resumo, como homenagem', async () => {
+    const { container } = render(<Produto slug="certificado-digital" />)
+    fireEvent.change(screen.getByLabelText(/Um nome para a estrela/i), { target: { value: 'Nossa Luz' } })
+    // A folha (lazy) mostra o nome entre aspas e diz que é desta homenagem.
+    await waitFor(() => expect(container.textContent).toContain('“Nossa Luz”'))
+    expect(container.textContent).toContain('chamada, nesta homenagem, de')
+    expect(screen.getByText('Nome da homenagem')).toBeTruthy()
+  })
+
+  it('o nome dado à estrela passa pela mesma moderação (sem contato)', async () => {
+    render(<Produto slug="certificado-digital" />)
+    const campo = screen.getByLabelText(/Um nome para a estrela/i)
+    fireEvent.change(campo, { target: { value: 'zap 11 98765-4321' } })
+    fireEvent.blur(campo)
+    expect(await screen.findByText(/não pode conter telefone/i)).toBeTruthy()
+  })
+
   it('escolher outra estrela no explorador muda o cartão e a prévia', async () => {
     // Sem Supabase (testes), o catálogo cai nas 12 curadas; a lista chega
     // pela busca, assíncrona. Começa na Atria (o padrão sem `?estrela=`).
@@ -465,6 +482,13 @@ describe('vitrine da home', () => {
     expect(hrefs.some((href) => href?.includes('certificado-premium'))).toBe(false)
     expect(document.body.textContent).not.toContain('Mapa Impresso')
     expect(document.body.textContent).not.toContain('Premium')
+  })
+
+  it('sem depoimento aprovado, a home não mostra a seção (nada inventado)', async () => {
+    window.history.pushState(null, '', '/')
+    render(<Loja />)
+    await waitFor(() => expect(document.body.textContent).toContain('CERTIFICADO DE DEDICAÇÃO'))
+    expect(screen.queryByText('Quem já deu uma estrela')).toBeNull()
   })
 
   it('mostra a folha do certificado na home, com o nome digitado ao vivo', () => {

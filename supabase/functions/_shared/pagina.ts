@@ -17,6 +17,8 @@ export interface ConteudoPagina {
   nome: string
   nomeCurto: string
   assinatura: string
+  /** Nome dado à estrela na compra (simbólico); vazio quando não houve. */
+  apelidoEstrela: string
   data: string
   registro: string
   tituloHero: string
@@ -40,6 +42,7 @@ export interface ConteudoPagina {
 export const LIMITES_PAGINA: Record<string, number> = {
   nome: 120,
   assinatura: 120,
+  apelidoEstrela: 40,
   tituloHero: 120,
   fraseHero: 220,
   tituloEstrela: 160,
@@ -74,6 +77,7 @@ export interface LinhaPagina {
   star_slug: string
   honoree_name: string
   from_name: string | null
+  star_nickname: string | null
   dedication_date: string | null
   titulo_hero: string
   frase_hero: string
@@ -98,6 +102,7 @@ export function conteudoDaLinha(linha: LinhaPagina): ConteudoPagina {
     nome: linha.honoree_name,
     nomeCurto: primeiroNome(linha.honoree_name),
     assinatura: linha.from_name ?? '',
+    apelidoEstrela: linha.star_nickname ?? '',
     data: dataEmPortugues(linha.dedication_date) ?? '',
     // Registro impresso no certificado. Pedido não tem um à parte — o code É
     // o registro. Página manual (Geovanna) pode ter, e aí não troca.
@@ -123,6 +128,7 @@ export function conteudoDaLinha(linha: LinhaPagina): ConteudoPagina {
 export function colunasDoConteudo(conteudo: ConteudoPagina): Record<string, unknown> {
   return {
     from_name: limpar(conteudo.assinatura) || null,
+    star_nickname: limpar(conteudo.apelidoEstrela ?? '') || null,
     titulo_hero: limpar(conteudo.tituloHero),
     frase_hero: limpar(conteudo.fraseHero),
     titulo_estrela: limpar(conteudo.tituloEstrela),
@@ -169,6 +175,9 @@ export function validarConteudo(conteudo: Partial<ConteudoPagina>): Array<{ camp
   if (conteudo.assinatura !== undefined && limpar(conteudo.assinatura)) {
     checar('assinatura', conteudo.assinatura, LIMITES_PAGINA.assinatura)
   }
+  if (conteudo.apelidoEstrela !== undefined && limpar(conteudo.apelidoEstrela)) {
+    checar('apelidoEstrela', conteudo.apelidoEstrela, LIMITES_PAGINA.apelidoEstrela)
+  }
   if (conteudo.tituloHero !== undefined) checar('tituloHero', conteudo.tituloHero)
   if (conteudo.fraseHero !== undefined) checar('fraseHero', conteudo.fraseHero)
   if (conteudo.tituloEstrela !== undefined) checar('tituloEstrela', conteudo.tituloEstrela)
@@ -193,7 +202,7 @@ export function validarConteudo(conteudo: Partial<ConteudoPagina>): Array<{ camp
  */
 export const SELECAO_PAGINA = [
   'id', 'code', 'certificate_id', 'status', 'order_id', 'customer_email', 'star_slug',
-  'honoree_name', 'from_name', 'dedication_date',
+  'honoree_name', 'from_name', 'star_nickname', 'dedication_date',
   'titulo_hero', 'frase_hero', 'titulo_estrela', 'descricao_estrela',
   'titulo_carta', 'carta', 'mensagem_pessoal', 'mostrar_mensagem',
   'mostrar_mira', 'created_at',
@@ -256,18 +265,22 @@ export function conteudoDoPedido(
   const bayer = String(estrela.bayer ?? '')
   const constelacao = String(estrela.constellation ?? '')
   const mensagem = limpar(pedido.message ?? '')
+  const apelido = limpar(pedido.star_nickname ?? '')
 
   return {
     nome,
     nomeCurto: curto,
     assinatura: limpar(pedido.from_name ?? ''),
+    apelidoEstrela: apelido,
     data: dataEmPortugues(
       typeof pedido.dedication_date === 'string' ? pedido.dedication_date : null,
     ) ?? '',
     registro: String(pedido.code ?? ''),
     tituloHero: `a estrela de ${curto}`,
     fraseHero: `Uma estrela real, ${bayer}, escolhida para ${curto}.`,
-    tituloEstrela: `${nomeEstrela}, agora também de ${curto}`,
+    tituloEstrela: apelido
+      ? `${nomeEstrela}, agora também “${apelido}”`
+      : `${nomeEstrela}, agora também de ${curto}`,
     descricaoEstrela: String(estrela.story ?? ''),
     tituloCarta: 'Para ser lida sob as estrelas',
     carta: [

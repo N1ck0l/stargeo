@@ -78,6 +78,16 @@ export function VisaoGeral({ aoExpirar, aoAbrirPagina, aoIrParaPedidos }) {
         despercebido (pedido pago, entrega silenciosa) — por isso ganha aviso
         aqui, mas a correção (reenvio) mora na aba Pedidos.
       */}
+      {dados.depoimentosPendentes > 0 && (
+        <p className="mt-4 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-ivory/85">
+          {dados.depoimentosPendentes}{' '}
+          {dados.depoimentosPendentes === 1 ? 'depoimento espera' : 'depoimentos esperam'} revisão — na aba
+          Depoimentos.
+        </p>
+      )}
+
+      <Funil funil={dados.funil ?? {}} />
+
       {pedidos.comErroDeEmail > 0 && (
         <p className="mt-4 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
           {pedidos.comErroDeEmail}{' '}
@@ -150,5 +160,47 @@ export function VisaoGeral({ aoExpirar, aoAbrirPagina, aoIrParaPedidos }) {
         </section>
       </div>
     </div>
+  )
+}
+
+/**
+ * O funil dos últimos 30 dias: contadores agregados por dia (migration 0017),
+ * sem nenhum dado de pessoa. "Compras" são os pedidos pagos no banco, não um evento do
+ * navegador — é o número confiável; os de cima são aproximados (bloqueadores
+ * e "não rastrear" ficam de fora de propósito).
+ */
+const ETAPAS = [
+  ['visita', 'Visitas'],
+  ['ver_produto', 'Abriram o produto'],
+  ['personalizar', 'Começaram a personalizar'],
+  ['iniciar_checkout', 'Foram ao pagamento'],
+  ['compra_aprovada', 'Compras aprovadas'],
+]
+
+function Funil({ funil }) {
+  const base = funil.visita || 0
+  return (
+    <section className="mt-6 rounded-2xl border border-white/8 bg-white/[0.03] p-5">
+      <h2 className="font-display text-xs tracking-[0.2em] text-gold uppercase">Funil · últimos 30 dias</h2>
+      <ol className="mt-4 grid gap-2 sm:grid-cols-5">
+        {ETAPAS.map(([evento, rotulo]) => {
+          const n = funil[evento] ?? 0
+          return (
+            <li key={evento} className="rounded-xl border border-white/8 bg-white/5 p-3">
+              <p className="font-display text-xl text-ivory">{n.toLocaleString('pt-BR')}</p>
+              <p className="mt-1 text-xs text-ivory/55">{rotulo}</p>
+              {base > 0 && evento !== 'visita' && (
+                <p className="mt-1 text-[11px] text-gold/80">
+                  {((n / base) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% das visitas
+                </p>
+              )}
+            </li>
+          )
+        })}
+      </ol>
+      <p className="mt-3 text-[11px] text-ivory/45">
+        Contagem anônima, sem cookie. Compras são os pedidos pagos; as outras etapas são aproximadas.
+      </p>
+    </section>
   )
 }

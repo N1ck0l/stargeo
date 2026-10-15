@@ -32,6 +32,7 @@ export function EditorAdmin({ codigo, aoFechar, aoExpirar }) {
   const [descricaoEstrela, setDescricaoEstrela] = useState('')
   const [tituloCarta, setTituloCarta] = useState('')
   const [assinatura, setAssinatura] = useState('')
+  const [apelido, setApelido] = useState('')
   const [carta, setCarta] = useState('')
   const [mensagem, setMensagem] = useState('')
   const [mostrarMensagem, setMostrarMensagem] = useState(true)
@@ -80,6 +81,7 @@ export function EditorAdmin({ codigo, aoFechar, aoExpirar }) {
     setDescricaoEstrela(conteudo.descricaoEstrela ?? '')
     setTituloCarta(conteudo.tituloCarta ?? '')
     setAssinatura(conteudo.assinatura ?? '')
+    setApelido(conteudo.apelidoEstrela ?? '')
     setCarta((conteudo.carta ?? []).join('\n\n'))
     setMensagem(conteudo.mensagemPessoal ?? '')
     setMostrarMensagem(conteudo.mostrarMensagem !== false)
@@ -121,6 +123,7 @@ export function EditorAdmin({ codigo, aoFechar, aoExpirar }) {
         certificate_id: registro.trim(),
         conteudo: {
           assinatura,
+          apelidoEstrela: apelido,
           carta,
           tituloHero,
           fraseHero,
@@ -382,6 +385,20 @@ export function EditorAdmin({ codigo, aoFechar, aoExpirar }) {
             Carta
           </legend>
           <div className="grid gap-4">
+            <div>
+              <label htmlFor="ed-apelido" className="rotulo">
+                Nome dado à estrela (vai no certificado)
+              </label>
+              <input
+                id="ed-apelido"
+                type="text"
+                maxLength={40}
+                value={apelido}
+                onChange={(evento) => setApelido(evento.target.value)}
+                placeholder="Vazio: sem nome da homenagem"
+                className="campo"
+              />
+            </div>
             <div>
               <label htmlFor="ed-assinatura" className="rotulo">
                 Assinatura

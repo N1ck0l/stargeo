@@ -44,15 +44,17 @@ const SECOES = [
     titulo: 'Arrependimento, cancelamento e reembolso',
     paragrafos: [
       'Você pode desistir da compra em até 7 dias depois do pagamento, como garante o artigo 49 do Código de Defesa do Consumidor. Basta escrever para o e-mail abaixo com o código do pedido. O valor é devolvido pelo mesmo meio de pagamento, pelo Mercado Pago; a estrela volta ao catálogo e a página é retirada do ar.',
-      'Errou o nome ou a dedicatória? A carta, a mensagem e a assinatura da página podem ser editadas por você a qualquer momento, em "Editar minha página". Para corrigir o nome de quem recebe no certificado, fale com a gente — é sem custo.',
+      'Errou o nome ou a dedicatória? A carta, a mensagem e a assinatura da página podem ser editadas por você a qualquer momento, em "Editar minha página". Para corrigir o nome de quem recebe ou o nome dado à estrela no certificado, fale com a gente — é sem custo.',
     ],
   },
   {
     id: 'privacidade',
     titulo: 'Privacidade (LGPD)',
     paragrafos: [
-      'Usamos só o necessário para fazer e entregar o certificado: seu nome e e-mail (para o pedido, a entrega e o acesso à edição), o nome de quem recebe, a dedicatória, a data e a assinatura (que vão impressos no certificado e na página da estrela), e os dados do pagamento que o Mercado Pago nos informa (situação e valor — nunca o número do cartão).',
+      'Usamos só o necessário para fazer e entregar o certificado: seu nome e e-mail (para o pedido, a entrega e o acesso à edição), o nome de quem recebe, o nome dado à estrela, a dedicatória, a data e a assinatura (que vão impressos no certificado e na página da estrela), e os dados do pagamento que o Mercado Pago nos informa (situação e valor — nunca o número do cartão).',
       'Os dados ficam guardados no Supabase (banco de dados e arquivos), o site é servido pela Netlify, o pagamento é processado pelo Mercado Pago e os e-mails são enviados pelo Resend. Não vendemos nem compartilhamos seus dados com outras empresas para publicidade, e o site não usa rastreadores de anúncios.',
+      'Para saber se a loja está funcionando, contamos de forma anônima quantas vezes, por dia, alguém abre o site, abre o certificado, começa a personalizar e vai ao pagamento. São só contadores: não usamos cookies, não guardamos IP nem nada que identifique você, e quem ativou "não rastrear" no navegador não é contado.',
+      'Depois da compra, você pode escrever um depoimento na edição da sua página. Ele só aparece no site com a sua autorização e depois da nossa revisão, com o nome e a cidade que você escolher — e sai do ar quando você pedir.',
       'Atenção: a página da estrela é pública para quem tiver o endereço — é ela que você manda para quem recebe o presente. Não coloque nela nada que não queira que essa pessoa veja.',
       'Você pode pedir acesso, correção ou exclusão dos seus dados pelo e-mail abaixo.',
     ],

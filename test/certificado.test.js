@@ -58,6 +58,14 @@ const casos = {
     honoreeName: 'Maria Eduarda Albuquerque de Vasconcelos Cavalcanti Figueiredo Pessoa Junior'.slice(0, LIMITES.honoreeName.max),
     message: mensagemLonga.slice(0, LIMITES.message.max),
     fromName: 'Com todo o amor do mundo, para sempre seu, hoje e amanhã'.slice(0, LIMITES.fromName.max),
+    starNickname: 'A Estrela Mais Brilhante da Vovó Lúcia e do Vovô'.slice(0, LIMITES.starNickname.max),
+  }),
+  'com nome da estrela': dados('vega', {
+    message: 'Para você lembrar de olhar para cima.',
+    starNickname: 'Nossa Luz',
+  }),
+  'nome da estrela sem espaços': dados('sirius', {
+    starNickname: 'WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW'.slice(0, LIMITES.starNickname.max),
   }),
   'extremo sem espaços': dados('canopus', {
     honoreeName: 'Wolfeschlegelsteinhausenbergerdorff Montmorency Albuquerque',
@@ -122,6 +130,16 @@ describe('desenharCertificado', () => {
     const textos = desenharCertificado(casos.extremo).itens.filter((i) => i.tipo === 'texto').map((t) => t.texto)
     expect(textos.join(' ')).toContain('Cavalcanti')
     expect(textos.join(' ')).toContain('Pessoa')
+  })
+
+  it('o nome dado à estrela sai entre aspas, dito como homenagem; sem ele, nada muda', () => {
+    const com = desenharCertificado(casos['com nome da estrela']).itens.filter((i) => i.tipo === 'texto').map((t) => t.texto)
+    expect(com).toContain('“Nossa Luz”')
+    expect(com).toContain('chamada, nesta homenagem, de')
+    // O nome oficial continua na folha.
+    expect(com).toContain('Vega')
+    const sem = desenharCertificado(casos.típico).itens.filter((i) => i.tipo === 'texto').map((t) => t.texto)
+    expect(sem).not.toContain('chamada, nesta homenagem, de')
   })
 
   it('a mesma entrada dá sempre a mesma folha (céu de fundo com sorteio fixo)', () => {

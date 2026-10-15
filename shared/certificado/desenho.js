@@ -156,6 +156,7 @@ function misturar(a, b, t) {
  * @property {string} [dedicationDate]  já em português
  * @property {string} [fromName]
  * @property {string} [message]
+ * @property {string} [starNickname]    nome dado à estrela nesta homenagem
  */
 
 /**
@@ -319,6 +320,7 @@ function divisor(add, p, y, meia) {
 function blocoCentral(add, texto, dados, p, { topo, base }) {
   const nome = String(dados.honoreeName ?? '').trim() || 'Nome de quem recebe'
   const mensagem = String(dados.message ?? '').trim()
+  const apelido = String(dados.starNickname ?? '').trim()
   const estrelaPt = medir('serif', dados.starName, 26) > 150 ? 21 : 26
 
   let nomePt = 34
@@ -349,6 +351,10 @@ function blocoCentral(add, texto, dados, p, { topo, base }) {
       nomeLinhas = quebrar(nome, 'serifItalico', pt, 160)
     }
     const msgLinhas = mensagem ? quebrar(mensagem, 'serifItalico', msgPt, 156) : []
+    // O nome dado à estrela: uma linha só, entre aspas; encolhe para caber.
+    const apelidoTexto = apelido ? `“${apelido}”` : ''
+    let apelidoPt = 17
+    while (apelido && apelidoPt > 11 && medir('serifItalico', apelidoTexto, apelidoPt) > 160) apelidoPt -= 0.5
     const passoNome = pt * MM_POR_PT * 1.18
     const passoMsg = msgPt * MM_POR_PT * 1.5
 
@@ -357,6 +363,18 @@ function blocoCentral(add, texto, dados, p, { topo, base }) {
       [caixaAlta(8.5), caixaAlta(8.5), 5.5, (y) => texto('Certificamos que a estrela', { y, fonte: 'sans', pt: 8.5, cor: p.suave, opacidade: p.suaveOpacidade })],
       [caixaAlta(estrelaPt), caixaAlta(estrelaPt), 4.2, (y) => texto(dados.starName, { y, fonte: 'serif', pt: estrelaPt, cor: p.destaque })],
       [caixaAlta(12), caixaAlta(12), 8, (y) => texto(`${dados.bayer} · ${dados.constellation}`, { y, fonte: 'grego', pt: 12, cor: p.suave, opacidade: p.suaveOpacidade })],
+      // Nomeação simbólica, dita como tal: o nome oficial continua o de cima.
+      ...(apelido
+        ? [
+            [caixaAlta(8.5), caixaAlta(8.5), 4.6, (y) => texto('chamada, nesta homenagem, de', { y, fonte: 'sans', pt: 8.5, cor: p.suave, opacidade: p.suaveOpacidade })],
+            [
+              caixaAlta(apelidoPt),
+              caixaAlta(apelidoPt),
+              apelidoPt * MM_POR_PT * 0.28 + 6,
+              (y) => texto(apelidoTexto, { y, fonte: 'serifItalico', pt: apelidoPt, cor: p.destaque }),
+            ],
+          ]
+        : []),
       [caixaAlta(8.5), caixaAlta(8.5), 7, (y) => texto('foi dedicada a', { y, fonte: 'sans', pt: 8.5, cor: p.suave, opacidade: p.suaveOpacidade })],
       [
         caixaAlta(pt),

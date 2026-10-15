@@ -36,6 +36,7 @@ interface Entrada {
   honoreeName?: string
   dedicationDate?: string | null
   fromName?: string
+  starNickname?: string
   message?: string
   customerEmail?: string
   customerName?: string
@@ -65,6 +66,7 @@ Deno.serve(
     const pedidoTexto = validarPedido({
       honoreeName: corpo.honoreeName,
       fromName: corpo.fromName,
+      starNickname: corpo.starNickname,
       message: corpo.message,
       customerName: corpo.customerName,
       customerEmail: corpo.customerEmail,
@@ -138,6 +140,7 @@ Deno.serve(
       star_slug: estrela.slug,
       honoree_name: limpar(corpo.honoreeName),
       from_name: corpo.fromName ? limpar(corpo.fromName) : null,
+      star_nickname: corpo.starNickname ? limpar(corpo.starNickname) || null : null,
       message: corpo.message ? limpar(corpo.message) : null,
       dedication_date: normalizarData(corpo.dedicationDate),
     }

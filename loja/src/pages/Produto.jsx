@@ -10,6 +10,7 @@ import { criarCheckout, ErroApi, irParaPagamento } from '../lib/api.js'
 import { Link } from '../lib/Link.jsx'
 import { buscarEstrela, comoSeVe, normalizar, reais } from '../lib/catalogo.js'
 import { ocasiaoPorSlug, SUGESTOES_GERAIS } from '../lib/ocasioes.js'
+import { registrar } from '../lib/metricas.js'
 
 /**
  * Produtos que têm página. O PREÇO não mora aqui: ele é o da faixa da estrela
@@ -102,8 +103,11 @@ export default function Produto({ slug }) {
     }
   }, [estrelaInicial])
 
+  useEffect(() => registrar('ver_produto'), [])
+
   function escolherEstrela(nova) {
     setEstrela(nova)
+    registrar('escolher_estrela', nova.faixa)
     const params = new URLSearchParams(window.location.search)
     params.set('estrela', nova.slug)
     window.history.replaceState(null, '', `${window.location.pathname}?${params}`)
@@ -115,6 +119,8 @@ export default function Produto({ slug }) {
   const preco = reais(estrela.precoCentavos)
   const [paraQuem, setParaQuem] = useState('')
   const [assinatura, setAssinatura] = useState('')
+  // Nome dado à estrela nesta homenagem (opcional, simbólico).
+  const [apelido, setApelido] = useState('')
   const [mensagem, setMensagem] = useState('')
   const [data, setData] = useState(dataDeHoje())
   const [versaoClara, setVersaoClara] = useState(false)
@@ -144,6 +150,7 @@ export default function Produto({ slug }) {
   const validacao = validarPedido({
     honoreeName: paraQuem,
     fromName: assinatura,
+    starNickname: apelido,
     message: mensagem,
     customerName: nome,
     customerEmail: email,
@@ -192,7 +199,7 @@ export default function Produto({ slug }) {
       return
     }
     if (!validacao.ok) {
-      setTocou({ honoreeName: true, fromName: true, message: true, customerName: true, customerEmail: true })
+      setTocou({ honoreeName: true, starNickname: true, fromName: true, message: true, customerName: true, customerEmail: true })
       setErro(explicarErros(validacao.erros))
       // Foco no primeiro campo inválido: sem isso, quem navega por teclado
       // ou leitor de tela continua no botão sem saber o que corrigir.
@@ -208,6 +215,7 @@ export default function Produto({ slug }) {
         starSlug: estrela.slug,
         honoreeName: paraQuem,
         fromName: assinatura || undefined,
+        starNickname: apelido.trim() || undefined,
         message: mensagem || undefined,
         dedicationDate: data || undefined,
         customerEmail: email,
@@ -231,6 +239,7 @@ export default function Produto({ slug }) {
         // Sem storage: o rastreamento pelo código continua disponível.
       }
 
+      registrar('iniciar_checkout', estrela.faixa)
       irParaPagamento(resposta.initPoint ?? resposta.sandboxInitPoint)
     } catch (falha) {
       setErro(
@@ -275,7 +284,10 @@ export default function Produto({ slug }) {
                 obrigatorio
                 value={paraQuem}
                 onChange={setParaQuem}
-                onBlur={() => marcarTocado('honoreeName')}
+                onBlur={() => {
+                  marcarTocado('honoreeName')
+                  if (paraQuem.trim()) registrar('personalizar')
+                }}
                 erro={erroDe('honoreeName')}
                 placeholder="Ex.: Maria Fernanda Oliveira"
                 maxLength={80}
@@ -284,6 +296,18 @@ export default function Produto({ slug }) {
                 Se o nome não couber em duas linhas, o corpo da letra diminui um pouco — nunca é
                 cortado.
               </p>
+              <div className="mt-5">
+                <Campo
+                  rotulo="Um nome para a estrela (opcional)"
+                  value={apelido}
+                  onChange={setApelido}
+                  onBlur={() => marcarTocado('starNickname')}
+                  erro={erroDe('starNickname')}
+                  placeholder="Ex.: Nossa Luz, A Estrela da Vó Lúcia"
+                  maxLength={40}
+                  dica="Aparece no certificado e na página como o nome desta homenagem. O nome oficial da estrela nos catálogos continua o mesmo."
+                />
+              </div>
             </Secao>
 
             <Secao numero="2" titulo="Qual estrela?">
@@ -433,6 +457,7 @@ export default function Produto({ slug }) {
                 {[
                   ['Estrela', `${estrela.name} · ${estrela.constellation}`],
                   ['Dedicada a', paraQuem.trim() || '—'],
+                  ...(apelido.trim() ? [['Nome da homenagem', `“${apelido.trim()}”`]] : []),
                   ['Formato', 'Certificado digital em PDF A4 (versões escura e clara) + página da estrela'],
                   ['Entrega', 'Logo após a confirmação do pagamento, na página da estrela e no seu e-mail'],
                 ].map(([rotulo, valor]) => (
@@ -506,6 +531,7 @@ export default function Produto({ slug }) {
                     honoreeName={paraQuem}
                     message={mensagem}
                     fromName={assinatura}
+                    starNickname={apelido}
                     dedicationDate={dataEmPortugues(data)}
                     code="SG-XXXX-XXXX"
                     light={versaoClara}

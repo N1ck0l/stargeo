@@ -36,6 +36,8 @@
 export const LIMITES = {
   honoreeName: { min: 2, max: 80 },
   fromName: { min: 2, max: 60 },
+  // Nome dado à estrela: uma linha no certificado, em corpo grande.
+  starNickname: { min: 2, max: 40 },
   message: { min: 1, max: 600 },
   customerName: { min: 2, max: 120 },
   customerEmail: { min: 5, max: 254 },
@@ -188,7 +190,7 @@ export function validarPedido(pedido) {
 
   const checar = (campo, valor) => {
     // Campos opcionais são pulados quando vazios.
-    const opcional = campo === 'fromName' || campo === 'message'
+    const opcional = campo === 'fromName' || campo === 'message' || campo === 'starNickname'
     if (opcional && !limpar(valor)) return
     const erro = validarTexto(campo, valor)
     if (erro) erros.push({ campo, motivo: erro })
@@ -196,6 +198,7 @@ export function validarPedido(pedido) {
 
   checar('honoreeName', pedido.honoreeName)
   checar('fromName', pedido.fromName)
+  checar('starNickname', pedido.starNickname)
   checar('message', pedido.message)
 
   if (!pedido.customerEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(pedido.customerEmail).trim())) {
@@ -219,6 +222,7 @@ export function explicarErros(erros) {
   const nomes = {
     honoreeName: 'o nome de quem recebe',
     fromName: 'a assinatura',
+    starNickname: 'o nome da estrela',
     message: 'a mensagem',
     customerName: 'o nome do comprador',
     customerEmail: 'o e-mail',
