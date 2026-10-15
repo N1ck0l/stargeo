@@ -1,383 +1,172 @@
 # Pendências
 
-Estado em 14 de outubro de 2026 (depois da rodada de correções da loja). A plataforma está completa: loja, páginas
-dedicadas, edição do cliente e painel `/admin` (Supabase Auth), tudo verificado
-com E2E no navegador. O que sobra divide-se entre o que só o dono pode fazer e
-o que dá para melhorar.
+Estado em 15 de outubro de 2026. A loja está completa e no ar em
+<https://stellara-loja.netlify.app>: catálogo de ~118 mil estrelas, compra de
+1 a 6 estrelas com desconto de grupo, cupons, certificado em PDF, página da
+estrela, página do grupo, revelação na data, edição do cliente, depoimentos e
+painel `/admin` com pedidos, relatórios, cupons e erros do site. O que falta é
+quase todo do dono — está aqui na ordem em que destrava a venda.
+
+O histórico de cada rodada está no `git log`.
 
 ---
 
-## 1. Só você pode fazer
+## 1. Checklist de lançamento
 
-### 1.1 Escrever a mensagem pessoal  ← o mais importante
+### 1.1 Mercado Pago em produção — bloqueia a primeira venda
 
-A seção existe e só aparece quando está preenchida. Abra `/admin` (painel
-novo, Supabase Auth), vá em **Páginas**, abra `SG-GEOV-ANNA`, escreva em
-**Mensagem pessoal** e salve — a página pública passa a mostrar na hora. Hoje
-ela está vazia; enquanto isso, o presente entrega sem o pedaço mais pessoal.
+O fluxo inteiro já rodou no ambiente de **teste** do Mercado Pago (pedido
+`SG-RT65-DNDG` aprovado e entregue) e tem teste automático de ponta a ponta
+(`test/fluxo.test.js`). Falta a conta de verdade:
 
-### 1.2 Testar no iPhone
+- [ ] Trocar `MERCADO_PAGO_ACCESS_TOKEN` pelo de produção nos secrets do
+      Supabase (dashboard → Edge Functions → Secrets, ou `supabase secrets set`).
+- [ ] No painel do Mercado Pago, recriar o webhook apontando para
+      `https://cdrkykbtjjgvilgvyrve.supabase.co/functions/v1/mp-webhook` e pôr o
+      segredo novo em `MERCADO_PAGO_WEBHOOK_SECRET`.
+- [ ] Fazer uma compra real pequena (uma estrela "profunda", R$ 49), conferir a
+      tela de obrigado, a página da estrela e o pedido "Pago" no painel — e
+      reembolsar pelo Mercado Pago (a estrela volta ao catálogo sozinha).
+- [ ] Opcional antes disso: a mesma compra no sandbox com o cartão de teste
+      (titular `APRO`), inclusive de um grupo de 2+ estrelas.
 
-É o maior risco técnico em aberto. Todo o código de iOS (permissão de
-movimento, área segura, `play()` da câmera, `text-size-adjust`) foi escrito a
-partir de documentação, **nunca executado num iPhone**.
+### 1.2 Nota fiscal — antes das primeiras vendas
 
-Verifique com atenção:
+- [ ] Combinar com um contador o enquadramento (MEI ou outro) e a emissão.
+      O painel → **Relatórios** → "Baixar planilha (CSV)" traz o que ele vai
+      pedir: comprador, CPF (quando informado), valor, cupom, forma e ID do
+      pagamento no Mercado Pago.
 
-- a câmera liga e mostra o céu
-- o menu não fica embaixo do entalhe nem da barra de gesto
-- a bússola responde (no Safari é preciso **Configurações → Safari →
-   Movimentação e Orientação**)
-- o certificado abre e os dois botões de impressão funcionam
+### 1.3 Domínio próprio e e-mail de entrega — antes de divulgar
 
-### 1.3 Testar a Mira celeste de noite, ao ar livre
+Hoje a loja vive em `*.netlify.app` e o e-mail de entrega não sai (o Resend
+só envia de domínio verificado). O site já não promete e-mail enquanto a chave
+`VITE_EMAIL_ATIVO` estiver desligada: a entrega é a página da estrela com o PDF.
 
-Os rastros de estrelas e a bússola só podem ser julgados de verdade no
-celular dela, à noite. Bússola dentro de casa erra ±20° ou mais — isso é
-esperado, não é defeito.
+- [ ] Comprar o domínio e apontar para a Netlify (Domain management).
+- [ ] Verificar o domínio no Resend e definir `EMAIL_FROM` com ele.
+- [ ] Trocar nos secrets do Supabase: `PUBLIC_SITE_URL`, `FONTS_BASE_URL` e
+      `ORIGENS_PERMITIDAS` (o domínio novo, com `https://`).
+- [ ] Mandar um e-mail de teste (painel → Pedidos → Reenviar e-mail de um pedido
+      de teste) e, chegando, ligar `VITE_EMAIL_ATIVO=1` (Netlify → Environment
+      variables) e `EDICAO_POR_EMAIL=1` (secrets do Supabase), e refazer o deploy.
+- [ ] Conferir a prévia do link no WhatsApp (imagem e título) com o domínio novo.
+- [ ] Cadastrar o site no Google Search Console e enviar `/sitemap.xml`.
 
-Nesta versão a seta de direção foi corrigida: antes, em metade das posições
-(quando o aparelho apontava para o lado oposto ao da estrela, atravessando o
-norte) ela mandava virar para o lado errado. Ainda vale confirmar no escuro.
+Com os tokens no `.env` (Supabase e Netlify), o Claude faz as trocas de
+variáveis e o deploy assim que o domínio existir.
 
-### 1.4 Domínio e Netlify
+### 1.4 Testes que só um celular de verdade faz
 
-O repositório já publica sozinho na Netlify (site `stellara-loja`, publish
-`dist-loja`) — commit com push é deploy. O nome `stellara` puro estava em uso
-na plataforma, daí o sufixo. Os projetos antigos
-`luxury-lamington-97da01` (duplicata) e `papaya-dieffenbachia-483678` (site
-pessoal, build manual) foram apagados; `leafy-jelly-5aac6d` não é deste
-projeto e segue intocado.
+- [ ] **iPhone** (o maior risco técnico em aberto — todo o código de iOS foi
+      escrito pela documentação, nunca rodou num): a câmera da Mira celeste liga,
+      a bússola responde (Safari: Ajustes → Safari → Movimento e Orientação), o
+      menu não fica sob o entalhe, o "Baixar PDF" e o cartão com QR funcionam.
+- [ ] **Mira celeste à noite, ao ar livre** (dentro de casa a bússola erra ±20°,
+      é esperado).
+- [ ] **Leitor de tela** (TalkBack ou VoiceOver) numa compra inteira — a auditoria
+      automática (axe, Lighthouse) está limpa, mas não substitui.
+- [ ] **A primeira página de grupo de verdade** (`/g/GR-…`): só existe depois de
+      uma compra paga de 2+ estrelas.
 
-Não existe domínio próprio da marca ainda: a loja vive em `*.netlify.app`.
-Quando o domínio chegar, aponte-o (A/ALIAS ou CNAME para o Netlify), troque
-`PUBLIC_SITE_URL`, `FONTS_BASE_URL` e `ORIGENS_PERMITIDAS` nos *secrets* do
-Supabase (`supabase secrets set`) e faça um deploy. As variáveis `VITE_*`
-ficam nos *Environment variables* do site na Netlify.
+### 1.5 Decisões comerciais para conferir
 
-> A prévia ao compartilhar (`og:image`, `canonical`) é URL absoluta: confira
-> depois do domínio novo que o WhatsApp mostra a imagem.
+- [ ] **Preços das faixas** (tabela `faixas` no banco — mude a linha e pronto):
+      lendária R$ 249, nomeada R$ 149, brilhante R$ 99, visível R$ 69, profunda
+      R$ 49.
+- [ ] **Desconto de grupo**: 2 estrelas 10%, 3 15%, 4 a 6 20%
+      (`descontoPara` em `shared/preco.js`; muda no site e na cobrança juntos —
+      depois, `npm run publicar:supabase -- --so-funcoes` e push).
+- [ ] **Palavras bloqueadas** do certificado (`shared/moderation.js`): o texto
+      do cliente é impresso sem ninguém ler antes — acompanhe os primeiros
+      pedidos no painel.
+- [ ] **Promessas do site**: "7 dias para desistir" (direito do consumidor em
+      compra on-line) e o e-mail de contato `nickolasfelipe225@gmail.com`.
 
-### 1.5 Conta do painel
+### 1.6 Revisão jurídica
 
-O `/admin` da loja usa Supabase Auth — não há senha escrita no código. A conta
-é `nickolasfelipe225@gmail.com` (a migration `0008` trocou o endereço antigo do
-domínio removido; a senha continua sendo a entregue fora do repositório —
-troque no dashboard → Authentication → Users → *Reset password* se quiser).
-Permissão é a linha em `public.admins`; sem ela, a conta loga e recebe 403.
+- [ ] Pedir a um advogado a revisão de `/politicas` (entrega digital, pagamento,
+      arrependimento, LGPD, registro anônimo de erros e de visitas).
 
-### 1.6 Mercado Pago real
+### 1.7 Pequenos
 
-Já rodou contra o ambiente de **teste** do Mercado Pago: webhook entrega,
-e-mail sai, PDF baixa (pedido `SG-RT65-DNDG` aprovado e entregue). O que falta
-para vender:
-
-1. Trocar a conta do MP (teste → produção): novo `MERCADO_PAGO_ACCESS_TOKEN`
-   e recriar o webhook (o segredo muda).
-2. Conferir os preços em `migrations/0002_seed.sql` e a lista de termos
-   bloqueados em `shared/moderation.js` antes do primeiro cliente de verdade.
-
-O ponto mais frágil é a moderação: o certificado vende texto impresso que o
-cliente escreve e o vendedor não lê antes de entregar. O filtro roda duas
-vezes (na compra e no webhook), mas nenhuma lista de termos é completa — vale
-acompanhar os primeiros pedidos de perto. O painel mostra todos os pedidos em
-tempo quase real.
-
-### 1.7 Publicar a rodada de correções de 14/10
-
-O código está no repositório, mas o Supabase não publica sozinho com o push:
-
-1. `supabase db push` — aplica a migration `0009` (trava de entrega,
-   `rate_limits`, `resumo_pedidos()`). **Antes das funções**: o webhook novo
-   grava `delivery_started_at`, e sem a coluna ele responde 500.
-2. Republicar as funções que mudaram: `mp-webhook`, `resend-certificate`,
-   `create-checkout`, `track-order`, `page-auth`, `admin-api` (comandos em
-   `LOJA.md`).
-3. Depois do domínio e do e-mail: `supabase secrets set EDICAO_POR_EMAIL=1`.
-
-A prévia de `/p/CODE` já está funcionando no ar (a `VITE_FUNCTIONS_URL` da
-Netlify já vale para Functions), e a CSP está ATIVA — testada em modo
-bloqueante antes, sem nenhuma violação.
+- [ ] Escrever a mensagem pessoal da página da Geovanna: painel → Páginas →
+      `SG-GEOV-ANNA` → Mensagem pessoal.
+- [ ] Revogar o `NETLIFY_AUTH_TOKEN` (Netlify → User settings → Applications)
+      quando não quiser mais que o Claude leia logs e publique — ele está só no
+      `.env`, fora do repositório.
 
 ---
 
-### 1.8 Revisar as decisões do catálogo completo
+## 2. Como operar a loja
 
-- **Preços das faixas** (tabela `faixas`, mude a linha e pronto): lendária
-  R$ 249 (23 estrelas), nomeada R$ 149 (577), brilhante R$ 99 (215), visível
-  R$ 69 (8.150), profunda R$ 49 (109 mil). São um ponto de partida.
-- **Sem boleto**: a estrela fica reservada só durante o prazo de pagamento
-  (30 min), e boleto leva dias. Pix e cartão em até 12x continuam.
-- **Promessas da home que só você pode garantir**: "7 dias para desistir"
-  (é direito do consumidor em compra on-line) e "uma pessoa responde no mesmo
-  dia". Se alguma não valer, tire ou ajuste em `loja/src/pages/Home.jsx`.
-- **Celular**: a ordem nova da home (herói → certificado → estrelas e preços →
-  como funciona → confiança) não pôde ser conferida visualmente no aparelho
-  nesta rodada — vale abrir no telefone.
+Tudo pelo painel `/admin` (conta `nickolasfelipe225@gmail.com`, Supabase Auth;
+a permissão é a linha em `public.admins`). Mudar texto não precisa de deploy.
 
-### 1.9 Antes de abrir as vendas (rodada "experiência premium", 14/10)
-
-- **E-mail**: o site diz que o link da página "também vai para o e-mail da
-  compra" (FAQ, resumo do pedido, políticas). Hoje o e-mail não sai (ver 1.4):
-  a entrega real é a página da estrela + PDF, que funciona. Com o domínio, a
-  frase passa a valer; sem ele, tire-a.
-- **Políticas** (`/politicas`): redigidas sobre o que a loja faz hoje —
-  entrega digital, Mercado Pago, 7 dias de arrependimento (art. 49 do CDC),
-  LGPD, fontes dos dados. Peça a revisão de um advogado antes de vender em
-  escala, e confirme que o e-mail de contato é o certo.
-- **Reembolso**: o estorno feito no Mercado Pago já devolve a estrela ao
-  catálogo e tira a página do ar sozinho (webhook). O estorno em si continua
-  sendo feito por você, no painel do Mercado Pago.
-- **Não implementado de propósito**: produto impresso, moldura e embalagem —
-  o site deixa claro que o certificado é digital e que a moldura da prévia é
-  só ilustração.
-
-### 1.14 Cupons, relatórios e erros (15/10)
-
-- **Cupons** (painel → Cupons): percentual (até 50%) ou valor fixo, validade e
-  limite de usos. Valem sobre o total (depois do desconto de grupo) e nunca
-  deixam uma estrela abaixo de R$ 1. Uso = compra PAGA. O botão "Copiar link"
-  dá o link de parceria (`/produto/certificado-digital?cupom=CODIGO`), que já
-  abre com o cupom aplicado.
-- **Relatórios** (painel → Relatórios): receita, compras, ticket médio, por
-  faixa e por forma de pagamento, no período (data do pagamento, Brasília), e
-  a planilha CSV para o contador (abre direto no Excel em português). Para a
-  nota fiscal, combine com o contador quais colunas ele precisa.
-- **Erros no site** (painel → Visão geral): o que quebrou no navegador de
-  clientes nos últimos 7 dias, sem dado pessoal. Se aparecer algo, me mande a
-  mensagem.
-
-### 1.13 Várias estrelas numa compra (15/10)
-
-- De 2 a 6 pessoas por compra, cada uma com estrela, certificado e página
-  próprios. Desconto progressivo sobre a soma: 2 → 10%, 3 → 15%, 4 a 6 → 20%
-  (`descontoPara` em `shared/preco.js`; vale para o site e para a cobrança).
-- Certificado: par diz "Em par com Altair, dedicada a Pedro"; 3+ diz "Uma das
-  quatro estrelas · Família Souza" (nome do grupo opcional).
-- Página do grupo `/g/GR-XXXX-XXXX`: todas as estrelas no mapa do céu inteiro,
-  ligadas na ordem da compra, com link para a página de cada pessoa. Respeita
-  a revelação na data. Fora do Google (robots.txt).
-- Pendente de conferência humana: a página do grupo só aparece de verdade
-  depois de uma compra paga de 2+ estrelas — vale olhar na primeira.
-
-### 1.12 Rodada de 15/10 (noite)
-
-- **Promessa de e-mail sob chave**: enquanto `VITE_EMAIL_ATIVO` não for `1`
-  (Netlify → Environment variables), o site não diz que manda e-mail, e a tela
-  de obrigado mostra o código do pedido. Quando o domínio do Resend estiver
-  verificado e um e-mail de teste chegar, ligue a chave e refaça o deploy.
-- **Entregas travadas**: alerta vermelho no topo do painel para pedido pago há
-  mais de 10 min sem PDF ou sem página, com "Refazer entrega".
-- **Cartão com QR** (`/p/CODE/cartao`) e **"Enviar pelo WhatsApp"** na tela de
-  obrigado, na edição e na página (para a dona).
-- **Parcelamento**: "Pix ou até 12x no cartão" junto do preço — sem valor de
-  parcela, porque os juros são do Mercado Pago.
-- **Par de estrelas**: dois pedidos ligados (`group_id`), um pagamento, com
-  10% de desconto sobre a soma das faixas, arredondado para baixo até o real
-  (R$ 498 → R$ 448). Para mudar o percentual: `DESCONTO_PAR_PERCENTUAL` em
-  `shared/preco.js` (vale para o site e para a cobrança) e publicar o
-  `create-checkout`.
-- **Teste do fluxo inteiro** (`test/fluxo.test.js`): checkout → webhook →
-  estrela dedicada → certificado → página, com o código real das funções.
-  Falta o teste com dinheiro de mentira de verdade, que é seu:
-  1. No painel do Mercado Pago, crie as credenciais de TESTE e dois usuários de
-     teste (vendedor e comprador).
-  2. Ponha o access token de teste em `MERCADO_PAGO_ACCESS_TOKEN` (secrets do
-     Supabase) e publique as funções.
-  3. Compre no site logado com o comprador de teste, usando um cartão de teste
-     do Mercado Pago (titular `APRO` aprova).
-  4. Confira: tela de obrigado com o código, página da estrela no ar, pedido
-     "Pago" no painel. Repita com um par.
-  5. Volte o token de produção e publique de novo.
-
-### 1.11 Rodada de 15/10 (tarde)
-
-- **Corrigir texto de um pedido**: painel → Pedidos → "Corrigir texto". Muda
-  nome, nome da estrela, assinatura ou mensagem, refaz os dois PDFs (os links
-  antigos passam a abrir o novo) e, se marcado, reenvia o e-mail — que só sai
-  de verdade depois do domínio (1.4).
-- **Surpresa na data**: no produto, "Guardar a surpresa até uma data". O PDF
-  chega na hora; a página mostra contagem regressiva até o dia (meia-noite de
-  Brasília) para quem não é a dona. A prévia do WhatsApp também não entrega a
-  estrela antes. A dona muda ou tira a data na edição.
-- **Página por estrela** (`/estrelas/antares`) + `sitemap.xml` com as ~600 de
-  nome próprio + `robots.txt`. Depois do domínio próprio, cadastre o site no
-  Google Search Console e envie `https://seudominio/sitemap.xml`.
-- **Prévia social** nova (`og-image.png`): a folha de exemplo ao lado da
-  chamada. Refeita por `npm run marca`.
-- **Primeira abertura 30% menor** (121 → 85 KB gzip): só a home vai no
-  pacote inicial; o produto é pré-carregado em segundo plano.
-- **Acessibilidade**: auditoria axe (WCAG 2.1 AA) limpa em home, produto,
-  estrela, página dedicada, edição e painel. Vale ainda um teste real com
-  leitor de tela (TalkBack/VoiceOver) no celular.
-- **Convite para depoimento**: na tela de obrigado, no rodapé da página
-  (quando a dona está logada) e no e-mail da entrega.
-
-### 1.10 Nome da estrela, funil e depoimentos (15/10)
-
-- **Nome dado à estrela** (opcional, até 40 caracteres): sai no certificado
-  ("chamada, nesta homenagem, de “…”"), no e-mail e na página; o nome oficial
-  continua na folha. Corrigir um nome errado: painel → página → "Nome dado à
-  estrela" (a página muda na hora; o PDF já enviado não — reenvie pelo painel
-  depois de corrigir o pedido no banco, se precisar).
-- **Funil** (painel → Visão geral): contadores anônimos por dia — visitas,
-  produto aberto, personalização, ida ao pagamento — e as compras pagas, lidas
-  dos pedidos. Sem cookie, sem IP, sem serviço externo, sem conta nova; quem
-  usa "não rastrear" não é contado. As etapas do navegador são aproximadas
-  (bloqueadores), as compras são exatas.
-- **Depoimentos**: o comprador escreve na edição da página dele (só pedido
-  pago, um por pedido, com autorização explícita). Você aprova ou recusa no
-  painel → Depoimentos. A home só mostra a seção quando há ao menos um
-  aprovado — hoje não há nenhum, e nenhum foi inventado. Vale pedir, no
-  contato pós-venda, que a pessoa conte como foi.
-
-## 2. Melhorias que dá para fazer
-
-Nada de bloqueante. Só polimento:
-
-### 2.1 Cabeçalhos de segurança
-
-O `netlify.toml` tem `X-Content-Type-Options`, `Referrer-Policy`,
-`X-Frame-Options`, `Permissions-Policy` e `Strict-Transport-Security`. O
-repositório já está conectado à Netlify (deploy automático), então eles valem
-— conferir no navegador após o domínio novo, quando o HTTPS passa a valer de
-verdade.
-
-### 2.2 Os ícones e a imagem de prévia — resolvidos no rebrand
-
-Os PNGs (`og-image`, `icon-192`, `icon-512`, `icon-maskable-512`,
-`favicon-32`, `apple-touch-icon`) foram regenerados na marca Stellara —
-símbolo, noite e dourado, com Playfair/Montserrat embutidas — e ficaram bem
-menores: o og-image caiu de 201 KB para ~32 KB e o ícone de 512 px de
-~137 KB para ~9 KB. Ficam em `loja/public/`. Se a arte mudar de novo, a geração é
-reproduzível a partir do `favicon.svg` e da prancha da marca.
-
-### 2.3 Tipos gerados do banco
-
-As Edge Functions fazem `as unknown as` nas linhas do banco. `supabase gen
-types typescript --linked > supabase/functions/_shared/database.types.ts` e
-`createClient<Database>` em `_shared/supabase.ts` tiram os casts e pegam nome
-de coluna errado no typecheck. Precisa do CLI logado no projeto.
-
----
-
-## 3. Entrega e experiência pós-compra (14/10)
-
-- **Baixar PDF na página dedicada**, gerado no navegador com o mesmo código
-  do servidor — o cliente tem o certificado mesmo com o e-mail bloqueado.
-- **"Obrigado" leva até a página**: consulta o pedido até a página existir
-  (antes: duas tentativas) e o botão principal é "Abrir a página da estrela".
-  Bug corrigido: `in_process` (pagamento em análise) aparecia como aprovado.
-- **Rastreio** com atalho para a página; "em análise" deixou de ficar verde;
-  texto com "quoting" corrigido.
-- **E-mail de entrega** na marca: logo, miniatura da folha, página e os dois
-  PDFs. Bug corrigido: só a versão CLARA era enviada (o webhook guardava o
-  caminho do último PDF gerado). O e-mail do link de edição também.
-- **Produto**: mini mapa do céu real da estrela escolhida (o mesmo da folha),
-  coluna da prévia no tamanho da folha em retrato, "até 12x" no texto.
-- Nomes de arquivo legíveis: `certificado-geovanna-kaus-australis.pdf`.
-
-## 4. Certificado Edição Midnight (14/10)
-
-O PDF que o cliente recebia era bem pior que a prévia: Montserrat **Thin** em
-tudo (a fonte variável embutida na instância padrão), rótulos dos dados por
-cima dos valores, filetes tortos (o pdf-lib ignorava o espaçamento entre
-letras), ★ genérica. A causa era ter dois desenhos mantidos à mão.
-
-Agora a folha é UMA lista de itens (`shared/certificado/desenho.js`) que vira
-SVG na loja e PDF no servidor, com as mesmas larguras de texto — e segue a
-prancha: A4 retrato, logo oficial, nome em Playfair itálica e o mapa do céu
-real da estrela (Hipparcos). Testes garantem que nenhum texto encosta em
-outro nem sai da moldura no pior caso da moderação (nome de 80, mensagem de
-600, assinatura de 60) e que as fontes do PDF são estáticas no peso certo.
-
-## 5. O que foi corrigido (rodada de 14/10 — loja)
-
-| O que era | Consequência |
+| Aba | Para quê |
 | --- | --- |
-| `resend-certificate` confiava só no `verify_jwt` | A chave anon (pública, no bundle) passava: qualquer um com o id do pedido disparava reenvio. Também aceitava pedido `in_process` (não pago) |
-| Webhook entregava a cada evento aprovado | `payment.created` + `payment.updated` + reenvios = PDF regerado e **e-mail repetido**; eventos simultâneos entregavam em paralelo |
-| Escritas no banco sem checar erro | O supabase-js devolve o erro em vez de lançar: status não gravado passava calado, o webhook respondia 200 e o Mercado Pago não reenviava |
-| Upsert em `certificate_drafts` sem `onConflict` | Conflitava na chave errada e falhava na segunda entrega, em silêncio |
-| Valor pago não era conferido | `approved` bastava, qualquer que fosse o valor ou a moeda |
-| Sem limite de requisições | Checkout, rastreio e login de edição aceitavam chamadas em laço |
-| `meta.js` nunca rodava | `window.__STELLARA_ENV__` não existia: a loja **nunca teve og:image**. E robô de prévia não executa JS — agora as tags saem no HTML pelo build |
-| `/p/CODE` sem prévia própria | O link do presente no WhatsApp mostrava o cartão genérico; agora mostra "Uma estrela para Geovanna · Kaus Australis" |
-| Preço escrito no front | Mudar o preço no banco deixaria o botão mostrando um valor e o Mercado Pago cobrando outro |
-| "Em até 3x sem juros" | O checkout só aceitava 1 parcela — agora até 12x no cartão (juros por conta de quem compra, padrão do Mercado Pago; "sem juros" é configuração da conta) |
-| Receita do painel sobre 500 pedidos | A partir do pedido 501 o total e a receita mentiam |
-| Deploy sem teste | A Netlify publicava commit com teste vermelho |
+| Visão geral | Pedidos, receita, funil dos últimos 30 dias (anônimo), **entregas travadas** (pedido pago sem PDF ou página → "Refazer entrega"), **erros no site** dos últimos 7 dias, depoimentos esperando revisão |
+| Pedidos | Buscar, reenviar e-mail, criar a página de um pedido, **Corrigir texto** (nome, nome da estrela, assinatura, mensagem — refaz os PDFs e, se marcado, reenvia) |
+| Páginas | Editar qualquer página, criar página manual, publicar/despublicar |
+| Relatórios | Vendas por período, por faixa e por forma de pagamento; planilha CSV para o contador |
+| Cupons | Criar (percentual até 50% ou valor fixo, validade, limite de usos), pausar, ver desempenho, **copiar o link de parceria** (`/produto/certificado-digital?cupom=CODIGO`, que já abre com o cupom) |
+| Depoimentos | Aprovar ou recusar o que os compradores escrevem; a home só mostra a seção com algum aprovado |
 
-E de estrutura: a loja deixou de importar do site pessoal (componentes e
-dados movidos para `loja/src/`) e o site pessoal saiu da `main` (tag
-`site-pessoal-legado`), CI no GitHub Actions, CSP ativa, `npm run dev` na porta
-que o CORS libera (era 5174, e nenhuma chamada ao Supabase funcionava em
-desenvolvimento), link de edição por e-mail pronto para ligar, README da loja.
-Testes: 94 → **112** no vitest com webhook, reenvio e prévia social novos; **91** depois de sair o site pessoal (os 21 testes dele foram junto).
+- **Reembolso**: faça o estorno no painel do Mercado Pago. O webhook devolve a(s)
+  estrela(s) ao catálogo e tira a(s) página(s) do ar sozinho.
+- **Erro no painel "Erros no site"**: mande a mensagem para o Claude.
 
 ---
 
-## 6. O que foi corrigido (rodada anterior — site pessoal)
+## 3. Referência técnica
 
-Uma revisão completa do código do site pessoal encontrou problemas reais,
-todos resolvidos:
+### Publicar
 
-| O que era | Consequência |
-| --- | --- |
-| `wrap180` não normalizava entrada negativa | A Mira celeste **invertia a seta** e nunca alinhava quando o aparelho apontava para o lado oposto ao da estrela |
-| Aviso de "versão nova" nunca aparecia | Publicar texto novo dependia de a pessoa recarregar sozinha |
-| 4 campos do `/admin` sem efeito | "Data da dedicação", "Registro", título e descrição da estrela eram editáveis e **não apareciam** |
-| Mapa ignorava botão e teclado sob movimento reduzido | Quem pediu menos movimento perdia o controle por teclado |
-| Corrida no `getUserMedia` | A câmera podia ficar **ligada em segundo plano** ao fechar a Mira no meio da permissão |
-| Fontes: 14 arquivos, 5 conteúdos idênticos | Peso baixado duas vezes e peso tipográfico não era o pedido |
-| SW gravava 404 no cache offline | Sem internet, qualquer endereço mostrava a página de erro |
-| `conteudo.json` servia do cache primeiro | Texto novo só aparecia na publicação *seguinte* |
-| Versão clara do certificado saía com folha escura | "Imprimir claro" gastava tinta como se fosse a escura |
-| Mira celeste não era um diálogo | Sem `Esc`, foco preso ou trava de rolagem; o teclado vazava para o site |
-| Pinça trocava a estrela selecionada | Zoom com dois dedos mudava o painel sem querer |
-| Bilhete rotacionado duas vezes | Inclinação de -1,2° em vez de -0,6°, e o hover não endireitava |
-| 42 estrelas com ascensão reta inválida | Kaus Australis era desenhada **duas vezes** na Mira |
-| `og:image` relativa | Sem prévia no WhatsApp/Twitter |
-| Conteúdo invisível sem JavaScript | Página em branco se o JS falhasse |
+1. Mudou banco ou funções? `npm run publicar:supabase` **antes** do push
+   (aplica as migrations e publica as funções; lê o token do `.env`).
+2. `git push` na `main` → a Netlify roda `npm run verificar && npm run build`
+   e publica. Teste vermelho segura o deploy (a versão anterior fica no ar).
+3. Push que só mexe em documentação, testes, CI, Supabase ou scripts de
+   manutenção **não gasta build** na Netlify (`ignore` no `netlify.toml`).
+4. Deploy falhou? Com o `NETLIFY_AUTH_TOKEN` no `.env`, o Claude lê o log.
 
-Ganhos: **6 correções de bug** (com testes que falham se voltarem), lint limpo
-pela primeira vez, **10 arquivos de fonte a menos**, e a bateria de testes foi
-de 95 para **151 verificações**.
+### Variáveis
 
----
+| Onde | Nome | Para quê |
+| --- | --- | --- |
+| Netlify | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_FUNCTIONS_URL` | Loja falar com o Supabase (as `VITE_*` valem também para as edge functions) |
+| Netlify | `VITE_EMAIL_ATIVO` | `1` só com o e-mail funcionando (1.3) |
+| Supabase (secrets) | `MERCADO_PAGO_ACCESS_TOKEN`, `MERCADO_PAGO_WEBHOOK_SECRET`, `MP_STATEMENT_DESCRIPTOR` | Pagamento |
+| Supabase (secrets) | `RESEND_API_KEY`, `EMAIL_FROM` | E-mail |
+| Supabase (secrets) | `PUBLIC_SITE_URL`, `FONTS_BASE_URL`, `ORIGENS_PERMITIDAS`, `EDICAO_POR_EMAIL` | Domínio e CORS |
+| `.env` local | `SUPABASE_ACCESS_TOKEN`, `NETLIFY_AUTH_TOKEN` | O Claude publicar e ler logs |
 
-## 7. Estado atual, para conferência
+### Decisões que valem lembrar
 
-| Item | Situação |
-| --- | --- |
-| Build | limpo, deploy automático no push — só depois de `verificar` passar |
-| Lint | limpo, zero warnings (oxlint) |
-| Testes | **254 verificações** — 108 no vitest + astro (39) + céu (82) + moderação (25); também no GitHub Actions |
-| E2E no navegador | compra→página, página pública (30), edição do cliente (22), painel (25) — todos verdes |
-| Pacote inicial | 111 kB gzip de JS + 11,4 de CSS (chunk do Supabase só em `/admin` e `/editar`) |
-| `/admin` | painel Supabase Auth (conta + linha em `admins`), sem senha no código |
-| Conteúdo | páginas no banco (`pages`); seed Geovanna `SG-GEOV-ANNA` publicada |
-| Loja e páginas | prontas e verificadas; Mercado Pago ainda em ambiente de teste |
-| E-mail | **bloqueado**: o Resend recusa remetente Gmail (403 `gmail.com domain is not verified`) — testado em 14/10, só sai com domínio verificado; template novo confirmado via remetente de cortesia |
+- **Sem boleto**: a estrela fica reservada só durante o pagamento (30 min).
+- **Preço sempre do servidor**: faixa da estrela, desconto de grupo e cupom são
+  calculados no `create-checkout` (a mesma conta de `shared/preco.js` que o site
+  mostra). Cupom vale sobre o total já com desconto de grupo, nunca deixa uma
+  estrela abaixo de R$ 1, e o uso só conta na compra paga.
+- **Medição sem rastreador**: funil por contadores diários e erros sem dado
+  pessoal, no próprio banco; quem pede "não rastrear" não entra no funil.
+- **Velocidade**: o produto tem HTML pré-renderizado no build
+  (`scripts/prerender-produto.mjs` → `produto.html`, servido em `/produto/*`);
+  Lighthouse no celular ~90 na home e no produto. O próximo ganho seria a
+  estratégia de fontes ou dividir o JavaScript — décimos de segundo.
 
-### Fluxo para mudar um texto
+### Melhorias técnicas possíveis (nada bloqueia)
 
-1. Abrir `/admin`, entrar com a conta de admin
-2. Em **Páginas**, abrir a página, editar e **Salvar** — publica na hora
-3. **Páginas** também tem criar manual, publicar/despublicar; **Pedidos**
-   reenvia o e-mail e cria página de pedido pago
-
-Nada de build nem de deploy para mudar texto: tudo vive no banco.
+- Tipos gerados do banco (`supabase gen types`) para tirar os `as unknown as`
+  das Edge Functions.
+- Conferir os cabeçalhos de segurança (HSTS etc.) depois do domínio novo.
 
 ### Onde mexer
 
-- `loja/src/admin/` — o painel (visão geral, pedidos, páginas, editor)
-- `loja/src/pagina/` — página dedicada e edição do cliente
-- `loja/src/lib/admin.js` — sessão/autenticação do painel
-- `supabase/functions/` — `get-page`, `page-auth`, `page-update`, `admin-api`
-- `supabase/functions/mp-webhook/webhook.ts` — a entrega (reserva, valor, PDF, e-mail)
-- `supabase/migrations/0004–0006` — `pages`, `page_edit_tokens`, `admins`, seed
-- `supabase/migrations/0009` — trava de entrega, `rate_limits`, `resumo_pedidos()`
-- `shared/moderation.js` — termos bloqueados (compra e webhook)
-- `loja/src/data/star.js` / `defaults.js` — dados da estrela e texto padrão da página
-- `netlify/edge-functions/pagina-og.ts` — prévia social de `/p/CODE`
+- `loja/src/pages/` — home, produto, catálogo, estrela, políticas, obrigado, rastreio
+- `loja/src/pagina/` — página dedicada, do grupo, cartão com QR, edição do cliente
+- `loja/src/admin/` — o painel
+- `shared/` — preço (`preco.js`), moderação, certificado (`certificado/`), céu e marca
+- `supabase/functions/` — checkout, webhook, páginas, grupo, depoimento, painel
+- `supabase/migrations/` — o banco (0001–0022)
+- `netlify/edge-functions/` — prévia social, sitemap e robots
