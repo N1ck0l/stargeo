@@ -44,6 +44,15 @@ function dataDeHoje() {
  * Greenwich cairia no dia ANTERIOR — a pessoa escolheria 25 de dezembro e o
  * papel sairia com 24.
  */
+/** `AAAA-MM-DD` no calendário local, `dias` a partir de hoje. */
+function diaLocal(dias) {
+  const d = new Date()
+  d.setDate(d.getDate() + dias)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+const amanha = () => diaLocal(1)
+const daquiAUmAno = () => diaLocal(365)
+
 function dataEmPortugues(iso) {
   if (!iso) return undefined
   const d = new Date(`${iso}T00:00:00Z`)
@@ -121,6 +130,9 @@ export default function Produto({ slug }) {
   const [assinatura, setAssinatura] = useState('')
   // Nome dado à estrela nesta homenagem (opcional, simbólico).
   const [apelido, setApelido] = useState('')
+  // Revelar a página numa data (opcional): até lá, o link mostra a contagem.
+  const [guardar, setGuardar] = useState(false)
+  const [revelarEm, setRevelarEm] = useState('')
   const [mensagem, setMensagem] = useState('')
   const [data, setData] = useState(dataDeHoje())
   const [versaoClara, setVersaoClara] = useState(false)
@@ -198,6 +210,10 @@ export default function Produto({ slug }) {
       setErro('Esta estrela já tem dono. Escolha outra no catálogo acima — são milhares livres.')
       return
     }
+    if (guardar && !revelarEm) {
+      setErro('Escolha o dia em que a página se revela — ou desmarque "Guardar a surpresa até uma data".')
+      return
+    }
     if (!validacao.ok) {
       setTocou({ honoreeName: true, starNickname: true, fromName: true, message: true, customerName: true, customerEmail: true })
       setErro(explicarErros(validacao.erros))
@@ -216,6 +232,7 @@ export default function Produto({ slug }) {
         honoreeName: paraQuem,
         fromName: assinatura || undefined,
         starNickname: apelido.trim() || undefined,
+        revealOn: guardar && revelarEm ? revelarEm : undefined,
         message: mensagem || undefined,
         dedicationDate: data || undefined,
         customerEmail: email,
@@ -266,6 +283,8 @@ export default function Produto({ slug }) {
           <span className="mx-2">/</span>
           <span className="text-ivory/80">{produto.nome}</span>
         </nav>
+
+        <h1 className="mb-8 font-display text-3xl text-ivory sm:text-4xl">Monte o seu certificado</h1>
 
         {/*
           Prévia em A4 RETRATO: a coluna dela tem o teto da própria folha
@@ -326,6 +345,9 @@ export default function Produto({ slug }) {
                     {` · ${comoSeVe(estrela.magnitude)}`}
                   </p>
                   <p className="mt-3 text-sm leading-relaxed text-ivory/70">{estrela.story}</p>
+                  <Link para={`/estrelas/${estrela.slug}`} className="mt-2 inline-block text-xs text-gold/80 hover:underline">
+                    Conhecer {estrela.name}
+                  </Link>
                   {indisponivel ? (
                     <p
                       role="alert"
@@ -410,6 +432,38 @@ export default function Produto({ slug }) {
                   maxLength={60}
                 />
               </div>
+
+              {/* Surpresa na data: o PDF chega na hora para quem compra; o
+                  link da página, que vai para quem recebe, só se abre no dia. */}
+              <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                <label className="flex cursor-pointer items-start gap-2.5 text-sm text-ivory/85">
+                  <input
+                    type="checkbox"
+                    checked={guardar}
+                    onChange={(e) => setGuardar(e.target.checked)}
+                    className="mt-1 accent-[#d8b66a]"
+                  />
+                  <span>
+                    Guardar a surpresa até uma data
+                    <span className="mt-0.5 block text-xs text-ivory/50">
+                      Você recebe o certificado na hora. A página da estrela mostra só uma contagem regressiva
+                      até o dia — dá para mandar o link antes, sem estragar a surpresa.
+                    </span>
+                  </span>
+                </label>
+                {guardar && (
+                  <div className="mt-3 max-w-[14rem]">
+                    <Campo
+                      rotulo="Revelar em"
+                      type="date"
+                      value={revelarEm}
+                      onChange={setRevelarEm}
+                      min={amanha()}
+                      max={daquiAUmAno()}
+                    />
+                  </div>
+                )}
+              </div>
             </Secao>
 
             <Secao numero="4" titulo="Seus dados">
@@ -458,6 +512,7 @@ export default function Produto({ slug }) {
                   ['Estrela', `${estrela.name} · ${estrela.constellation}`],
                   ['Dedicada a', paraQuem.trim() || '—'],
                   ...(apelido.trim() ? [['Nome da homenagem', `“${apelido.trim()}”`]] : []),
+                  ...(guardar && revelarEm ? [['Página revelada em', dataEmPortugues(revelarEm)]] : []),
                   ['Formato', 'Certificado digital em PDF A4 (versões escura e clara) + página da estrela'],
                   ['Entrega', 'Logo após a confirmação do pagamento, na página da estrela e no seu e-mail'],
                 ].map(([rotulo, valor]) => (

@@ -40,7 +40,8 @@ import {
   type ConteudoPagina,
   type LinhaPagina,
 } from '../_shared/pagina.ts'
-import { limpar, validarTextoLivre } from '../../../shared/moderation.js'
+import { explicarErros, limpar, validarPedido, validarTextoLivre } from '../../../shared/moderation.js'
+import { enviarEmail, gerarEGuardar } from '../_shared/certificado.ts'
 
 const RE_CODIGO = /^SG-[A-Z0-9]{4}-[A-Z0-9]{4}$/
 const RE_DATA = /^\d{4}-\d{2}-\d{2}$/
@@ -52,7 +53,8 @@ const RE_DATA = /^\d{4}-\d{2}-\d{2}$/
 const ALFABETO = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 
 const CAMPOS_PEDIDO = [
-  'id', 'code', 'status', 'product_name', 'star_slug', 'honoree_name',
+  'id', 'code', 'status', 'product_name', 'star_slug', 'honoree_name', 'star_nickname',
+  'from_name', 'message',
   'customer_email', 'customer_name', 'amount_cents', 'dedication_date',
   'created_at', 'delivered_at', 'email_error',
 ].join(',')
@@ -81,6 +83,9 @@ Deno.serve(
 
       case 'reenviarEmail':
         return json(request, await reenviarEmail(corpo))
+
+      case 'corrigirPedido':
+        return json(request, await corrigirPedido(db, corpo))
 
       case 'estrelas':
         return json(request, await listarEstrelas(db, corpo))
@@ -322,6 +327,13 @@ async function listarPedidos(db: ReturnType<typeof admin>, corpo: Record<string,
       status: linha.status,
       produto: linha.product_name,
       paraQuem: linha.honoree_name,
+      // Textos impressos, para o formulário "Corrigir texto" do painel.
+      textos: {
+        honoree_name: linha.honoree_name ?? '',
+        star_nickname: linha.star_nickname ?? '',
+        from_name: linha.from_name ?? '',
+        message: linha.message ?? '',
+      },
       comprador: linha.customer_name,
       email: linha.customer_email,
       valorCentavos: linha.amount_cents,
@@ -372,6 +384,90 @@ async function reenviarEmail(corpo: Record<string, unknown>) {
   }
 
   return corpoResposta ?? { reenviado: true }
+}
+
+/**
+ * Corrige o texto impresso de um pedido PAGO — nome de quem recebe, nome dado
+ * à estrela, assinatura, mensagem — e refaz o certificado.
+ *
+ * É a promessa da política ("errou o nome? fale com a gente, sem custo"):
+ * antes, corrigir no painel mudava só a página, e o PDF entregue continuava
+ * com o erro. Aqui o pedido é atualizado, a página acompanha, os DOIS PDFs
+ * são regerados no mesmo lugar do Storage (os links antigos passam a abrir o
+ * arquivo novo) e, com `reenviar`, o e-mail sai de novo.
+ *
+ * Mesma moderação do checkout: corrigir não é porta para texto que a compra
+ * não aceitaria. Falha no e-mail não desfaz a correção — fica registrada no
+ * pedido, como na entrega.
+ */
+async function corrigirPedido(db: ReturnType<typeof admin>, corpo: Record<string, unknown>) {
+  const orderId = String(corpo.orderId ?? '')
+  if (!/^[0-9a-f-]{36}$/i.test(orderId)) throw new ErroApp('pedido_ausente', 'Informe o pedido.', 422)
+
+  const { data: pedido, error } = await db.from('orders').select('*').eq('id', orderId).maybeSingle()
+  if (error) throw new ErroApp('consulta_falhou', 'Não foi possível ler o pedido.', 500, error.message)
+  if (!pedido) throw new ErroApp('pedido_inexistente', 'Pedido não encontrado.', 404)
+  if (pedido.status !== 'approved') {
+    throw new ErroApp('pedido_nao_pago', 'Só pedido pago tem certificado para corrigir.', 409)
+  }
+
+  // Só o que veio no corpo muda; o resto fica como está.
+  const texto = (campo: string, atual: unknown) =>
+    corpo[campo] === undefined ? (atual == null ? '' : String(atual)) : limpar(String(corpo[campo] ?? ''))
+  const novo = {
+    honoree_name: texto('honoree_name', pedido.honoree_name),
+    star_nickname: texto('star_nickname', pedido.star_nickname),
+    from_name: texto('from_name', pedido.from_name),
+    message: texto('message', pedido.message),
+  }
+
+  const checagem = validarPedido({
+    honoreeName: novo.honoree_name,
+    starNickname: novo.star_nickname,
+    fromName: novo.from_name,
+    message: novo.message,
+    customerName: pedido.customer_name,
+    customerEmail: pedido.customer_email,
+  })
+  if (!checagem.ok) throw new ErroApp('texto_nao_permitido', explicarErros(checagem.erros), 422)
+
+  const colunas = {
+    honoree_name: novo.honoree_name,
+    star_nickname: novo.star_nickname || null,
+    from_name: novo.from_name || null,
+    message: novo.message || null,
+  }
+  await db.from('orders').update(colunas).eq('id', orderId).throwOnError()
+
+  // A página do presente acompanha o que é dado da compra. A carta e a
+  // mensagem pessoal da página são da pessoa (edição) — não são tocadas.
+  await db
+    .from('pages')
+    .update({ honoree_name: colunas.honoree_name, star_nickname: colunas.star_nickname, from_name: colunas.from_name })
+    .eq('order_id', orderId)
+    .throwOnError()
+
+  const { data: estrela } = await db.from('stars').select('*').eq('slug', pedido.star_slug).maybeSingle()
+  if (!estrela) throw new ErroApp('estrela_inexistente', 'A estrela do pedido não está no catálogo.', 409)
+
+  const corrigido = { ...pedido, ...colunas }
+  let caminho = ''
+  for (const luz of [false, true]) {
+    caminho = (await gerarEGuardar(db, corrigido, estrela as Record<string, unknown>, luz)).caminho
+  }
+  await db.from('orders').update({ certificate_path: caminho, certificate_url: caminho }).eq('id', orderId).throwOnError()
+
+  if (corpo.reenviar !== true) return { corrigido: true, reenviado: false }
+
+  try {
+    await enviarEmail(db, corrigido, estrela as Record<string, unknown>, caminho)
+  } catch (erro) {
+    const motivo = erro instanceof Error ? erro.message : 'Falha desconhecida'
+    await db.from('orders').update({ email_error: motivo }).eq('id', orderId)
+    return { corrigido: true, reenviado: false, motivo }
+  }
+  await db.from('orders').update({ delivered_at: new Date().toISOString(), email_error: null }).eq('id', orderId)
+  return { corrigido: true, reenviado: true, para: pedido.customer_email }
 }
 
 // ---------------------------------------------------------------------------

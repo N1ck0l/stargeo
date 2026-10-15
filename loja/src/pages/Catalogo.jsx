@@ -2,6 +2,7 @@ import { ExploradorDeEstrelas } from '../components/ExploradorDeEstrelas.jsx'
 import { Reveal } from '../components/Reveal.jsx'
 import { TabelaDeFaixas } from '../components/TabelaDeFaixas.jsx'
 import { navegar } from '../lib/rota.js'
+import { useMetaPagina } from '../lib/meta.js'
 
 /**
  * O catálogo — `/estrelas`.
@@ -12,6 +13,10 @@ import { navegar } from '../lib/rota.js'
  * pergunta de quem vê preços diferentes.
  */
 export default function Catalogo() {
+  useMetaPagina({
+    titulo: 'Catálogo de estrelas · 118 mil estrelas reais | Stellara',
+    descricao: 'Busque entre as 118 mil estrelas do catálogo Hipparcos por nome, constelação ou preço. Cada estrela é exclusiva: dedicada, sai do catálogo.',
+  })
   return (
     <div className="espaco-secao">
       <div className="pilha">

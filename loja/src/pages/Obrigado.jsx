@@ -186,6 +186,15 @@ function Aprovado({ pagina }) {
       <p className="mt-6 text-sm text-ivory/50">
         O e-mail não chegou? Veja a caixa de spam e confira se o endereço é o mesmo da compra.
       </p>
+      {pagina && (
+        <p className="mx-auto mt-8 max-w-md rounded-2xl border border-gold/20 bg-gold/[0.05] px-5 py-4 text-sm leading-relaxed text-ivory/70">
+          Depois que a pessoa receber, conte para a gente como foi: na edição da página há um espaço
+          “Conte como foi”.{' '}
+          <Link para={`/p/${pagina}/editar#depoimento`} className="text-gold hover:underline">
+            Deixar um depoimento
+          </Link>
+        </p>
+      )}
     </div>
   )
 }

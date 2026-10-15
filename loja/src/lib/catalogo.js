@@ -142,7 +142,8 @@ export async function estadoDasEstrelas(slugs) {
 /** Uma estrela pelo slug, com preço e estado; `null` se não existir. */
 export async function buscarEstrela(slug) {
   if (!slug) return null
-  if (!configurado) return normalizar(getStar(slug))
+  // `getStar` cai na estrela padrão quando não acha; aqui, slug desconhecido é `null`.
+  if (!configurado) return STARS.some((s) => s.slug === slug) ? normalizar(getStar(slug)) : null
   const campos =
     'slug,name,bayer,constellation,constellation_latin,sigla,spectral_type,ra_hours,dec_degrees,magnitude,distance_ly,story,best_month,faixa,status,reserved_until,visibility,curada,faixas(price_cents)'
   const [linha] = await rest(`stars?slug=eq.${encodeURIComponent(slug)}&select=${campos}`)

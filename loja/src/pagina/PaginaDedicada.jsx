@@ -6,7 +6,8 @@ import { SkyMap } from './secoes/SkyMap.jsx'
 import { LoveLetter } from './secoes/LoveLetter.jsx'
 import { PersonalMessage } from './secoes/PersonalMessage.jsx'
 import { ErroApi } from '../lib/api.js'
-import { buscarPagina } from '../lib/pagina.js'
+import { buscarPagina, tokenGuardado } from '../lib/pagina.js'
+import { PaginaGuardada } from './PaginaGuardada.jsx'
 import { montarConteudo } from '../lib/conteudoPagina.js'
 import { Link } from '../lib/Link.jsx'
 
@@ -49,7 +50,7 @@ export function PaginaDedicada({ codigo }) {
     let vivo = true
     // O céu inteiro (estrelas até mag 5 e as 88 constelações) chega junto,
     // sob demanda: é dele que sai o mapa de qualquer estrela do catálogo.
-    Promise.all([buscarPagina(codigo), import('../../../shared/ceu.js')])
+    Promise.all([buscarPagina(codigo, tokenGuardado(codigo)), import('../../../shared/ceu.js')])
       .then(([dados, ceu]) => {
         if (vivo) setEstado({ fase: 'pronta', dados, ceu })
       })
@@ -63,7 +64,7 @@ export function PaginaDedicada({ codigo }) {
 
   const conteudo = useMemo(
     () =>
-      estado.fase === 'pronta'
+      estado.fase === 'pronta' && !estado.dados.guardada
         ? montarConteudo(estado.dados.pagina, estado.dados.estrela, estado.ceu)
         : null,
     [estado],
@@ -103,7 +104,15 @@ export function PaginaDedicada({ codigo }) {
     )
   }
 
+  // Antes da data de revelação, quem não é a dona vê só a contagem.
+  if (estado.dados.guardada) {
+    return <PaginaGuardada revelaEm={estado.dados.guardada.revelaEm} para={estado.dados.guardada.para} codigo={codigo} />
+  }
+
   const abrirCertificado = () => setCertificado(true)
+  const revelaEm = estado.dados.pagina?.revelaEm
+  // Sessão de edição neste navegador = a dona está olhando.
+  const dona = Boolean(tokenGuardado(codigo))
 
   return (
     /*
@@ -113,6 +122,16 @@ export function PaginaDedicada({ codigo }) {
      * a escrita acontece na rota `/editar`, com token.
      */
     <ContentContext.Provider value={{ content: conteudo, setContent: () => {}, editable: false }}>
+      {revelaEm && (
+        <p
+          role="status"
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-gold/30 bg-night/95 px-4 py-2.5 text-center text-xs text-ivory/80 backdrop-blur"
+        >
+          Prévia só para você: quem abrir o link antes de{' '}
+          {new Date(`${revelaEm}T12:00:00Z`).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', timeZone: 'UTC' })} vê a
+          contagem regressiva.
+        </p>
+      )}
       <Hero onOpenCertificate={abrirCertificado} onOpenFinder={() => setMira(true)} />
       <StarDetails onOpenCertificate={abrirCertificado} />
       <SkyMap onOpenCertificate={abrirCertificado} />
@@ -122,12 +141,24 @@ export function PaginaDedicada({ codigo }) {
       {/* Porta de entrada do cliente: daqui ele vai para o login de edição
           (código + e-mail). Discreto — quem só lê a carta passa reto. */}
       <div className="mx-auto max-w-3xl px-5 pb-14 text-center">
-        <Link
-          para={`/p/${codigo}/editar`}
-          className="text-xs text-ivory/40 transition hover:text-gold"
-        >
-          Esta página é sua? Entre para editar o texto.
-        </Link>
+        {dona ? (
+          <p className="text-xs text-ivory/55">
+            <Link para={`/p/${codigo}/editar`} className="transition hover:text-gold">
+              Editar a página
+            </Link>
+            <span className="mx-2 text-ivory/25">·</span>
+            <Link para={`/p/${codigo}/editar#depoimento`} className="text-gold/80 transition hover:text-gold">
+              Conte como foi a entrega
+            </Link>
+          </p>
+        ) : (
+          <Link
+            para={`/p/${codigo}/editar`}
+            className="text-xs text-ivory/40 transition hover:text-gold"
+          >
+            Esta página é sua? Entre para editar o texto.
+          </Link>
+        )}
       </div>
 
       {/* Ambos em `Suspense`: a mira e o modal só baixam o chunk quando abrem. */}

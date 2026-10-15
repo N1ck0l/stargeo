@@ -22,6 +22,7 @@
 import { comHandler, ErroApp, json, lerJson } from '../_shared/http.ts'
 import { admin } from '../_shared/supabase.ts'
 import { lerToken, sessaoDe } from '../_shared/token.ts'
+import { validarRevelacao } from '../_shared/datas.ts'
 import {
   CAMPOS_DO_CLIENTE,
   conteudoDaLinha,
@@ -59,6 +60,14 @@ Deno.serve(
     }
 
     const colunas: Record<string, unknown> = {}
+
+    // A data da revelação (0019) não é conteúdo impresso: a dona pode
+    // adiantar, adiar ou tirar (vazio = revela já).
+    if (corpo.revelaEm !== undefined) {
+      const revelacao = validarRevelacao(corpo.revelaEm)
+      if ('erro' in revelacao) throw new ErroApp('data_invalida', revelacao.erro, 422)
+      colunas.reveal_on = revelacao.data
+    }
 
     if (parcial.assinatura !== undefined) {
       colunas.from_name = (parcial.assinatura ?? '').trim() || null
@@ -99,6 +108,7 @@ Deno.serve(
         status: data.status,
         conteudo: conteudoDaLinha(data as never),
         podeEditar: true,
+        revelaEm: (data as { reveal_on?: string | null }).reveal_on ?? null,
       },
     })
   }, 'page-update'),

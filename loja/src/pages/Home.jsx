@@ -132,6 +132,11 @@ const FAQ = [
       'Só o necessário para fazer e entregar o certificado: seu nome, seu e-mail e o texto que você escreve. Os dados do cartão ficam com o Mercado Pago. Os detalhes estão em Políticas, no rodapé.',
   },
   {
+    pergunta: 'Posso comprar antes e entregar no dia?',
+    resposta:
+      'Pode. Marque "Guardar a surpresa até uma data" e escolha o dia. Você recebe o certificado na hora; a página da estrela mostra só uma contagem regressiva até a data — dá para mandar o link antes, num cartão ou numa mensagem, sem estragar a surpresa.',
+  },
+  {
     pergunta: 'Posso dar um nome à estrela?',
     resposta:
       'Pode. É opcional: escreva um nome como "Nossa Luz" no campo "Um nome para a estrela" e ele sai no certificado ("chamada, nesta homenagem, de…") e na página. É um nome simbólico, desta homenagem — nos catálogos dos astrônomos, a estrela continua com o nome oficial, que também aparece na folha.',
@@ -733,6 +738,9 @@ function Estrelas() {
                 Dedicá-la a alguém
               </Link>
             )}
+            <Link para={`/estrelas/${selecionada.slug}`} className="mt-3 block text-center text-xs text-gold/80 hover:underline">
+              Conhecer a história de {selecionada.name}
+            </Link>
           </Reveal>
         </div>
       </div>

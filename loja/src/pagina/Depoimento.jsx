@@ -42,6 +42,13 @@ export function Depoimento({ token }) {
     }
   }, [token])
 
+  // Chegou por "Conte como foi" (`#depoimento`): rola até aqui quando aparecer.
+  useEffect(() => {
+    if (estado === 'pronto' && window.location.hash === '#depoimento') {
+      document.getElementById('depoimento')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [estado])
+
   if (estado !== 'pronto') return null
 
   async function aoEnviar(evento) {
@@ -59,7 +66,7 @@ export function Depoimento({ token }) {
   }
 
   return (
-    <form onSubmit={aoEnviar} className="cartao mt-6" aria-labelledby="depoimento-titulo">
+    <form id="depoimento" onSubmit={aoEnviar} className="cartao mt-6 scroll-mt-24" aria-labelledby="depoimento-titulo">
       <h2 id="depoimento-titulo" className="font-display text-lg text-ivory">
         Conte como foi
       </h2>

@@ -20,8 +20,11 @@
  */
 import { comHandler, ErroApp, json, lerJson } from '../_shared/http.ts'
 import { admin } from '../_shared/supabase.ts'
+import { aindaGuardada } from '../_shared/datas.ts'
+import { sessaoDe } from '../_shared/token.ts'
 import {
   conteudoDaLinha,
+  primeiroNome,
   estrelaParaPagina,
   SELECAO_PAGINA,
   type LinhaPagina,
@@ -32,7 +35,7 @@ const RE_CODIGO = /^SG-[A-Z0-9]{4}-[A-Z0-9]{4}$/
 
 Deno.serve(
   comHandler(async (request) => {
-    const { code } = (await lerJson(request)) as { code?: string }
+    const { code, token } = (await lerJson(request)) as { code?: string; token?: string }
 
     if (!code) {
       throw new ErroApp('campos_ausentes', 'Informe o código da página.')
@@ -71,6 +74,27 @@ Deno.serve(
       throw new ErroApp('nao_encontrada', 'Não encontramos nenhuma página com esse endereço.', 404)
     }
 
+    /*
+     * Revelação na data (0019): até o dia, quem abre o link vê só a contagem
+     * regressiva — nem a estrela, nem a carta. A dona da página (sessão de
+     * edição válida PARA ESTA página) vê tudo, com o aviso da data.
+     */
+    if (aindaGuardada(linha.reveal_on)) {
+      let dona = false
+      if (typeof token === 'string' && /^[a-f0-9]{64}$/.test(token)) {
+        try {
+          dona = (await sessaoDe(db, token)).pageId === linha.id
+        } catch {
+          dona = false
+        }
+      }
+      if (!dona) {
+        return json(request, {
+          guardada: { revelaEm: linha.reveal_on, para: primeiroNome(linha.honoree_name) },
+        })
+      }
+    }
+
     const { data: estrela, error: erroEstrela } = await db
       .from('stars')
       .select('*')
@@ -96,6 +120,8 @@ Deno.serve(
         // Só o que a página pública precisa — nunca `customer_email`.
         starSlug: linha.star_slug,
         criadoEm: linha.created_at,
+        // Só chega aqui com data futura quando quem pede é a dona.
+        revelaEm: linha.reveal_on && aindaGuardada(linha.reveal_on) ? linha.reveal_on : null,
       },
       estrela: estrelaParaPagina(estrela as Record<string, unknown>),
     })

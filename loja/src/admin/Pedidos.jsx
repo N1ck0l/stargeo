@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { chamarAdmin } from '../lib/admin.js'
 import { brl, classeStatus, dataCurta, rotuloStatus, tratarErro } from './formatos.js'
+import { CorrigirPedido } from './CorrigirPedido.jsx'
 
 const POR_PAGINA = 100
 
@@ -28,6 +29,7 @@ export function Pedidos({ aoExpirar, aoAbrirPagina }) {
 
   const [reenviando, setReenviando] = useState(null) // id do pedido em reenvio
   const [criando, setCriando] = useState(null) // id do pedido ganhando página
+  const [corrigindo, setCorrigindo] = useState(null) // id do pedido com o formulário aberto
 
   useEffect(() => {
     let vivo = true
@@ -225,7 +227,7 @@ export function Pedidos({ aoExpirar, aoAbrirPagina }) {
               // diz se a página já existe, e o status diz se vale criar uma.
               const codigoPagina = paginasPorPedido[pedido.id]
               const podeCriar = pedido.status === 'approved' && !codigoPagina
-              return (
+              return [
                 <tr key={pedido.id} className="border-b border-white/6 last:border-0">
                   <td className="px-4 py-3">
                     <p className="font-mono text-ivory">{pedido.code}</p>
@@ -273,6 +275,16 @@ export function Pedidos({ aoExpirar, aoAbrirPagina }) {
                       {pedido.status === 'approved' && (
                         <button
                           type="button"
+                          onClick={() => setCorrigindo(corrigindo === pedido.id ? null : pedido.id)}
+                          aria-expanded={corrigindo === pedido.id}
+                          className="rounded-full border border-white/15 px-3 py-1 text-xs transition hover:border-gold hover:text-gold"
+                        >
+                          Corrigir texto
+                        </button>
+                      )}
+                      {pedido.status === 'approved' && (
+                        <button
+                          type="button"
                           onClick={() => reenviar(pedido)}
                           disabled={reenviando !== null}
                           className="rounded-full border border-white/15 px-3 py-1 text-xs transition hover:border-gold hover:text-gold disabled:opacity-50"
@@ -282,8 +294,24 @@ export function Pedidos({ aoExpirar, aoAbrirPagina }) {
                       )}
                     </div>
                   </td>
-                </tr>
-              )
+                </tr>,
+                corrigindo === pedido.id && (
+                  <tr key={`${pedido.id}-corrigir`} className="border-b border-white/6">
+                    <td colSpan={7} className="px-4 pb-5">
+                      <CorrigirPedido
+                        pedido={pedido}
+                        aoExpirar={aoExpirar}
+                        aoConcluir={(texto) => {
+                          setCorrigindo(null)
+                          setAviso({ texto, tipo: 'ok' })
+                          recarregar()
+                        }}
+                        aoCancelar={() => setCorrigindo(null)}
+                      />
+                    </td>
+                  </tr>
+                ),
+              ]
             })}
             {pedidos.length === 0 && !carregando && (
               <tr>

@@ -189,6 +189,8 @@ async function montar(linha: LinhaPagina) {
       // Editor editável por este token — o front decide o que mostrar.
       podeEditar: true,
       criadoEm: linha.created_at,
+      // Dia em que a página se revela a quem recebe (0019); a dona pode mudar.
+      revelaEm: linha.reveal_on ?? null,
     },
     estrela: estrela ? estrelaParaPagina(estrela as Record<string, unknown>) : null,
   }

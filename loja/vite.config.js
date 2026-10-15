@@ -75,7 +75,7 @@ function metaSocial() {
       return [
         meta('property', 'og:url', `${site}/`),
         meta('property', 'og:image', imagem),
-        meta('property', 'og:image:alt', 'Logo da Stellara sobre o céu noturno: dedique uma estrela no céu do Brasil'),
+        meta('property', 'og:image:alt', 'Certificado de exemplo da Stellara: a estrela Vega dedicada a Helena Martins, ao lado da chamada “Dedique uma estrela a quem você ama”'),
         meta('property', 'og:image:width', '1200'),
         meta('property', 'og:image:height', '630'),
         meta('name', 'twitter:image', imagem),
@@ -123,6 +123,12 @@ export default defineConfig({
   build: {
     outDir: resolve(raiz, 'dist-loja'),
     emptyOutDir: true,
+    /*
+     * O único pedaço acima de 500 kB é o gerador de PDF (pdf-lib + fontkit,
+     * ~1,1 MB), e ele só baixa no clique de "Baixar PDF". O teto fica logo
+     * acima dele: qualquer OUTRO pedaço que cresça assim volta a avisar.
+     */
+    chunkSizeWarningLimit: 1200,
     rollupOptions: {
       /*
        * Caminho RELATIVO ao `root`. Passar o absoluto aqui não funciona: o

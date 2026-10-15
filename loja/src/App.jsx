@@ -23,16 +23,31 @@ import { useRota } from './lib/rota.js'
 import { registrar } from './lib/metricas.js'
 import { Link } from './lib/Link.jsx'
 import Home from './pages/Home.jsx'
-import Produto from './pages/Produto.jsx'
-import Rastrear from './pages/Rastrear.jsx'
-import Obrigado from './pages/Obrigado.jsx'
-import Editar from './pages/Editar.jsx'
-// Páginas que ninguém precisa na abertura: carregam quando alguém entra nelas.
+/*
+ * Só a home vai no pacote de abertura. Cada outra tela é um pedaço próprio,
+ * baixado quando alguém entra nela — quem abre a loja pelo celular não paga
+ * pelo painel, pela página dedicada nem pelo rastreio. O produto, que é o
+ * próximo passo de quase todo mundo, é pré-carregado assim que a home fica
+ * ociosa (`preCarregarProduto`), para o clique em "Dedicar" não esperar.
+ */
+const carregarProduto = () => import('./pages/Produto.jsx')
+const Produto = lazy(carregarProduto)
+const Rastrear = lazy(() => import('./pages/Rastrear.jsx'))
+const Obrigado = lazy(() => import('./pages/Obrigado.jsx'))
+const Editar = lazy(() => import('./pages/Editar.jsx'))
 const Catalogo = lazy(() => import('./pages/Catalogo.jsx'))
+const Estrela = lazy(() => import('./pages/Estrela.jsx'))
 const Politicas = lazy(() => import('./pages/Politicas.jsx'))
-import { PaginaDedicada } from './pagina/PaginaDedicada.jsx'
-import { EdicaoPagina } from './pagina/EdicaoPagina.jsx'
-import { AdminPagina } from './admin/AdminPagina.jsx'
+const PaginaDedicada = lazy(() => import('./pagina/PaginaDedicada.jsx').then((m) => ({ default: m.PaginaDedicada })))
+const EdicaoPagina = lazy(() => import('./pagina/EdicaoPagina.jsx').then((m) => ({ default: m.EdicaoPagina })))
+const AdminPagina = lazy(() => import('./admin/AdminPagina.jsx').then((m) => ({ default: m.AdminPagina })))
+
+function preCarregarProduto() {
+  const agendar = window.requestIdleCallback ?? ((fn) => setTimeout(fn, 1500))
+  agendar(() => {
+    carregarProduto().catch(() => {})
+  })
+}
 import Footer from './components/Footer.jsx'
 import { ScrollProgress } from './components/ScrollProgress.jsx'
 import { Simbolo } from './components/Simbolo.jsx'
@@ -55,6 +70,8 @@ function telaPara(caminho) {
 
   if (limpo === '/rastrear') return <Rastrear />
   if (limpo === '/estrelas') return <Catalogo />
+  // Página pública de uma estrela (busca do Google, sitemap): o slug é o do catálogo.
+  if (limpo.startsWith('/estrelas/')) return <Estrela key={limpo} slug={limpo.slice('/estrelas/'.length).toLowerCase()} />
   if (limpo === '/politicas') return <Politicas />
   if (limpo === '/obrigado') return <Obrigado />
   // Acesso do cliente à própria página: só resolve o código e passa para
@@ -90,7 +107,10 @@ export default function App() {
   // página dedicada e o painel não são funil de compra: ficam de fora.
   useEffect(() => {
     const p = window.location.pathname
-    if (!p.startsWith('/p/') && !p.startsWith('/admin')) registrar('visita')
+    if (!p.startsWith('/p/') && !p.startsWith('/admin')) {
+      registrar('visita')
+      preCarregarProduto()
+    }
   }, [])
 
   return (

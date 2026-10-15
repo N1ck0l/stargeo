@@ -9,10 +9,11 @@ import { useEffect, useState } from 'react'
  * Quem importa: `loja/src/App.jsx` (junto com o `Starfield`). Export:
  * `ScrollProgress`.
  *
- * Invariantes: a barra é decorativa para leitor de tela, mas declarada como
- * `progressbar` com valor entre 0 e 100 — o `aria-valuenow` acompanha o
- * desenho; e a escala é refeita quando a altura da página muda (fonte ou
- * imagem que carrega depois), senão o percentual mente.
+ * Invariantes: a barra é só visual (`aria-hidden`). Antes ela era um
+ * `progressbar` cujo valor mudava a cada rolagem — ruído para quem usa leitor
+ * de tela, que já informa a posição na página, e um elemento solto fora das
+ * regiões (a auditoria axe apontava). A escala é refeita quando a altura da
+ * página muda (fonte ou imagem que carrega depois), senão o percentual mente.
  */
 export function ScrollProgress() {
   const [progress, setProgress] = useState(0)
@@ -59,11 +60,7 @@ export function ScrollProgress() {
     <div
       className="fixed inset-x-0 top-0 z-50 h-[3px] origin-left bg-gradient-to-r from-gold via-gold-soft to-gold transition-transform duration-150 ease-out"
       style={{ transform: `scaleX(${progress})` }}
-      role="progressbar"
-      aria-label="Progresso da leitura"
-      aria-valuenow={Math.round(progress * 100)}
-      aria-valuemin={0}
-      aria-valuemax={100}
+      aria-hidden="true"
     />
   )
 }

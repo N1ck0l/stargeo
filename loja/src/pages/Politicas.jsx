@@ -1,4 +1,5 @@
 import { Link } from '../lib/Link.jsx'
+import { useMetaPagina } from '../lib/meta.js'
 
 /**
  * Políticas — `/politicas`.
@@ -27,6 +28,7 @@ const SECOES = [
     paragrafos: [
       'O certificado é digital: um PDF em A4, nas versões escura e clara (para imprimir), e uma página da estrela com endereço próprio. Não enviamos certificado impresso, moldura nem embalagem física.',
       'A entrega é automática, logo depois que o Mercado Pago confirma o pagamento — com Pix costuma ser na hora; com cartão, em poucos minutos. A página da estrela fica disponível no endereço que aparece depois da compra e no rastreamento do pedido, onde também dá para baixar o PDF. O link vai para o e-mail informado na compra.',
+      'Se você escolher "Guardar a surpresa até uma data", o certificado chega para você na hora, mas a página da estrela mostra só uma contagem regressiva até o dia escolhido (meia-noite de Brasília). Você pode mudar ou tirar a data na edição da página.',
       'Se algo atrasar, o rastreamento mostra o estado do pedido, e você pode falar com a gente pelo e-mail abaixo informando o código do pedido.',
     ],
   },
@@ -70,6 +72,10 @@ const SECOES = [
 ]
 
 export default function Politicas() {
+  useMetaPagina({
+    titulo: 'Políticas · entrega, reembolso e privacidade | Stellara',
+    descricao: 'Como a Stellara entrega o certificado, como funcionam o pagamento, o arrependimento de 7 dias, a privacidade (LGPD) e de onde vêm os dados astronômicos.',
+  })
   return (
     <div className="espaco-secao">
       <div className="pilha max-w-3xl">

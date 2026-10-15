@@ -22,10 +22,12 @@ supabase/
 │                    limite de requisições e resumo do painel); catálogo
 │                    completo, faixas e busca (0010–0015); nome dado à
 │                    estrela (0016); contadores anônimos do funil (0017);
-│                    depoimentos com aprovação (0018)
+│                    depoimentos com aprovação (0018); revelação da
+│                    página numa data (0019)
 └── functions/       create-checkout, mp-webhook, track-order,
 │                    resend-certificate, get-page, page-auth, page-update,
-│                    admin-api, testimonial (depoimento do comprador)
+│                    admin-api, testimonial (depoimento do comprador),
+│                    star-public (dados públicos do catálogo para a Netlify)
 
 loja/                app da loja (Vite + React)
 └── src/             home, produto, rastreio, obrigado, prévia do certificado,
@@ -163,6 +165,7 @@ supabase functions deploy page-auth --no-verify-jwt
 supabase functions deploy page-update --no-verify-jwt
 supabase functions deploy admin-api --no-verify-jwt
 supabase functions deploy testimonial --no-verify-jwt
+supabase functions deploy star-public --no-verify-jwt
 
 supabase secrets set \
   MERCADO_PAGO_ACCESS_TOKEN=... \

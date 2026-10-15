@@ -28,6 +28,9 @@ import { join, resolve } from 'node:path'
 import {
   caixaSimbolo, contornoEstrela, COR, naOrbita, ORBITA, PONTO, simbolo,
 } from '../shared/marca.js'
+import { desenharCertificado } from '../shared/certificado/desenho.js'
+import { itensEmSvg } from '../shared/certificado/svg.js'
+import { formatDec, formatRa, getStar } from '../shared/stars.js'
 
 const raiz = resolve(import.meta.dirname, '..')
 const saida = join(raiz, 'marca')
@@ -250,7 +253,12 @@ writeFileSync(join(publico, 'icon-512.png'), png(icone(0.78, 112), 512))
 writeFileSync(join(publico, 'apple-touch-icon.png'), png(icone(0.72, 0), 180))
 writeFileSync(join(publico, 'icon-maskable-512.png'), png(icone(0.56, 0), 512))
 
-/** Prévia social 1200×630: céu, moldura dupla, símbolo, nome e chamada. */
+/**
+ * Prévia social 1200×630 (WhatsApp, Instagram, Facebook): a chamada à
+ * esquerda e, à direita, a FOLHA DE EXEMPLO da home desenhada pelo gerador
+ * de verdade (`shared/certificado/desenho.js` → `svg.js`). Quem recebe o link
+ * vê o objeto que vai comprar, não só o nome da loja.
+ */
 function ogImage() {
   const L = 1200
   const A = 630
@@ -269,26 +277,98 @@ function ogImage() {
     ceu += `<circle cx="${n(sorteio() * L)}" cy="${n(sorteio() * A)}" r="${n(r)}" fill="${COR.marfim}" opacity="${n(0.15 + sorteio() * 0.55)}"/>`
   }
 
+  // --- Coluna da esquerda: marca, chamada e o que se recebe ---------------
+  const centro = 345
+  const larguraMax = 520
+  const caber = (fonte, texto, altura, espaco) => {
+    let t = textoEmCurvas(fonte, texto, altura, espaco)
+    while (t.caixa.largura > larguraMax) {
+      altura -= 1
+      t = textoEmCurvas(fonte, texto, altura, espaco)
+    }
+    return t
+  }
+  const linha = (t, y, cor, opacidade = 1) =>
+    `<path d="${t.d}" fill="${cor}" fill-opacity="${opacidade}" transform="translate(${n(centro - t.caixa.largura / 2 - t.caixa.minX)} ${y})"/>`
+
   const c = caixaSimbolo()
-  const escala = 150 / c.altura
-  const nome = textoEmCurvas(playfair, NOME, 74, 0.17)
-  const chamada = textoEmCurvas(montserrat, 'DEDIQUE UMA ESTRELA NO CÉU DO BRASIL', 17, 0.34)
+  const escala = 78 / c.altura
   const ySimbolo = 92
-  const yNome = ySimbolo + 150 + 62 + 74
-  const yFio = yNome + 40
-  const yChamada = yFio + 38 + 17
+  const nome = textoEmCurvas(playfair, NOME, 26, 0.3)
+  const t1 = caber(playfair, 'Dedique uma estrela', 44, 0.01)
+  const t2 = caber(playfair, 'a quem você ama', 44, 0.01)
+  const s1 = caber(montserrat, 'CERTIFICADO COM A ESTRELA REAL', 13, 0.22)
+  const s2 = caber(montserrat, 'E A PÁGINA DELA, PRONTOS EM MINUTOS', 13, 0.22)
+
+  const esquerda =
+    `<g transform="translate(${n(centro - (c.minX + c.largura / 2) * escala)} ${n(ySimbolo - c.minY * escala)}) scale(${n(escala * 1000) / 1000})">${simbolo('og', null)}</g>` +
+    linha(nome, 222, COR.dourado) +
+    `<path d="M${centro - 70} 252H${centro + 70}" stroke="${COR.dourado}" stroke-opacity="0.5" stroke-width="1"/>` +
+    linha(t1, 330, COR.marfim) +
+    linha(t2, 392, COR.marfim) +
+    linha(s1, 466, COR.dourado, 0.9) +
+    linha(s2, 492, COR.dourado, 0.9)
+
+  // --- A folha de exemplo (a mesma do herói da home) -----------------------
+  const vega = getStar('vega')
+  const folha = desenharCertificado({
+    honoreeName: 'Helena Martins',
+    starNickname: 'Nossa Luz',
+    starName: vega.name,
+    slug: vega.slug,
+    sigla: vega.sigla,
+    ra: vega.ra,
+    dec: vega.dec,
+    bayer: vega.bayer,
+    constellation: vega.constellation,
+    constellationLatin: vega.constellationLatin,
+    spectralType: vega.spectralType,
+    raFormatted: formatRa(vega.ra),
+    decFormatted: formatDec(vega.dec),
+    magnitude: vega.magnitude,
+    distanceLy: vega.distanceLy,
+    code: 'SG-EXEM-PL0S',
+    dedicationDate: '12 de junho de 2026',
+    fromName: 'Com amor, Rafael',
+    message: 'Para lembrar que, mesmo longe, a gente olha para o mesmo céu.',
+  })
+  const alturaFolha = 492
+  const escalaFolha = alturaFolha / 297
+  const larguraFolha = 210 * escalaFolha
+  const xFolha = 1200 - 104 - larguraFolha
+  const yFolha = (A - alturaFolha) / 2
+  const cx = n(xFolha + larguraFolha / 2)
+  const cy = n(yFolha + alturaFolha / 2)
+
+  const direita =
+    `<defs><filter id="sombra" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="16"/></filter></defs>` +
+    `<g transform="rotate(3 ${cx} ${cy})">` +
+    `<rect x="${n(xFolha + 6)}" y="${n(yFolha + 14)}" width="${n(larguraFolha)}" height="${alturaFolha}" fill="#000" fill-opacity="0.65" filter="url(#sombra)"/>` +
+    `<g transform="translate(${n(xFolha)} ${n(yFolha)}) scale(${n(escalaFolha * 1000) / 1000})">${itensEmSvg(folha, 'og')}</g>` +
+    `<rect x="${n(xFolha)}" y="${n(yFolha)}" width="${n(larguraFolha)}" height="${alturaFolha}" fill="none" stroke="${COR.dourado}" stroke-opacity="0.35" stroke-width="1"/>` +
+    `</g>`
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${L} ${A}">` +
     `<rect width="${L}" height="${A}" fill="${COR.noite}"/>${ceu}` +
     `<rect x="34" y="34" width="${L - 68}" height="${A - 68}" rx="18" fill="none" stroke="${COR.dourado}" stroke-opacity="0.55" stroke-width="2"/>` +
-    `<rect x="46" y="46" width="${L - 92}" height="${A - 92}" rx="12" fill="none" stroke="${COR.marfim}" stroke-opacity="0.12" stroke-width="1"/>` +
-    `<g transform="translate(${n(L / 2 - (c.minX + c.largura / 2) * escala)} ${n(ySimbolo - c.minY * escala)}) scale(${n(escala * 1000) / 1000})">${simbolo('og', null)}</g>` +
-    `<path d="${nome.d}" fill="${COR.dourado}" transform="translate(${n(L / 2 - nome.caixa.largura / 2 - nome.caixa.minX)} ${yNome})"/>` +
-    `<path d="M${L / 2 - 150} ${yFio}H${L / 2 + 150}" stroke="${COR.dourado}" stroke-opacity="0.5" stroke-width="1"/>` +
-    `<path d="${chamada.d}" fill="${COR.marfim}" fill-opacity="0.85" transform="translate(${n(L / 2 - chamada.caixa.largura / 2 - chamada.caixa.minX)} ${yChamada})"/>` +
+    esquerda + direita +
     `</svg>`
 }
-writeFileSync(join(publico, 'og-image.png'), png(ogImage(), 1200))
+
+/** As fontes estáticas do PDF: a folha da prévia social tem texto de verdade. */
+const FONTES_DA_FOLHA = [
+  'montserrat-400.ttf', 'montserrat-400i.ttf', 'montserrat-500.ttf',
+  'playfair-400.ttf', 'playfair-italic-400.ttf', 'eb-garamond-italic-grego.ttf',
+].map((f) => join(raiz, 'loja/public/fonts/pdf', f))
+
+writeFileSync(
+  join(publico, 'og-image.png'),
+  new Resvg(ogImage(), {
+    fitTo: { mode: 'width', value: 1200 },
+    font: { fontFiles: FONTES_DA_FOLHA, loadSystemFonts: false, defaultFontFamily: 'Montserrat' },
+  }).render().asPng(),
+)
+
 
 // Logo para e-mail: PNG (cliente de e-mail não mostra SVG), horizontal,
 // dourada sobre transparente, no dobro do tamanho em que aparece (240 px).

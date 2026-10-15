@@ -47,6 +47,8 @@ export function EdicaoPagina({ codigo }) {
   const [assinatura, setAssinatura] = useState('')
   const [carta, setCarta] = useState('')
   const [mensagem, setMensagem] = useState('')
+  // Dia em que a página se revela a quem recebe (`''` = já revelada).
+  const [revelaEm, setRevelaEm] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [salvoEm, setSalvoEm] = useState(null)
 
@@ -93,6 +95,7 @@ export function EdicaoPagina({ codigo }) {
     setAssinatura(conteudo.assinatura ?? '')
     setCarta((conteudo.carta ?? []).join('\n\n'))
     setMensagem(conteudo.mensagemPessoal ?? '')
+    setRevelaEm(dados.pagina.revelaEm ?? '')
     setSalvoEm(null)
     setErro('')
   }
@@ -140,11 +143,11 @@ export function EdicaoPagina({ codigo }) {
 
     setSalvando(true)
     try {
-      const dados = await salvarEdicao(sessao.token, {
-        assinatura,
-        carta,
-        mensagemPessoal: mensagem,
-      })
+      const dados = await salvarEdicao(
+        sessao.token,
+        { assinatura, carta, mensagemPessoal: mensagem },
+        revelaEm,
+      )
       montarEditor(dados)
       setSalvoEm(Date.now())
     } catch (e) {
@@ -377,6 +380,31 @@ export function EdicaoPagina({ codigo }) {
             </div>
           </div>
 
+          <div className="mt-6 border-t border-white/10 pt-5">
+            <label htmlFor="revelar-edicao" className="rotulo">
+              Revelar a página em (opcional)
+            </label>
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                id="revelar-edicao"
+                type="date"
+                className="campo max-w-[12rem]"
+                value={revelaEm}
+                min={amanha()}
+                onChange={(e) => setRevelaEm(e.target.value)}
+              />
+              {revelaEm && (
+                <button type="button" onClick={() => setRevelaEm('')} className="text-xs text-ivory/55 hover:text-gold">
+                  Revelar já
+                </button>
+              )}
+            </div>
+            <p className="mt-1.5 text-xs text-ivory/45">
+              Até essa data, quem abrir o link vê só uma contagem regressiva. Você continua vendo tudo
+              neste navegador.
+            </p>
+          </div>
+
           {erro && (
             <p
               role="alert"
@@ -493,4 +521,11 @@ function limparSessao(codigo) {
   } catch {
     // ver acima
   }
+}
+
+/** Amanhã, no calendário local, `AAAA-MM-DD` — o primeiro dia que dá para guardar. */
+function amanha() {
+  const d = new Date()
+  d.setDate(d.getDate() + 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }

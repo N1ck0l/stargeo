@@ -288,6 +288,10 @@ export async function enviarEmail(
       A página fica no ar em <a href="${urlPagina}" style="color:${EMAIL.douradoSuave}">${escapeHtml(urlPagina.replace(/^https?:\/\//, ''))}</a> —
       é o link para mandar a quem vai receber. Com o código <strong style="color:${EMAIL.marfim}">${escapeHtml(codigo)}</strong>
       e o seu e-mail, você também pode editar o texto dela quando quiser.
+    </p>
+    <p style="margin:14px 0 0;font-size:13px;line-height:1.7;color:${EMAIL.apagado};text-align:center">
+      Depois que a pessoa receber, <a href="${urlPagina}/editar#depoimento" style="color:${EMAIL.douradoSuave}">conte para a gente como foi</a> —
+      com a sua autorização, o depoimento pode aparecer no site.
     </p>` : ''}`
 
   const rodape = `

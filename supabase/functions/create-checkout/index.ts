@@ -29,6 +29,7 @@ import { admin } from '../_shared/supabase.ts'
 import { limitarPorIp } from '../_shared/limite.ts'
 import { criarPreferencia } from '../_shared/mercadoPago.ts'
 import { explicarErros, limpar, validarPedido } from '../../../shared/moderation.js'
+import { validarRevelacao } from '../_shared/datas.ts'
 
 interface Entrada {
   productSlug?: string
@@ -37,6 +38,7 @@ interface Entrada {
   dedicationDate?: string | null
   fromName?: string
   starNickname?: string
+  revealOn?: string
   message?: string
   customerEmail?: string
   customerName?: string
@@ -76,6 +78,10 @@ Deno.serve(
       console.warn(`[checkout ${id}] texto bloqueado:`, pedidoTexto.erros)
       throw new ErroApp('texto_nao_permitido', explicarErros(pedidoTexto.erros), 422)
     }
+
+    // Revelação da página numa data (0019): opcional, até um ano.
+    const revelacao = validarRevelacao(corpo.revealOn)
+    if ('erro' in revelacao) throw new ErroApp('data_invalida', revelacao.erro, 422)
 
     // --- 3. Produto e preço, lidos do banco ----------------------------
     const { data: produto, error: erroProduto } = await db
@@ -143,6 +149,7 @@ Deno.serve(
       star_nickname: corpo.starNickname ? limpar(corpo.starNickname) || null : null,
       message: corpo.message ? limpar(corpo.message) : null,
       dedication_date: normalizarData(corpo.dedicationDate),
+      reveal_on: revelacao.data,
     }
 
     const { data: pedido, error: erroPedido } = await db

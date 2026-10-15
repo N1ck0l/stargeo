@@ -79,6 +79,7 @@ export interface LinhaPagina {
   from_name: string | null
   star_nickname: string | null
   dedication_date: string | null
+  reveal_on: string | null
   titulo_hero: string
   frase_hero: string
   titulo_estrela: string
@@ -202,7 +203,7 @@ export function validarConteudo(conteudo: Partial<ConteudoPagina>): Array<{ camp
  */
 export const SELECAO_PAGINA = [
   'id', 'code', 'certificate_id', 'status', 'order_id', 'customer_email', 'star_slug',
-  'honoree_name', 'from_name', 'star_nickname', 'dedication_date',
+  'honoree_name', 'from_name', 'star_nickname', 'dedication_date', 'reveal_on',
   'titulo_hero', 'frase_hero', 'titulo_estrela', 'descricao_estrela',
   'titulo_carta', 'carta', 'mensagem_pessoal', 'mostrar_mensagem',
   'mostrar_mira', 'created_at',
@@ -339,6 +340,7 @@ export async function criarPaginaDoPedido(
       honoree_name: conteudo.nome,
       from_name: conteudo.assinatura || null,
       dedication_date: (pedido.dedication_date as string | null) ?? null,
+      reveal_on: (pedido.reveal_on as string | null) ?? null,
       ...colunasDoConteudo(conteudo),
     })
     .select('id')

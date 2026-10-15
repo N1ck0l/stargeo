@@ -132,6 +132,29 @@ bloqueante antes, sem nenhuma violação.
   o site deixa claro que o certificado é digital e que a moldura da prévia é
   só ilustração.
 
+### 1.11 Rodada de 15/10 (tarde)
+
+- **Corrigir texto de um pedido**: painel → Pedidos → "Corrigir texto". Muda
+  nome, nome da estrela, assinatura ou mensagem, refaz os dois PDFs (os links
+  antigos passam a abrir o novo) e, se marcado, reenvia o e-mail — que só sai
+  de verdade depois do domínio (1.4).
+- **Surpresa na data**: no produto, "Guardar a surpresa até uma data". O PDF
+  chega na hora; a página mostra contagem regressiva até o dia (meia-noite de
+  Brasília) para quem não é a dona. A prévia do WhatsApp também não entrega a
+  estrela antes. A dona muda ou tira a data na edição.
+- **Página por estrela** (`/estrelas/antares`) + `sitemap.xml` com as ~600 de
+  nome próprio + `robots.txt`. Depois do domínio próprio, cadastre o site no
+  Google Search Console e envie `https://seudominio/sitemap.xml`.
+- **Prévia social** nova (`og-image.png`): a folha de exemplo ao lado da
+  chamada. Refeita por `npm run marca`.
+- **Primeira abertura 30% menor** (121 → 85 KB gzip): só a home vai no
+  pacote inicial; o produto é pré-carregado em segundo plano.
+- **Acessibilidade**: auditoria axe (WCAG 2.1 AA) limpa em home, produto,
+  estrela, página dedicada, edição e painel. Vale ainda um teste real com
+  leitor de tela (TalkBack/VoiceOver) no celular.
+- **Convite para depoimento**: na tela de obrigado, no rodapé da página
+  (quando a dona está logada) e no e-mail da entrega.
+
 ### 1.10 Nome da estrela, funil e depoimentos (15/10)
 
 - **Nome dado à estrela** (opcional, até 40 caracteres): sai no certificado

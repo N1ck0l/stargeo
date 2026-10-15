@@ -27,3 +27,38 @@ export function dataEmPortugues(iso: string | null | undefined): string | undefi
   if (Number.isNaN(d.getTime())) return undefined
   return `${d.getUTCDate()} de ${MESES[d.getUTCMonth()]} de ${d.getUTCFullYear()}`
 }
+
+/** Hoje no calendário de Brasília, `AAAA-MM-DD` (o servidor roda em UTC). */
+export function hojeEmBrasilia(agora: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(agora)
+}
+
+/** Teto da revelação: um ano e um dia a partir de hoje. */
+const REVELACAO_MAX_DIAS = 366
+
+/**
+ * Valida a data de revelação da página (`reveal_on`, migration 0019).
+ *
+ * @returns a data normalizada, `null` (revela na hora) ou a mensagem de erro
+ */
+export function validarRevelacao(valor: unknown, agora: Date = new Date()): { data: string | null } | { erro: string } {
+  if (valor === undefined || valor === null || valor === '') return { data: null }
+  const texto = String(valor).trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(texto) || Number.isNaN(new Date(`${texto}T00:00:00Z`).getTime())) {
+    return { erro: 'A data de revelação está inválida.' }
+  }
+  const hoje = hojeEmBrasilia(agora)
+  // Hoje ou antes: revelar "no passado" é revelar já.
+  if (texto <= hoje) return { data: null }
+  const limite = new Date(`${hoje}T00:00:00Z`)
+  limite.setUTCDate(limite.getUTCDate() + REVELACAO_MAX_DIAS)
+  if (texto > limite.toISOString().slice(0, 10)) {
+    return { erro: 'A revelação pode ser marcada para até um ano depois de hoje.' }
+  }
+  return { data: texto }
+}
+
+/** A página ainda está guardada (a data de revelação não chegou)? */
+export function aindaGuardada(revealOn: string | null | undefined, agora: Date = new Date()): boolean {
+  return Boolean(revealOn) && String(revealOn) > hojeEmBrasilia(agora)
+}

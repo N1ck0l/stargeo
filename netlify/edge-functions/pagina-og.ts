@@ -45,15 +45,22 @@ export default async function paginaOg(request: Request, contexto: Contexto): Pr
     if (!consulta.ok) return resposta
 
     const dados = await consulta.json()
-    const nome = String(dados?.pagina?.conteudo?.nome ?? '').trim()
-    const estrela = String(dados?.estrela?.commonName ?? '').trim()
-    const constelacao = String(dados?.estrela?.constellation ?? '').trim()
-    if (!nome) return resposta
+    // Página guardada até a data (0019): a prévia não entrega a surpresa.
+    const guardada = dados?.guardada
+    if (guardada?.para) {
+      titulo = `Uma surpresa nas estrelas para ${guardada.para}`
+      descricao = 'Esta estrela se revela em breve. Guarde este link.'
+    } else {
+      const nome = String(dados?.pagina?.conteudo?.nome ?? '').trim()
+      const estrela = String(dados?.estrela?.commonName ?? '').trim()
+      const constelacao = String(dados?.estrela?.constellation ?? '').trim()
+      if (!nome) return resposta
 
-    titulo = estrela ? `Uma estrela para ${nome} · ${estrela}` : `Uma estrela para ${nome}`
-    descricao = estrela && constelacao
-      ? `${estrela}, em ${constelacao}, agora tem o nome de ${nome}. Veja onde ela está no céu.`
-      : `Uma estrela no céu agora tem o nome de ${nome}. Veja onde ela está.`
+      titulo = estrela ? `Uma estrela para ${nome} · ${estrela}` : `Uma estrela para ${nome}`
+      descricao = estrela && constelacao
+        ? `${estrela}, em ${constelacao}, agora tem o nome de ${nome}. Veja onde ela está no céu.`
+        : `Uma estrela no céu agora tem o nome de ${nome}. Veja onde ela está.`
+    }
   } catch {
     return resposta
   }

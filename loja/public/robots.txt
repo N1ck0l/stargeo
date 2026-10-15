@@ -1,6 +1,10 @@
+# Reserva: em produção quem responde é a edge function `sitemap.ts`, que
+# acrescenta o endereço absoluto do sitemap.
 User-agent: *
 Allow: /
 
-# O painel de edição não é conteúdo para indexar.
 Disallow: /admin
-Disallow: /admin/
+Disallow: /p/
+Disallow: /editar
+Disallow: /rastrear
+Disallow: /obrigado

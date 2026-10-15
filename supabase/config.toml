@@ -99,3 +99,8 @@ verify_jwt = true
 # Depoimento do comprador: autenticado pelo token de edição do `page-auth`,
 # conferido dentro da função (como o `page-update`).
 verify_jwt = false
+
+[functions.star-public]
+# Dados públicos do catálogo para as edge functions da Netlify (prévia social
+# de /estrelas/<slug> e sitemap). Só o que a loja já mostra a qualquer um.
+verify_jwt = false
