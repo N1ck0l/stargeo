@@ -7,7 +7,7 @@ import { SimboloOficial } from '../components/SimboloOficial.jsx'
 import { Link } from '../lib/Link.jsx'
 import { EMAIL_ATIVO } from '../lib/config.js'
 import { buscarDepoimentos, estadoDasEstrelas, reais, useFaixas } from '../lib/catalogo.js'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { Reveal } from '../components/Reveal.jsx'
 import { useScroll, useTypewriter } from '../lib/useReveal.js'
 
@@ -81,7 +81,8 @@ const MODOS_VITRINE = [
 ]
 
 /** Hoje, por extenso — a data de exemplo da prévia. */
-const DATA_DE_HOJE = new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
+const semAssinatura = () => () => {}
+const dataDeHoje = () => new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
 
 const CONFianca = [
   { titulo: 'Pronto em minutos', texto: 'Confirmado o pagamento, a página da estrela e o PDF ficam prontos.' },
@@ -562,6 +563,9 @@ function Depoimentos() {
 function Certificado() {
   const [nome, setNome] = useState('')
   const [modo, setModo] = useState('tela')
+  // A data de hoje é de quem está vendo, não do build: na montagem sobre a
+  // home pré-renderizada ela vem vazia (igual ao HTML) e entra em seguida.
+  const hoje = useSyncExternalStore(semAssinatura, dataDeHoje, () => '')
   const faixas = useFaixas()
   const aPartirDe = Math.min(...faixas.map((f) => f.precoCentavos))
 
@@ -654,7 +658,7 @@ function Certificado() {
                 honoreeName={nome}
                 message={nome ? 'Que esta estrela te lembre, todas as noites, do quanto você é amada.' : ''}
                 fromName={nome ? 'Com amor' : ''}
-                dedicationDate={DATA_DE_HOJE}
+                dedicationDate={hoje}
                 code="SG-XXXX-XXXX"
               />
             </div>

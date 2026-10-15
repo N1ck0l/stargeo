@@ -42,7 +42,11 @@ const arvore = (
 if (raiz?.firstElementChild) {
   hydrateRoot(raiz, arvore, {
     onRecoverableError: (erro) => {
-      if (import.meta.env.DEV) console.warn('[stellara-loja] casca refeita no cliente:', erro)
+      // Contador para a verificação de qualidade: quantas partes o React
+      // precisou refazer em vez de aproveitar (o esperado é só o formulário
+      // do produto).
+      window.__partesRefeitas = (window.__partesRefeitas ?? 0) + 1
+      if (import.meta.env.DEV) console.warn('[stellara-loja] parte refeita no cliente:', erro)
     },
   })
 } else if (raiz) {

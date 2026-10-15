@@ -140,7 +140,12 @@ export const paginaPublica = comHandler(async (request) => {
         code: linha.code,
         // O conteúdo no formato do `conteudo.json` do site pessoal: os
         // componentes recebem pronto, sem camada de tradução.
-        conteudo: conteudoDaLinha(linha),
+        // Mensagem pessoal escondida (rascunho, ou apagada pela dona) não sai
+        // daqui: esconder só na tela deixaria o texto legível na resposta.
+        conteudo: (() => {
+          const c = conteudoDaLinha(linha)
+          return c.mostrarMensagem ? c : { ...c, mensagemPessoal: '' }
+        })(),
         // Só o que a página pública precisa — nunca `customer_email`.
         starSlug: linha.star_slug,
         criadoEm: linha.created_at,

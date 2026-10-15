@@ -16,7 +16,33 @@
  * ou timer. Quem pediu menos movimento recebe o conteúdo inteiro e imediato —
  * animação decorativa nunca esconde informação.
  */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+
+/*
+ * Valores que só existem no navegador (movimento reduzido, observador de
+ * rolagem), lidos com `useSyncExternalStore`: na montagem sobre o HTML
+ * pré-renderizado o React usa o valor "de servidor" — igual ao do build —, e
+ * logo em seguida o real. Sem isso, o primeiro desenho divergiria do HTML e o
+ * React refaria a página inteira em vez de aproveitá-la.
+ */
+const nada = () => () => {}
+
+function assinarMovimento(aviso) {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => {}
+  const consulta = window.matchMedia('(prefers-reduced-motion: reduce)')
+  consulta.addEventListener?.('change', aviso)
+  return () => consulta.removeEventListener?.('change', aviso)
+}
+
+/** Quem pediu menos movimento (falso no build e na montagem sobre o HTML pronto). */
+export function useMenosMovimento() {
+  return useSyncExternalStore(assinarMovimento, prefersReducedMotion, () => false)
+}
+
+/** Navegador sem IntersectionObserver (muito antigo): falso no build. */
+function useSemObservador() {
+  return useSyncExternalStore(nada, () => typeof IntersectionObserver === 'undefined', () => false)
+}
 
 /** Respeita a preferência de movimento reduzido do sistema. */
 function prefersReducedMotion() {
@@ -37,12 +63,15 @@ function prefersReducedMotion() {
 export function useReveal({ threshold = 0.15, once = true } = {}) {
   const ref = useRef(null)
   // O estado nasce resolvido, para o conteúdo já aparecer na primeira pintura.
-  const [visible, setVisible] = useState(
-    () => prefersReducedMotion() || typeof IntersectionObserver === 'undefined',
-  )
+  // Começa invisível também no build (ver `useMenosMovimento`). Quem pede
+  // menos movimento não espera: o CSS já mostra `.reveal` para essas pessoas.
+  const menosMovimento = useMenosMovimento()
+  const semObservador = useSemObservador()
+  const [visto, setVisible] = useState(false)
+  const visible = visto || menosMovimento || semObservador
 
   useEffect(() => {
-    if (prefersReducedMotion() || typeof IntersectionObserver === 'undefined') return
+    if (menosMovimento || semObservador) return
     const node = ref.current
     if (!node) return
 
@@ -62,7 +91,7 @@ export function useReveal({ threshold = 0.15, once = true } = {}) {
 
     observer.observe(node)
     return () => observer.disconnect()
-  }, [threshold, once])
+  }, [threshold, once, menosMovimento, semObservador])
 
   return [ref, visible]
 }
@@ -103,12 +132,16 @@ export function useScroll() {
  * decorativo e nunca deve esconder conteúdo de quem pediu menos movimento.
  */
 export function useTypewriter(text, { speed = 58, startDelay = 500 } = {}) {
-  const still = prefersReducedMotion()
-  const [output, setOutput] = useState(() => (still ? text : ''))
-  const [done, setDone] = useState(() => still)
+  // Com movimento reduzido, o texto inteiro — mas só depois da montagem sobre
+  // o HTML pré-renderizado, que veio vazio (ver `useMenosMovimento`).
+  const menosMovimento = useMenosMovimento()
+  const [digitado, setOutput] = useState('')
+  const [terminou, setDone] = useState(false)
+  const output = menosMovimento ? text : digitado
+  const done = menosMovimento || terminou
 
   useEffect(() => {
-    if (prefersReducedMotion()) return
+    if (menosMovimento) return
 
     /*
      * Não é preciso zerar `output` aqui: quando o texto muda, o efeito roda de
@@ -129,7 +162,7 @@ export function useTypewriter(text, { speed = 58, startDelay = 500 } = {}) {
 
     timer = setTimeout(tick, startDelay)
     return () => clearTimeout(timer)
-  }, [text, speed, startDelay])
+  }, [text, speed, startDelay, menosMovimento])
 
   return { output, done }
 }

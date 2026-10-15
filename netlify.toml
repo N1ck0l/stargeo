@@ -32,9 +32,11 @@
   to = "/produto.html"
   status = 200
 
+# As outras telas: o HTML vazio (`app.html`). O `index.html` é a HOME já
+# desenhada, e a Netlify o serve em `/` por ser arquivo.
 [[redirects]]
   from = "/*"
-  to = "/index.html"
+  to = "/app.html"
   status = 200
 
 # Cabeçalhos de segurança e cache.
