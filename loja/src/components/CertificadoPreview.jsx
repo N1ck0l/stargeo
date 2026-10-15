@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { memo, useId, useMemo } from 'react'
 import { desenharCertificado, MM_POR_PT } from '../../../shared/certificado/desenho.js'
 import { dadosDaFolha } from '../lib/certificado.js'
 
@@ -34,7 +34,12 @@ const FONTES = {
  */
 const ESTILO_TEXTO = { fontKerning: 'none', fontVariantLigatures: 'none', whiteSpace: 'pre' }
 
-export function CertificadoPreview({
+/**
+ * `memo` + `useMemo`: a folha é cara de calcular (céu, medida de cada texto) e
+ * só muda quando o que ela mostra muda — antes, qualquer redesenho do pai
+ * (rolagem do topo, digitação) a recalculava do zero.
+ */
+export const CertificadoPreview = memo(function CertificadoPreview({
   estrela,
   honoreeName,
   message,
@@ -49,9 +54,13 @@ export function CertificadoPreview({
 }) {
   const id = useId().replace(/:/g, '')
 
-  const folha = desenharCertificado(
-    dadosDaFolha({ estrela, honoreeName, message, fromName, dedicationDate, code, starNickname, par, grupoLinha }),
-    { claro: light },
+  const folha = useMemo(
+    () =>
+      desenharCertificado(
+        dadosDaFolha({ estrela, honoreeName, message, fromName, dedicationDate, code, starNickname, par, grupoLinha }),
+        { claro: light },
+      ),
+    [estrela, honoreeName, message, fromName, dedicationDate, code, starNickname, par, grupoLinha, light],
   )
 
   return (
@@ -68,7 +77,7 @@ export function CertificadoPreview({
       ))}
     </svg>
   )
-}
+})
 
 function Item({ item, id }) {
   switch (item.tipo) {

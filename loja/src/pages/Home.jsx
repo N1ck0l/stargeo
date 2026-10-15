@@ -7,9 +7,9 @@ import { SimboloOficial } from '../components/SimboloOficial.jsx'
 import { Link } from '../lib/Link.jsx'
 import { EMAIL_ATIVO } from '../lib/config.js'
 import { buscarDepoimentos, estadoDasEstrelas, reais, useFaixas } from '../lib/catalogo.js'
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Reveal } from '../components/Reveal.jsx'
-import { useScroll, useTypewriter } from '../lib/useReveal.js'
+import { useTypewriter } from '../lib/useReveal.js'
 
 /**
  * Home da loja.
@@ -226,6 +226,66 @@ export default function Home() {
 }
 
 /**
+ * Parallax do topo SEM passar pelo React.
+ *
+ * Antes, cada quadro da rolagem virava estado (`useScroll`) e redesenhava o
+ * topo inteiro — inclusive a folha do certificado de exemplo, recalculada do
+ * zero. No iPhone a rolagem desse trecho engasgava (o resto da página, sem
+ * parallax, rolava liso). Agora um único `requestAnimationFrame` por quadro
+ * escreve `transform` e `opacity` direto nos elementos: o navegador só move
+ * camadas já desenhadas. Passado o topo, para de escrever. Movimento
+ * reduzido: nada se move.
+ */
+function useParallaxDoTopo(textoRef, arteRef, rolarRef) {
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined
+    let quadro = 0
+    let ultimo = -1
+    const aplicar = () => {
+      quadro = 0
+      const y = Math.min(window.scrollY, 900)
+      if (y === ultimo) return
+      ultimo = y
+      const fade = Math.max(0, 1 - y / 520)
+      if (textoRef.current) {
+        textoRef.current.style.transform = `translate3d(0, ${y * 0.042}px, 0)`
+        textoRef.current.style.opacity = String(fade)
+      }
+      if (arteRef.current) arteRef.current.style.transform = `translate3d(0, ${-y * 0.07}px, 0)`
+      if (rolarRef.current) rolarRef.current.style.opacity = String(fade * 0.9)
+    }
+    const aoRolar = () => {
+      if (!quadro) quadro = requestAnimationFrame(aplicar)
+    }
+    aplicar()
+    window.addEventListener('scroll', aoRolar, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', aoRolar)
+      cancelAnimationFrame(quadro)
+    }
+  }, [textoRef, arteRef, rolarRef])
+}
+
+/**
+ * A linha digitada do topo ("Presente com coordenada"), num componente só
+ * dela: cada letra redesenha ESTE pedaço, não o topo inteiro com a folha.
+ *
+ * Anunciar letra a letra seria spam para leitor de tela: a região fica oculta
+ * enquanto digita e o texto completo é exposto uma vez, no fim. A altura fica
+ * reservada para nada pular.
+ */
+function LinhaDigitada({ texto }) {
+  const { output, done } = useTypewriter(texto)
+  return (
+    <p className="min-h-[1.1em] font-display text-xs tracking-[0.3em] text-gold uppercase">
+      <span aria-hidden={!done}>{output}</span>
+      {!done && <span className="type-cursor" aria-hidden="true" />}
+      <span className="sr-only">{done ? output : ''}</span>
+    </p>
+  )
+}
+
+/**
  * Herói: promessa, dois caminhos (ver o certificado / ver o processo) e os
  * três números que resolvem a primeira objeção — quantas estrelas, quão
  * longe, quão rápido cai o Pix.
@@ -238,40 +298,16 @@ function Hero() {
    * página por pintada ~4 s depois no celular (Lighthouse, LCP) — e é isso
    * que o anúncio pago cobra. O movimento fica para o resto da página.
    */
-  const scrollY = useScroll()
-  const { output: titulo, done: tituloPronto } = useTypewriter('Presente com coordenada')
-
-  /*
-   * Parallax: cada camada se move a uma velocidade um pouco diferente, o que
-   * dá a sensação de profundidade sem custo de GPU — e some junto com o
-   * `fade`, que apaga o herói conforme a pessoa rola para baixo.
-   *
-   * `useScroll` devolve 0 com movimento reduzido, então o `fade` fica em 1:
-   * quem pediu menos movimento vê o herói inteiro, sem apagar.
-   */
-  const estrelaShift = scrollY * 0.28
-  const tituloShift = scrollY * 0.14
-  const fade = Math.max(0, 1 - scrollY / 520)
+  const textoRef = useRef(null)
+  const arteRef = useRef(null)
+  const rolarRef = useRef(null)
+  useParallaxDoTopo(textoRef, arteRef, rolarRef)
 
   return (
     <section className="espaco-secao relative overflow-hidden">
       <div className="pilha grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
-        <div
-          style={{ transform: `translate3d(0, ${tituloShift * 0.3}px, 0)`, opacity: fade }}
-        >
-          {/*
-            A linha é digitada caractere a caractere. Anunciar isso a cada tecla
-            seria um spam para quem usa leitor de tela, então a região fica
-            oculta do announce e o texto completo é exposto uma vez, quando
-            termina. A altura fica reservada para o resto não pular.
-          */}
-          <p
-            className="min-h-[1.1em] font-display text-xs tracking-[0.3em] text-gold uppercase"
-          >
-            <span aria-hidden={!tituloPronto}>{titulo}</span>
-            {!tituloPronto && <span className="type-cursor" aria-hidden="true" />}
-            <span className="sr-only">{tituloPronto ? titulo : ''}</span>
-          </p>
+        <div ref={textoRef} className="will-change-transform">
+          <LinhaDigitada texto="Presente com coordenada" />
 
           <h1
             className="font-display mt-5 text-[2.15rem] leading-[1.12] text-ivory sm:text-5xl lg:text-[3.4rem]"
@@ -328,12 +364,12 @@ function Hero() {
           </div>
         </div>
 
-        <div
-          className="relative"
-          style={{ transform: `translate3d(0, ${-estrelaShift * 0.25}px, 0)` }}
-        >
+        <div ref={arteRef} className="relative will-change-transform">
+          {/* Brilho atrás da folha: o degradê já é suave. Ele tinha um
+              desfoque grande (`blur-3xl`) animado sem parar — no iPhone, a
+              coisa mais cara de desenhar na rolagem do topo. */}
           <div
-            className="animar-flutuar pointer-events-none absolute -inset-8 rounded-full opacity-40 blur-3xl"
+            className="animar-flutuar pointer-events-none absolute -inset-8 rounded-full opacity-40"
             style={{ background: 'radial-gradient(circle, rgba(216,182,106,0.25), transparent 70%)' }}
             aria-hidden="true"
           />
@@ -366,8 +402,8 @@ function Hero() {
         href="#certificados"
         aria-hidden="true"
         tabIndex={-1}
-        className="absolute bottom-5 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 text-ivory/60 transition-opacity duration-500 lg:flex"
-        style={{ opacity: fade * 0.9 }}
+        ref={rolarRef}
+        className="absolute bottom-5 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 text-ivory/60 opacity-90 transition-opacity duration-500 lg:flex"
       >
         <span className="text-[10px] tracking-[0.3em] uppercase">Rolar</span>
         <span className="block h-8 w-px bg-gradient-to-b from-gold to-transparent" />
