@@ -13,22 +13,22 @@ O histórico de cada rodada está no `git log`.
 
 ## 1. Checklist de lançamento
 
-### 1.1 Mercado Pago em produção — bloqueia a primeira venda
+### 1.1 Mercado Pago em produção — falta só a compra real de teste
 
-O fluxo inteiro já rodou no ambiente de **teste** do Mercado Pago (pedido
-`SG-RT65-DNDG` aprovado e entregue) e tem teste automático de ponta a ponta
-(`test/fluxo.test.js`). Falta a conta de verdade:
+Feito em 15/10: o token de produção (conta 3161349168) e a assinatura do
+webhook estão nos secrets do Supabase. Conferido sem cobrar nada: o checkout
+gera o link de pagamento de produção (R$ 49, até 12x, sem boleto, volta para
+`/obrigado`); o webhook aceita aviso assinado com a assinatura secreta e consulta
+o Mercado Pago com o token novo; aviso com assinatura falsa é recusado.
 
-- [ ] Trocar `MERCADO_PAGO_ACCESS_TOKEN` pelo de produção nos secrets do
-      Supabase (dashboard → Edge Functions → Secrets, ou `supabase secrets set`).
-- [ ] No painel do Mercado Pago, recriar o webhook apontando para
-      `https://cdrkykbtjjgvilgvyrve.supabase.co/functions/v1/mp-webhook` e pôr o
-      segredo novo em `MERCADO_PAGO_WEBHOOK_SECRET`.
-- [ ] Fazer uma compra real pequena (uma estrela "profunda", R$ 49), conferir a
-      tela de obrigado, a página da estrela e o pedido "Pago" no painel — e
-      reembolsar pelo Mercado Pago (a estrela volta ao catálogo sozinha).
-- [ ] Opcional antes disso: a mesma compra no sandbox com o cartão de teste
-      (titular `APRO`), inclusive de um grupo de 2+ estrelas.
+- [ ] Fazer uma compra real pequena (uma estrela "profunda", R$ 49) e conferir a
+      tela de obrigado, a página da estrela e o pedido "Pago" no painel.
+- [ ] Reembolsar pelo Mercado Pago e conferir que a estrela voltou ao catálogo
+      e a página saiu do ar (o webhook faz isso sozinho).
+- [ ] Apagar `MP_ACCESS_TOKEN_PRODUCAO` e `MP_WEBHOOK_SECRET_PRODUCAO` do `.env`
+      (a loja usa a cópia dos secrets do Supabase).
+- [ ] Se o webhook do painel do Mercado Pago for recriado, o segredo muda: ponha
+      o novo em `MERCADO_PAGO_WEBHOOK_SECRET`.
 
 ### 1.2 Nota fiscal — antes das primeiras vendas
 
