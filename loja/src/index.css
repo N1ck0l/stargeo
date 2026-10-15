@@ -35,9 +35,9 @@
  */
 
 @theme {
-  --font-display: "Playfair Display", Georgia, serif;
-  --font-serif: "Playfair Display", Georgia, serif;
-  --font-sans: "Montserrat", system-ui, sans-serif;
+  --font-display: "Playfair Display", "Playfair Provisoria", Georgia, serif;
+  --font-serif: "Playfair Display", "Playfair Provisoria", Georgia, serif;
+  --font-sans: "Montserrat", "Montserrat Provisoria", system-ui, sans-serif;
 
   --color-night: #090b20;
   --color-deep: #151a45;
@@ -59,7 +59,7 @@ body {
   min-height: 100vh;
   background-color: #090b20;
   color: #f6f1e7;
-  font-family: "Montserrat", system-ui, sans-serif;
+  font-family: "Montserrat", "Montserrat Provisoria", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 

@@ -91,3 +91,34 @@
   font-display: swap;
   src: url('/fonts/eb-garamond-italic-grego.woff2') format('woff2');
 }
+
+/*
+ * Fontes PROVISÓRIAS com as medidas das da marca.
+ *
+ * A home e o produto chegam prontos no HTML (`scripts/prerender-produto.mjs`)
+ * e o texto aparece ANTES de a Playfair e a Montserrat baixarem — na fonte
+ * do sistema. Com as medidas originais (Arial, Times), as linhas mudavam de
+ * largura na troca e o que vinha abaixo pulava (Lighthouse: CLS 0,117 nos
+ * botões do topo). Ajustadas, a troca acontece sem mexer no layout.
+ *
+ * Valores calculados dos próprios arquivos (largura média num trecho real do
+ * site e altura das letras), contra Arial e Times New Roman; no Android, que
+ * não tem essas, entram Roboto e Noto Serif, de medidas parecidas.
+ */
+@font-face {
+  font-family: 'Montserrat Provisoria';
+  src: local('Arial'), local('ArialMT'), local('Helvetica'), local('Roboto');
+  size-adjust: 109.21%;
+  ascent-override: 88.64%;
+  descent-override: 22.98%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Playfair Provisoria';
+  src: local('Times New Roman'), local('TimesNewRomanPSMT'), local('Times'), local('Noto Serif');
+  size-adjust: 112.2%;
+  ascent-override: 96.44%;
+  descent-override: 22.37%;
+  line-gap-override: 0%;
+}

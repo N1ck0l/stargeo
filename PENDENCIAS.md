@@ -90,8 +90,9 @@ variáveis e o deploy assim que o domínio existir.
 
 ### 1.7 Pequenos
 
-- [ ] Escrever a mensagem pessoal da página da Geovanna: painel → Páginas →
-      `SG-GEOV-ANNA` → Mensagem pessoal.
+- [ ] Revisar a mensagem pessoal da página da Geovanna (rascunho já escrito,
+      ESCONDIDO): painel → Páginas → `SG-GEOV-ANNA` → Mensagem pessoal; ajuste e
+      marque "Mostrar mensagem" para publicar.
 - [ ] Revogar o `NETLIFY_AUTH_TOKEN` (Netlify → User settings → Applications)
       quando não quiser mais que o Claude leia logs e publique — ele está só no
       `.env`, fora do repositório.
@@ -150,10 +151,16 @@ a permissão é a linha em `public.admins`). Mudar texto não precisa de deploy.
   estrela abaixo de R$ 1, e o uso só conta na compra paga.
 - **Medição sem rastreador**: funil por contadores diários e erros sem dado
   pessoal, no próprio banco; quem pede "não rastrear" não entra no funil.
-- **Velocidade**: o produto tem HTML pré-renderizado no build
-  (`scripts/prerender-produto.mjs` → `produto.html`, servido em `/produto/*`);
-  Lighthouse no celular ~90 na home e no produto. O próximo ganho seria a
-  estratégia de fontes ou dividir o JavaScript — décimos de segundo.
+- **Velocidade**: home e produto chegam PRONTOS no HTML (gerados no build por
+  `scripts/prerender-produto.mjs`: `index.html` e `produto.html`; as outras
+  telas usam `app.html` vazio). O React aproveita o HTML em vez de redesenhar
+  — por isso o primeiro desenho no navegador tem de bater com o do build
+  (animações, digitação e a data do exemplo usam `useSyncExternalStore`).
+  Estilo embutido, JavaScript em prioridade baixa e fontes provisórias com as
+  medidas das da marca (a troca de fonte não mexe no layout). Num Chrome real
+  com 4G lento e CPU 4x: texto da home em ~1,2 s, título do produto em ~0,9 s.
+  O Lighthouse "simulado" oscila muito no site real (rede) — para decidir,
+  meça com lentidão real (`hydrateRoot` sem partes refeitas é o que importa).
 
 ### Melhorias técnicas possíveis (nada bloqueia)
 
