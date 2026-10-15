@@ -1,4 +1,5 @@
 import { Component } from 'react'
+import { registrarErro } from '../lib/erros.js'
 
 /**
  * Fronteira de erro da loja inteira.
@@ -28,10 +29,11 @@ export class ErroDeTela extends Component {
   }
 
   componentDidCatch(erro, info) {
-    // O console é o único lugar onde o detalhe técnico chega hoje. Numa loja
-    // real, este é o ponto para onde vai o Sentry — o resto da tela continua
-    // genérico de propósito.
+    // O detalhe técnico vai para o console e para o painel; a tela continua
+    // genérica de propósito.
     console.error('[stellara-loja] falha na tela:', erro, info?.componentStack)
+    // E vai para o painel (Visão geral → Erros no site), sem dado pessoal.
+    registrarErro(erro, 'tela')
   }
 
   render() {

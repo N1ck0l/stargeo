@@ -132,6 +132,21 @@ bloqueante antes, sem nenhuma violação.
   o site deixa claro que o certificado é digital e que a moldura da prévia é
   só ilustração.
 
+### 1.14 Cupons, relatórios e erros (15/10)
+
+- **Cupons** (painel → Cupons): percentual (até 50%) ou valor fixo, validade e
+  limite de usos. Valem sobre o total (depois do desconto de grupo) e nunca
+  deixam uma estrela abaixo de R$ 1. Uso = compra PAGA. O botão "Copiar link"
+  dá o link de parceria (`/produto/certificado-digital?cupom=CODIGO`), que já
+  abre com o cupom aplicado.
+- **Relatórios** (painel → Relatórios): receita, compras, ticket médio, por
+  faixa e por forma de pagamento, no período (data do pagamento, Brasília), e
+  a planilha CSV para o contador (abre direto no Excel em português). Para a
+  nota fiscal, combine com o contador quais colunas ele precisa.
+- **Erros no site** (painel → Visão geral): o que quebrou no navegador de
+  clientes nos últimos 7 dias, sem dado pessoal. Se aparecer algo, me mande a
+  mensagem.
+
 ### 1.13 Várias estrelas numa compra (15/10)
 
 - De 2 a 6 pessoas por compra, cada uma com estrela, certificado e página

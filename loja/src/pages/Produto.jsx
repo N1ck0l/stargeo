@@ -8,10 +8,10 @@ import { MiniCeuSobDemanda } from '../components/MiniCeuSobDemanda.jsx'
 import { Reveal } from '../components/Reveal.jsx'
 import { criarCheckout, ErroApi, irParaPagamento } from '../lib/api.js'
 import { Link } from '../lib/Link.jsx'
-import { buscarEstrela, comoSeVe, normalizar, reais } from '../lib/catalogo.js'
+import { buscarEstrela, comoSeVe, consultarCupom, normalizar, reais } from '../lib/catalogo.js'
 import { ocasiaoPorSlug, SUGESTOES_GERAIS } from '../lib/ocasioes.js'
 import { registrar } from '../lib/metricas.js'
-import { precoDoGrupo } from '../../../shared/preco.js'
+import { aplicarCupom, precoDoGrupo } from '../../../shared/preco.js'
 import { linhaDoGrupo } from '../../../shared/grupo.js'
 import { MaisEstrelas } from '../components/MaisEstrelas.jsx'
 import { EMAIL_ATIVO } from '../lib/config.js'
@@ -143,7 +143,44 @@ export default function Produto({ slug }) {
   const emGrupo = outras.length > 0
   const comEstrela = outras.filter((o) => o.estrela)
   const doGrupo = emGrupo ? precoDoGrupo([estrela, ...comEstrela.map((o) => o.estrela)].map((e) => e.precoCentavos)) : null
-  const totalCentavos = doGrupo ? doGrupo.total : estrela.precoCentavos
+
+  /*
+   * Cupom de desconto (migration 0022). Vem digitado ou no link
+   * (`?cupom=MARIA15`, para parcerias). Aqui ele só MOSTRA o desconto — com a
+   * mesma conta do servidor (`aplicarCupom`); quem decide é o checkout.
+   */
+  const [cupomTexto, setCupomTexto] = useState(() => new URLSearchParams(window.location.search).get('cupom') ?? '')
+  const [cupom, setCupom] = useState(null)
+  const [cupomAviso, setCupomAviso] = useState('')
+  const [conferindoCupom, setConferindoCupom] = useState(false)
+
+  async function aplicarCodigo(codigo) {
+    const limpo = String(codigo ?? '').trim().toUpperCase()
+    if (!limpo) return
+    setConferindoCupom(true)
+    setCupomAviso('')
+    try {
+      const encontrado = await consultarCupom(limpo)
+      setCupom(encontrado)
+      if (!encontrado) setCupomAviso('Esse cupom não é válido (ou já venceu).')
+    } catch {
+      setCupomAviso('Não foi possível conferir o cupom agora. Tente de novo.')
+    } finally {
+      setConferindoCupom(false)
+    }
+  }
+
+  // Link de parceria: o cupom da URL é aplicado ao abrir.
+  const cupomDaUrl = useState(() => new URLSearchParams(window.location.search).get('cupom'))[0]
+  useEffect(() => {
+    if (cupomDaUrl) aplicarCodigo(cupomDaUrl)
+    // Só na abertura: o cupom da URL é lido uma vez.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const semCupom = doGrupo ?? precoDoGrupo([estrela.precoCentavos])
+  const final = aplicarCupom(semCupom, cupom)
+  const totalCentavos = final.total
   const preco = reais(totalCentavos)
   const [paraQuem, setParaQuem] = useState('')
   const [assinatura, setAssinatura] = useState('')
@@ -296,6 +333,7 @@ export default function Produto({ slug }) {
           ? outras.map((o) => ({ starSlug: o.estrela.slug, honoreeName: o.nome, starNickname: o.apelido.trim() || undefined }))
           : undefined,
         nomeGrupo: outras.length >= 2 && nomeGrupo.trim() ? nomeGrupo.trim() : undefined,
+        cupom: cupom?.codigo,
         message: mensagem || undefined,
         dedicationDate: data || undefined,
         customerEmail: email,
@@ -329,6 +367,12 @@ export default function Produto({ slug }) {
       )
       // Outra pessoa pegou a estrela no meio do caminho: o estado novo vem do
       // banco, e a tela passa a mostrá-la como indisponível.
+      // Cupom que venceu entre a conferência e o pagamento: sai do resumo, e a
+      // pessoa vê o preço sem ele antes de tentar de novo.
+      if (falha instanceof ErroApi && falha.codigo === 'cupom_invalido') {
+        setCupom(null)
+        setCupomAviso(falha.message)
+      }
       if (falha instanceof ErroApi && falha.codigo === 'estrela_indisponivel') {
         buscarEstrela(estrela.slug).then((e) => e && setEstrela(e)).catch(() => {})
         for (const o of outras) {
@@ -657,11 +701,59 @@ export default function Produto({ slug }) {
                     </dd>
                   </div>
                 )}
+                {final.descontoCupom > 0 && (
+                  <div className="flex justify-between gap-4">
+                    <dt className="shrink-0 text-ivory/50">
+                      Cupom {cupom.codigo}
+                      {cupom.tipo === 'percentual' ? ` (${cupom.valor}%)` : ''}
+                    </dt>
+                    <dd className="text-right text-emerald-300">− {reais(final.descontoCupom)}</dd>
+                  </div>
+                )}
                 <div className="flex justify-between gap-4 border-t border-white/10 pt-3">
                   <dt className="text-ivory/70">Total</dt>
                   <dd className="font-display text-xl text-gold">{preco}</dd>
                 </div>
               </dl>
+
+              <div className="mt-5 border-t border-white/10 pt-4">
+                <label htmlFor="campo-cupom" className="rotulo">
+                  Cupom de desconto
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    id="campo-cupom"
+                    className="campo uppercase"
+                    value={cupomTexto}
+                    onChange={(e) => {
+                      setCupomTexto(e.target.value)
+                      if (cupom) setCupom(null)
+                      setCupomAviso('')
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        aplicarCodigo(cupomTexto)
+                      }
+                    }}
+                    placeholder="Se você tiver um"
+                    maxLength={20}
+                    autoComplete="off"
+                    aria-describedby="cupom-aviso"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => aplicarCodigo(cupomTexto)}
+                    disabled={conferindoCupom || !cupomTexto.trim()}
+                    className="btn btn-secundario shrink-0 text-sm"
+                  >
+                    {conferindoCupom ? 'Conferindo…' : 'Aplicar'}
+                  </button>
+                </div>
+                <p id="cupom-aviso" aria-live="polite" className={`mt-2 text-xs ${cupom ? 'text-emerald-300' : 'text-ivory/50'}`}>
+                  {cupom ? `Cupom aplicado${cupom.descricao ? ` — ${cupom.descricao}` : ''}.` : cupomAviso}
+                </p>
+              </div>
             </section>
 
             <div className="flex flex-wrap items-center gap-4">

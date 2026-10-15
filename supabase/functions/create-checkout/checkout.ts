@@ -35,7 +35,7 @@ import { limitarPorIp } from '../_shared/limite.ts'
 import { criarPreferencia } from '../_shared/mercadoPago.ts'
 import { explicarErros, limpar, validarPedido, validarTexto } from '../../../shared/moderation.js'
 import { validarRevelacao } from '../_shared/datas.ts'
-import { MAX_ESTRELAS, precoDoGrupo } from '../../../shared/preco.js'
+import { MAX_ESTRELAS, aplicarCupom, precoDoGrupo } from '../../../shared/preco.js'
 
 interface Pessoa {
   starSlug?: string
@@ -59,6 +59,8 @@ interface Entrada {
   outras?: Pessoa[] | null
   /** Nome do grupo, opcional ("Família Souza"): vai no certificado de 3+. */
   nomeGrupo?: string | null
+  /** Cupom de desconto (0022), opcional. */
+  cupom?: string | null
   /** Formato antigo do par (0020) — o mesmo que `outras: [par]`. */
   par?: Pessoa | null
 }
@@ -167,7 +169,20 @@ export const checkout = comHandler(async (request) => {
   // Desconto progressivo do grupo (10%/15%/20%), repartido na proporção de
   // cada estrela. A conta é a mesma que o site mostra (`shared/preco.js`), e
   // roda AQUI com os preços do banco.
-  const preco = precoDoGrupo(estrelas.map((e) => e.precoCentavos))
+  const precoDoGrupoSemCupom = precoDoGrupo(estrelas.map((e) => e.precoCentavos))
+
+  // Cupom (0022): consultado AQUI, no banco, e aplicado sobre o total do
+  // grupo. Inválido, vencido ou esgotado é recusado com a mesma mensagem —
+  // sem cupom silenciosamente ignorado, que cobraria mais do que a pessoa viu.
+  let cupom: { codigo: string; tipo: string; valor: number } | null = null
+  const codigoCupom = String(corpo.cupom ?? '').trim().toUpperCase()
+  if (codigoCupom) {
+    const { data: encontrados } = await db.rpc('consultar_cupom', { p_codigo: codigoCupom })
+    const encontrado = Array.isArray(encontrados) ? encontrados[0] : null
+    if (!encontrado) throw new ErroApp('cupom_invalido', 'Esse cupom não é válido (ou já venceu). Confira o código ou siga sem ele.', 422)
+    cupom = { codigo: encontrado.codigo, tipo: encontrado.tipo, valor: Number(encontrado.valor) }
+  }
+  const preco = aplicarCupom(precoDoGrupoSemCupom, cupom)
 
   // --- 4. Grava o grupo e os pedidos ------------------------------------
   let groupId: string | null = null
@@ -205,6 +220,9 @@ export const checkout = comHandler(async (request) => {
   const insercoes = pessoas.map((p, i) => ({
     ...comum,
     amount_cents: preco.partes[i],
+    cupom: cupom?.codigo ?? null,
+    // Quanto o cupom tirou DESTE pedido (relatório para o contador).
+    desconto_cupom_cents: precoDoGrupoSemCupom.partes[i] - preco.partes[i],
     star_slug: estrelas[i].slug,
     honoree_name: limpar(p.honoreeName),
     star_nickname: p.starNickname ? limpar(p.starNickname) || null : null,
@@ -253,7 +271,11 @@ export const checkout = comHandler(async (request) => {
     const preferencia = await criarPreferencia({
       itens: estrelas.map((e, i) => ({
         titulo: `Certificado de ${e.name}`,
-        descricao: emGrupo ? `${produto.name} · ${pessoas.length} estrelas (${preco.percentual}% off)` : produto.name,
+        descricao: [
+          produto.name,
+          emGrupo ? `${pessoas.length} estrelas (${preco.percentual}% off)` : null,
+          cupom ? `cupom ${cupom.codigo}` : null,
+        ].filter(Boolean).join(' · '),
         quantidade: 1,
         precoUnitario: preco.partes[i],
       })),
@@ -270,6 +292,8 @@ export const checkout = comHandler(async (request) => {
       codePar: pedidos[1]?.code ?? null,
       grupo: codigoGrupo,
       amountCents: pedidos.reduce((soma, p) => soma + Number(p.amount_cents), 0),
+      cupom: cupom?.codigo ?? null,
+      descontoCupomCents: preco.descontoCupom,
       preferenceId: preferencia.id,
       initPoint: preferencia.init_point,
       sandboxInitPoint: preferencia.sandbox_init_point,

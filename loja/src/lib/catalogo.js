@@ -212,3 +212,15 @@ export async function buscarDepoimentos(limite = 6) {
   if (!configurado) return []
   return rest('rpc/depoimentos_aprovados', { method: 'POST', body: JSON.stringify({ p_limite: limite }) })
 }
+
+/**
+ * Consulta um cupom (migration 0022) para MOSTRAR o desconto antes de pagar.
+ * `null` quando não existe, venceu ou esgotou — a mesma resposta para os três.
+ * Quem aplica de verdade é o servidor, no checkout.
+ */
+export async function consultarCupom(codigo) {
+  const limpo = String(codigo ?? '').trim().toUpperCase()
+  if (!limpo || !configurado) return null
+  const [cupom] = await rest('rpc/consultar_cupom', { method: 'POST', body: JSON.stringify({ p_codigo: limpo }) })
+  return cupom ? { ...cupom, valor: Number(cupom.valor) } : null
+}

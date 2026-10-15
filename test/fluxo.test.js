@@ -65,6 +65,7 @@ function criarBanco() {
     ],
     orders: [],
     grupos: [],
+    cupom_usos: [],
     pages: [],
     certificate_drafts: [],
   }
@@ -132,6 +133,11 @@ function criarBanco() {
   const estrela = (slug) => tabelas.stars.find((s) => s.slug === slug)
   const funcoes = {
     consumir_limite: () => true,
+    // Migration 0022: só LANCAMENTO10 existe (10%), e esgota com 1 uso.
+    consultar_cupom: ({ p_codigo }) =>
+      p_codigo === 'LANCAMENTO10' && tabelas.cupom_usos.length < 1
+        ? [{ codigo: 'LANCAMENTO10', tipo: 'percentual', valor: 10, descricao: 'Lançamento' }]
+        : [],
     reservar_estrela: ({ p_slug, p_order }) => {
       const s = estrela(p_slug)
       if (s?.status !== 'disponivel') return false
@@ -298,6 +304,31 @@ describe('compra de ponta a ponta', () => {
     expect((await comprar({ starSlug: 'vega', honoreeName: 'Helena', outras: sete })).status).toBe(422)
     const repetida = await comprar({ starSlug: 'vega', honoreeName: 'Helena', outras: [{ starSlug: 'vega', honoreeName: 'Pedro' }] })
     expect(await repetida.json()).toMatchObject({ erro: 'estrelas_iguais' })
+  })
+
+  it('cupom: o servidor aplica sobre o total, registra o uso no pagamento e recusa cupom esgotado', async () => {
+    const pedido = await (await comprar({ starSlug: 'vega', honoreeName: 'Helena', cupom: 'lancamento10' })).json()
+    // R$ 249 com 10%: R$ 224 (para baixo até o real).
+    expect(pedido).toMatchObject({ amountCents: 22400, cupom: 'LANCAMENTO10', descontoCupomCents: 2500 })
+    expect(estado.banco.tabelas.orders[0]).toMatchObject({ cupom: 'LANCAMENTO10', desconto_cupom_cents: 2500 })
+    expect(estado.banco.tabelas.cupom_usos).toHaveLength(0) // abrir o checkout não gasta o cupom
+
+    await aprovar(pedido.orderId, 224)
+    expect(estado.banco.tabelas.cupom_usos).toEqual([{ order_id: pedido.orderId, codigo: 'LANCAMENTO10' }])
+
+    // Esgotado (limite 1): recusado com aviso, sem cobrar sem o desconto às escondidas.
+    const segunda = await comprar({ starSlug: 'altair', honoreeName: 'Pedro', cupom: 'LANCAMENTO10' })
+    expect(segunda.status).toBe(422)
+    expect(await segunda.json()).toMatchObject({ erro: 'cupom_invalido' })
+  })
+
+  it('cupom sobre um grupo: desconto de grupo primeiro, cupom depois, soma exata', async () => {
+    const pedido = await (
+      await comprar({ starSlug: 'vega', honoreeName: 'Helena', outras: [{ starSlug: 'altair', honoreeName: 'Pedro' }], cupom: 'LANCAMENTO10' })
+    ).json()
+    // R$ 498 → 10% do par = R$ 448 → 10% do cupom = R$ 403.
+    expect(pedido.amountCents).toBe(40300)
+    expect(estado.preferencias[0].itens.reduce((s, i) => s + i.precoUnitario, 0)).toBe(40300)
   })
 
   it('par: pagar o preço cheio de uma estrela só não entrega nenhum dos dois', async () => {

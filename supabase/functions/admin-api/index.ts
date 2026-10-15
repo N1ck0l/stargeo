@@ -43,6 +43,7 @@ import {
 import { explicarErros, limpar, validarPedido, validarTextoLivre } from '../../../shared/moderation.js'
 import { enviarEmail, gerarEGuardar } from '../_shared/certificado.ts'
 import { entregasTravadas, type PedidoPago } from './entregas.ts'
+import { errosRecentes, listarCupons, relatorio, salvarCupom } from './negocio.ts'
 import { dadosDoGrupo, linhaParaCertificado } from '../_shared/par.ts'
 import { linhaDoGrupo } from '../../../shared/grupo.js'
 
@@ -92,6 +93,18 @@ Deno.serve(
 
       case 'refazerEntrega':
         return json(request, await refazerEntrega(db, corpo))
+
+      case 'cupons':
+        return json(request, await listarCupons(db))
+
+      case 'cupomSalvar':
+        return json(request, await salvarCupom(db, corpo))
+
+      case 'relatorio':
+        return json(request, await relatorio(db, corpo))
+
+      case 'erros':
+        return json(request, await errosRecentes(db))
 
       case 'estrelas':
         return json(request, await listarEstrelas(db, corpo))

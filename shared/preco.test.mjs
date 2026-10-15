@@ -2,7 +2,7 @@
  * Preço do par: 10% sobre a soma, arredondado para baixo até o real, e
  * repartido entre os dois pedidos sem perder nem sobrar um centavo.
  */
-import { descontoPara, precoDoGrupo, precoDoPar } from './preco.js'
+import { aplicarCupom, descontoPara, precoDoGrupo, precoDoPar } from './preco.js'
 
 let falhas = 0
 const check = (nome, ok, extra = '') => {
@@ -54,6 +54,25 @@ const gerar = (prefixo) => {
 }
 gerar([])
 check(`grupos de 2 a 6 estrelas (${combinacoes} combinações): partes somam o total, real inteiro`, combinacoes > 100)
+
+// --- cupons ---------------------------------------------------------------
+const c10 = aplicarCupom(precoDoGrupo([24900]), { tipo: 'percentual', valor: 10 })
+check('cupom 10% numa lendária: R$ 249 → R$ 224', c10.total === 22400 && c10.descontoCupom === 2500, JSON.stringify(c10))
+const cGrupo = aplicarCupom(precoDoGrupo([24900, 24900]), { tipo: 'percentual', valor: 10 })
+check('cupom 10% sobre o par já com 10%: R$ 448 → R$ 403', cGrupo.total === 40300 && cGrupo.partes[0] + cGrupo.partes[1] === 40300, JSON.stringify(cGrupo))
+const cValor = aplicarCupom(precoDoGrupo([4900]), { tipo: 'valor', valor: 1500 })
+check('cupom de R$ 15 numa profunda: R$ 49 → R$ 34', cValor.total === 3400)
+const cPiso = aplicarCupom(precoDoGrupo([4900, 4900]), { tipo: 'valor', valor: 999900 })
+check('cupom gigante não passa do piso de R$ 1 por estrela', cPiso.total === 200 && cPiso.partes.every((p) => p >= 100), JSON.stringify(cPiso))
+const cTeto = aplicarCupom(precoDoGrupo([10000]), { tipo: 'percentual', valor: 90 })
+check('percentual acima de 50% é tratado como 50%', cTeto.total === 5000)
+check('sem cupom, nada muda', aplicarCupom(precoDoGrupo([24900]), null).total === 24900)
+let somasOk = true
+for (const a of faixas) for (const b of faixas) for (const pct of [5, 10, 15, 33, 50]) {
+  const g = aplicarCupom(precoDoGrupo([a, b, a]), { tipo: 'percentual', valor: pct })
+  if (g.partes.reduce((x, y) => x + y, 0) !== g.total || g.total % 100 !== 0 || g.partes.some((x) => x < 100)) somasOk = false
+}
+check('cupom em grupos: partes somam o total, real inteiro, piso respeitado', somasOk)
 
 console.log(falhas ? `\n${falhas} FALHA(S)` : '\nTODOS OS TESTES PASSARAM')
 process.exit(falhas ? 1 : 0)

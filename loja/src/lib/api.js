@@ -6,6 +6,7 @@
  * que acaba em histórico de navegador, log de servidor e `Referer` para o
  * site de onde a pessoa veio.
  */
+import { registrarErro } from './erros.js'
 
 const BASE = import.meta.env.VITE_FUNCTIONS_URL
 
@@ -53,11 +54,18 @@ function base() {
  * @param {{ headers?: Record<string, string> }} [opcoes]
  */
 export async function chamar(caminho, corpo, opcoes = {}) {
-  const resposta = await fetch(`${base()}/${caminho}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...opcoes.headers },
-    body: JSON.stringify(corpo ?? {}),
-  })
+  let resposta
+  try {
+    resposta = await fetch(`${base()}/${caminho}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...opcoes.headers },
+      body: JSON.stringify(corpo ?? {}),
+    })
+  } catch (falha) {
+    // Sem resposta nenhuma (rede caiu, função fora do ar): vai para o painel.
+    registrarErro(falha, `api:${caminho}`)
+    throw falha
+  }
 
   let dados = null
   try {
@@ -67,6 +75,11 @@ export async function chamar(caminho, corpo, opcoes = {}) {
   }
 
   if (!resposta.ok) {
+    // 5xx é falha NOSSA (a função quebrou); 4xx é resposta prevista (código
+    // errado, cupom vencido) e não é erro do site.
+    if (resposta.status >= 500) {
+      registrarErro(`${resposta.status} ${dados?.erro ?? 'sem código'}`, `api:${caminho}`)
+    }
     throw new ErroApi(
       dados?.erro ?? 'erro_desconhecido',
       dados?.mensagem ?? 'Algo deu errado. Tente de novo em instantes.',

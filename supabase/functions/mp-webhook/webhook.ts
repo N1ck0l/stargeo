@@ -50,7 +50,7 @@ import { validarPedido } from '../../../shared/moderation.js'
 const CAMPOS_PEDIDO = [
   'id', 'code', 'status', 'customer_email', 'customer_name', 'honoree_name',
   'from_name', 'star_nickname', 'message', 'dedication_date', 'reveal_on', 'star_slug', 'product_name',
-  'amount_cents', 'delivered_at', 'group_id',
+  'amount_cents', 'delivered_at', 'group_id', 'cupom',
 ]
 
 /** Reserva mais velha que isto é de uma função que morreu no meio. */
@@ -189,6 +189,15 @@ export const webhook = comHandler(async (request) => {
     for (const p of grupo) await marcarPendencia(db, String(p.id), 'Valor pago diverge do pedido — conferir no Mercado Pago')
     // 200: reenviar não muda o valor. Decisão humana.
     return json(request, { recebido: true, entregue: false, motivo: 'valor_divergente' })
+  }
+
+  // Cupom (0022): o uso conta na compra PAGA, uma vez por compra (pelo pedido
+  // principal). Idempotente: o mesmo pagamento chegando de novo não soma.
+  if (pedido.cupom) {
+    await db
+      .from('cupom_usos')
+      .upsert({ order_id: pedidoId, codigo: pedido.cupom }, { onConflict: 'order_id', ignoreDuplicates: true })
+      .throwOnError()
   }
 
   if (grupo.length === 1) return await entregarPedido(request, db, pedido, id, String(pedidoId))

@@ -11,6 +11,10 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import { ErroDeTela } from './components/ErroDeTela.jsx'
+import { vigiarErros } from './lib/erros.js'
+
+// Erros de script e promessas soltas vão para o painel (sem dado pessoal).
+vigiarErros()
 
 const raiz = document.getElementById('root')
 

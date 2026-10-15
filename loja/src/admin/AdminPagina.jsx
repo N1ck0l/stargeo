@@ -7,6 +7,8 @@ import { Pedidos } from './Pedidos.jsx'
 import { Paginas } from './Paginas.jsx'
 import { EditorAdmin } from './EditorAdmin.jsx'
 import { Depoimentos } from './Depoimentos.jsx'
+import { Cupons } from './Cupons.jsx'
+import { Relatorios } from './Relatorios.jsx'
 
 /**
  * `/admin` — o painel da plataforma.
@@ -111,6 +113,8 @@ export function AdminPagina() {
               ['visao', 'Visão geral'],
               ['pedidos', 'Pedidos'],
               ['paginas', 'Páginas'],
+              ['relatorios', 'Relatórios'],
+              ['cupons', 'Cupons'],
               ['depoimentos', 'Depoimentos'],
             ].map(([id, rotulo]) => (
               <button
@@ -145,6 +149,10 @@ export function AdminPagina() {
             />
           ) : aba === 'pedidos' ? (
             <Pedidos aoExpirar={aoExpirar} aoAbrirPagina={setCodigoAberto} />
+          ) : aba === 'relatorios' ? (
+            <Relatorios aoExpirar={aoExpirar} />
+          ) : aba === 'cupons' ? (
+            <Cupons aoExpirar={aoExpirar} />
           ) : aba === 'depoimentos' ? (
             <Depoimentos aoExpirar={aoExpirar} />
           ) : (

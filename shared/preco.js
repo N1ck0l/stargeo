@@ -46,3 +46,35 @@ export function precoDoGrupo(centavos) {
 export function precoDoPar(centavos1, centavos2) {
   return precoDoGrupo([centavos1, centavos2])
 }
+
+/** Nenhuma estrela sai por menos que isto, com qualquer cupom (centavos). */
+export const PISO_POR_ESTRELA = 100
+
+/**
+ * Aplica um cupom (`{ tipo: 'percentual' | 'valor', valor }`) sobre o preço
+ * já calculado (`precoDoGrupo`). O cupom vale sobre o TOTAL — depois do
+ * desconto de grupo — e o resultado continua em real inteiro, arredondado a
+ * favor de quem compra. Nenhuma estrela fica abaixo de `PISO_POR_ESTRELA`.
+ *
+ * O total novo é repartido de novo entre os pedidos, na proporção do preço de
+ * cada estrela: a soma continua sendo exatamente o que se cobra.
+ *
+ * @param {{ cheio: number, total: number, desconto: number, percentual: number, partes: number[] }} preco
+ * @param {{ tipo: string, valor: number } | null} cupom
+ */
+export function aplicarCupom(preco, cupom) {
+  if (!cupom) return { ...preco, descontoCupom: 0 }
+  const n = preco.partes.length
+  const piso = PISO_POR_ESTRELA * n
+  let total =
+    cupom.tipo === 'percentual'
+      ? Math.floor((preco.total * (100 - Math.min(50, cupom.valor))) / 100 / 100) * 100
+      : Math.floor((preco.total - cupom.valor) / 100) * 100
+  total = Math.max(total, piso)
+  if (total >= preco.total) return { ...preco, descontoCupom: 0 }
+
+  // Proporcional ao que cada pedido custava; a última leva o resto.
+  const partes = preco.partes.map((c) => Math.max(PISO_POR_ESTRELA, Math.round((c * total) / preco.total)))
+  partes[n - 1] = total - partes.slice(0, -1).reduce((soma, c) => soma + c, 0)
+  return { ...preco, total, partes, descontoCupom: preco.total - total }
+}

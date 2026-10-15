@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { chamarAdmin } from '../lib/admin.js'
-import { brl, classeStatus, rotuloStatus, tratarErro } from './formatos.js'
+import { brl, classeStatus, dataCurta, rotuloStatus, tratarErro } from './formatos.js'
 
 /**
  * Visão geral: o pulso da loja em números e as duas listas mais recentes.
@@ -88,6 +88,7 @@ export function VisaoGeral({ aoExpirar, aoAbrirPagina, aoIrParaPedidos }) {
       )}
 
       <Funil funil={dados.funil ?? {}} />
+      <ErrosDoSite aoExpirar={aoExpirar} />
 
       {pedidos.comErroDeEmail > 0 && (
         <p className="mt-4 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
@@ -256,6 +257,56 @@ function EntregasTravadas({ lista, aoExpirar }) {
         ))}
       </ul>
       {falha && <p className="mt-3 text-xs text-red-200">{falha}</p>}
+    </section>
+  )
+}
+
+/**
+ * Erros que aconteceram no navegador de clientes nos últimos 7 dias
+ * (migration 0022): tela branca, falha no pagamento, erro de script. Sem
+ * dado pessoal — a mensagem técnica, a tela e o navegador. Sem nenhum, a
+ * seção diz isso (é a notícia boa).
+ */
+function ErrosDoSite({ aoExpirar }) {
+  const [dados, setDados] = useState(null)
+  const [aberto, setAberto] = useState(null)
+
+  useEffect(() => {
+    let vivo = true
+    chamarAdmin('erros')
+      .then((r) => vivo && setDados(r))
+      .catch((e) => tratarErro(e, aoExpirar))
+    return () => {
+      vivo = false
+    }
+  }, [aoExpirar])
+
+  if (!dados) return null
+
+  return (
+    <section className="mt-6 rounded-2xl border border-white/8 bg-white/[0.03] p-5">
+      <h2 className="font-display text-xs tracking-[0.2em] text-gold uppercase">Erros no site · últimos 7 dias</h2>
+      {dados.tipos.length === 0 ? (
+        <p className="mt-3 text-sm text-emerald-200/80">Nenhum erro registrado no navegador dos clientes.</p>
+      ) : (
+        <ul className="mt-4 space-y-2">
+          {dados.tipos.map((t, i) => (
+            <li key={i} className="rounded-xl border border-white/8 bg-white/[0.03] p-3 text-sm">
+              <button type="button" onClick={() => setAberto(aberto === i ? null : i)} aria-expanded={aberto === i} className="w-full text-left">
+                <span className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-mono text-xs text-red-200">{t.mensagem}</span>
+                  <span className="text-xs text-ivory/50">
+                    {t.total}× · {t.rota} · {t.navegador || 'navegador ?'} · último {dataCurta(t.ultimo)}
+                  </span>
+                </span>
+              </button>
+              {aberto === i && t.pilha && (
+                <pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-[11px] text-ivory/50">{t.pilha}</pre>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   )
 }
