@@ -22,6 +22,8 @@ import { Suspense, lazy, useEffect, useState } from 'react'
 import { useRota } from './lib/rota.js'
 import { registrar } from './lib/metricas.js'
 import { Link } from './lib/Link.jsx'
+import { PRODUTOS } from './lib/produtos.js'
+import { TopoDoProduto } from './components/TopoDoProduto.jsx'
 import Home from './pages/Home.jsx'
 /*
  * Só a home vai no pacote de abertura. Cada outra tela é um pedaço próprio,
@@ -85,7 +87,22 @@ function telaPara(caminho) {
   if (limpo.startsWith('/produto/')) {
     // O slug é extraído aqui, e não dentro da página: quem descobre o caminho
     // é o roteador.
-    return <Produto slug={limpo.slice('/produto/'.length)} />
+    const slug = limpo.slice('/produto/'.length)
+    if (!PRODUTOS[slug]) return <Produto slug={slug} />
+    /*
+     * Casca e título FORA do pacote do produto (que vem sob demanda): vão
+     * pintados no HTML pré-renderizado (`produto.html`) e o React os
+     * aproveita como estão. Só o formulário espera o pacote — no Suspense de
+     * dentro, com a altura da tela para o rodapé não aparecer e pular.
+     */
+    return (
+      <div className="espaco-secao">
+        <TopoDoProduto nome={PRODUTOS[slug].nome} />
+        <Suspense fallback={<div className="min-h-dvh" aria-busy="true" />}>
+          <Produto slug={slug} />
+        </Suspense>
+      </div>
+    )
   }
   // Grupo de estrelas compradas juntas: todas no mesmo céu (0021).
   if (limpo.startsWith('/g/')) return <PaginaGrupo codigo={limpo.slice('/g/'.length).toUpperCase()} />
@@ -107,7 +124,7 @@ function telaPara(caminho) {
   return <Home />
 }
 
-export default function App({ telaPronta }) {
+export default function App() {
   const caminho = useRota()
   // O fade de troca de tela só vale para NAVEGAÇÃO: no primeiro carregamento
   // ele escondia (opacidade 0) o conteúdo — e, na página pré-renderizada,
@@ -154,7 +171,7 @@ export default function App({ telaPronta }) {
           {/* A altura reservada é a da TELA: com menos (era 60vh), o rodapé
               aparecia no meio da tela enquanto a página carregava e depois
               pulava para baixo — o "pulo" que o Lighthouse mede (CLS). */}
-          <Suspense fallback={<div className="min-h-dvh" aria-busy="true" />}>{telaPronta ?? telaPara(caminho)}</Suspense>
+          <Suspense fallback={<div className="min-h-dvh" aria-busy="true" />}>{telaPara(caminho)}</Suspense>
         </div>
       </main>
 

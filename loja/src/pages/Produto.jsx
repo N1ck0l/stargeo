@@ -8,6 +8,7 @@ import { MiniCeuSobDemanda } from '../components/MiniCeuSobDemanda.jsx'
 import { Reveal } from '../components/Reveal.jsx'
 import { criarCheckout, ErroApi, irParaPagamento } from '../lib/api.js'
 import { Link } from '../lib/Link.jsx'
+import { PRODUTOS } from '../lib/produtos.js'
 import { buscarEstrela, comoSeVe, consultarCupom, normalizar, reais } from '../lib/catalogo.js'
 import { ocasiaoPorSlug, SUGESTOES_GERAIS } from '../lib/ocasioes.js'
 import { registrar } from '../lib/metricas.js'
@@ -17,18 +18,6 @@ import { linhaDoGrupo } from '../../../shared/grupo.js'
 import { MaisEstrelas } from '../components/MaisEstrelas.jsx'
 import { EMAIL_ATIVO } from '../lib/config.js'
 
-/**
- * Produtos que têm página. O PREÇO não mora aqui: ele é o da faixa da estrela
- * escolhida (brilho e nome), lido do banco — o mesmo que o `create-checkout`
- * cobra.
- *
- * Por enquanto só existe UM produto de verdade (o digital): slug fora desta
- * lista cai na tela "Certificado não encontrado" abaixo. Os outros níveis
- * ficam desligados no banco até virarem produto real — ver migration 0007.
- */
-const PRODUTOS = {
-  'certificado-digital': { nome: 'Certificado Digital' },
-}
 
 const MESES = [
   'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
@@ -422,9 +411,10 @@ export default function Produto({ slug }) {
   }
 
   return (
-    <div className="espaco-secao">
+    // O `App` já desenhou a casca (`espaco-secao`) e o título (`TopoDoProduto`)
+    // acima deste formulário — fora do pacote sob demanda, para virem no HTML.
+    <>
       <form onSubmit={finalizar} className="pilha">
-        <TopoDoProduto nome={produto.nome} />
 
         {/*
           Prévia em A4 RETRATO: a coluna dela tem o teto da própria folha
@@ -838,7 +828,7 @@ export default function Produto({ slug }) {
           </div>
         </div>
       </form>
-    </div>
+    </>
   )
 }
 
@@ -995,49 +985,6 @@ function Campo({
       )}
 
       {!erro && dica && <p className="mt-2 text-xs text-ivory/50">{dica}</p>}
-    </div>
-  )
-}
-
-/**
- * Trilha e título do produto — o mesmo componente na página de verdade e na
- * casca pré-renderizada (`CascaDoProduto`): os dois não têm como divergir, e
- * o título fica no mesmo pixel quando o React assume a página.
- */
-function TopoDoProduto({ nome }) {
-  return (
-    <>
-      <nav aria-label="Trilha" className="mb-8 text-sm text-ivory/50">
-        <Link para="/" className="transition hover:text-gold">
-          Início
-        </Link>
-        <span className="mx-2">/</span>
-        <span className="text-ivory/80">{nome}</span>
-      </nav>
-
-      <h1 className="mb-8 font-display text-3xl text-ivory sm:text-4xl">Monte o seu certificado</h1>
-    </>
-  )
-}
-
-/**
- * A casca do produto, gerada no BUILD (`scripts/prerender-produto.mjs`) e
- * servida pela Netlify em `/produto/…` (`produto.html`).
- *
- * Sem ela, quem chega direto no produto (anúncio, link de parceria) via o
- * HTML vazio da SPA até o JavaScript baixar, rodar e pedir o pacote desta
- * página — ~3,6 s até o título num celular lento (Lighthouse). Com ela, o
- * título vem pintado no HTML. Só o que não depende do endereço entra aqui
- * (a estrela e o cupom vêm da URL): trilha, título e o espaço da página, com
- * a altura da tela para o rodapé não aparecer e depois pular.
- */
-export function CascaDoProduto() {
-  return (
-    <div className="espaco-secao">
-      <div className="pilha">
-        <TopoDoProduto nome={PRODUTOS['certificado-digital'].nome} />
-        <div className="min-h-dvh" aria-busy="true" />
-      </div>
     </div>
   )
 }
