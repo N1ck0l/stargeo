@@ -9,7 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview --config loja/vite.config.js",
     "typecheck": "tsc -p tsconfig.functions.json",
-    "test": "node shared/astro.test.mjs && node shared/sky.test.mjs && node shared/moderation.test.mjs && vitest run",
+    "test": "node shared/astro.test.mjs && node shared/sky.test.mjs && node shared/moderation.test.mjs && node shared/preco.test.mjs && vitest run",
     "verificar": "npm run lint && npm run typecheck && npm test",
     "publicar:supabase": "node scripts/publicar-supabase.mjs",
     "marca": "node scripts/gerar-marca.mjs"

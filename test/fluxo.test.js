@@ -241,11 +241,12 @@ describe('compra de ponta a ponta', () => {
       par: { starSlug: 'altair', honoreeName: 'Pedro Lima' },
     })
     const pedido = await r.json()
-    expect(pedido.amountCents).toBe(49800)
+    // 10% de desconto no par: R$ 498 → R$ 448, repartido entre os dois pedidos.
+    expect(pedido.amountCents).toBe(44800)
     expect(pedido.codePar).toBeTruthy()
-    expect(estado.preferencias[0].itens.map((i) => i.precoUnitario)).toEqual([24900, 24900])
+    expect(estado.preferencias[0].itens.map((i) => i.precoUnitario)).toEqual([22400, 22400])
 
-    await aprovar(pedido.orderId, 498)
+    await aprovar(pedido.orderId, 448)
     expect(estado.banco.estrela('vega').status).toBe('dedicada')
     expect(estado.banco.estrela('altair').status).toBe('dedicada')
     expect(estado.banco.tabelas.pages).toHaveLength(2)
@@ -258,7 +259,7 @@ describe('compra de ponta a ponta', () => {
     expect(daHelena.par).toMatchObject({ code: pedido.codePar, para: 'Pedro', estrela: 'Altair' })
   })
 
-  it('par: valor pago menor que a soma não entrega nenhum dos dois', async () => {
+  it('par: pagar o preço cheio de uma estrela só não entrega nenhum dos dois', async () => {
     const pedido = await (
       await comprar({ starSlug: 'vega', honoreeName: 'Helena', par: { starSlug: 'altair', honoreeName: 'Pedro' } })
     ).json()
@@ -290,8 +291,8 @@ describe('compra de ponta a ponta', () => {
     const pedido = await (
       await comprar({ starSlug: 'vega', honoreeName: 'Helena', par: { starSlug: 'altair', honoreeName: 'Pedro' } })
     ).json()
-    await aprovar(pedido.orderId, 498)
-    await aprovar(pedido.orderId, 498, 'refunded')
+    await aprovar(pedido.orderId, 448)
+    await aprovar(pedido.orderId, 448, 'refunded')
     expect(estado.banco.estrela('vega').status).toBe('disponivel')
     expect(estado.banco.estrela('altair').status).toBe('disponivel')
     expect(estado.banco.tabelas.pages.every((p) => p.status === 'draft')).toBe(true)

@@ -21,8 +21,9 @@ describe('par de estrelas no configurador', () => {
     const vegas = await screen.findAllByRole('button', { name: /^Vega/ })
     fireEvent.click(vegas[vegas.length - 1])
 
-    // Sirius (R$ 249) + Vega (R$ 249).
-    expect(screen.getByRole('button', { name: /Finalizar · R\$ 498/ })).toBeTruthy()
+    // Sirius (R$ 249) + Vega (R$ 249) = R$ 498, com 10% do par: R$ 448.
+    expect(screen.getByRole('button', { name: /Finalizar · R\$ 448/ })).toBeTruthy()
+    expect(screen.getByText(/Desconto do par \(10%\)/)).toBeTruthy()
     expect(screen.getByText('Segunda estrela')).toBeTruthy()
     // A prévia passa para a folha da segunda pessoa, citando a primeira.
     expect(await screen.findByText(/Em par com Sirius, dedicada a Helena/, {}, { timeout: 8000 })).toBeTruthy()

@@ -144,9 +144,11 @@ bloqueante antes, sem nenhuma violação.
   obrigado, na edição e na página (para a dona).
 - **Parcelamento**: "Pix ou até 12x no cartão" junto do preço — sem valor de
   parcela, porque os juros são do Mercado Pago.
-- **Par de estrelas**: dois pedidos ligados (`group_id`), um pagamento. Preço =
-  soma das duas faixas, SEM desconto — se quiser dar desconto no par, é uma
-  decisão sua (me diga o valor).
+- **Par de estrelas**: dois pedidos ligados (`group_id`), um pagamento, com
+  10% de desconto sobre a soma das faixas, arredondado para baixo até o real
+  (R$ 498 → R$ 448). Para mudar o percentual: `DESCONTO_PAR_PERCENTUAL` em
+  `shared/preco.js` (vale para o site e para a cobrança) e publicar o
+  `create-checkout`.
 - **Teste do fluxo inteiro** (`test/fluxo.test.js`): checkout → webhook →
   estrela dedicada → certificado → página, com o código real das funções.
   Falta o teste com dinheiro de mentira de verdade, que é seu:

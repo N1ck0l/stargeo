@@ -15,8 +15,9 @@
  * que a loja definiu para a faixa dela.
  *
  * Par de estrelas (migration 0020): com `par` no corpo, nascem DOIS pedidos
- * ligados por `group_id` — cada um com a sua estrela, o seu nome e o preço da
- * sua faixa — numa preferência só. O primeiro é o `external_reference`; o
+ * ligados por `group_id` — cada um com a sua estrela e o seu nome — numa
+ * preferência só, com o desconto do par (`shared/preco.js`) repartido entre
+ * os dois. O primeiro é o `external_reference`; o
  * webhook trata o grupo inteiro.
  *
  * Endereço: `https://<ref>.supabase.co/functions/v1/create-checkout`,
@@ -33,6 +34,7 @@ import { limitarPorIp } from '../_shared/limite.ts'
 import { criarPreferencia } from '../_shared/mercadoPago.ts'
 import { explicarErros, limpar, validarPedido } from '../../../shared/moderation.js'
 import { validarRevelacao } from '../_shared/datas.ts'
+import { DESCONTO_PAR_PERCENTUAL, precoDoPar } from '../../../shared/preco.js'
 
 interface Entrada {
   productSlug?: string
@@ -138,6 +140,11 @@ export const checkout = comHandler(async (request) => {
 
   // --- 4. Grava o(s) pedido(s) -------------------------------------------
   const groupId = par ? crypto.randomUUID() : null
+  // Par: 10% sobre a soma, repartido na proporção de cada estrela. A conta é
+  // a mesma que o site mostra, e roda AQUI com os preços do banco.
+  const precos = estrela2
+    ? precoDoPar(estrela.precoCentavos, estrela2.precoCentavos).partes
+    : [estrela.precoCentavos]
   const comum = {
     product_id: produto.id,
     // Snapshot do nome: se o produto mudar de nome depois, o pedido antigo
@@ -158,7 +165,7 @@ export const checkout = comHandler(async (request) => {
   const insercoes = [
     {
       ...comum,
-      amount_cents: estrela.precoCentavos,
+      amount_cents: precos[0],
       star_slug: estrela.slug,
       honoree_name: limpar(corpo.honoreeName),
       star_nickname: corpo.starNickname ? limpar(corpo.starNickname) || null : null,
@@ -167,7 +174,7 @@ export const checkout = comHandler(async (request) => {
   if (par && estrela2) {
     insercoes.push({
       ...comum,
-      amount_cents: estrela2.precoCentavos,
+      amount_cents: precos[1],
       star_slug: estrela2.slug,
       honoree_name: limpar(par.honoreeName),
       star_nickname: par.starNickname ? limpar(par.starNickname) || null : null,
@@ -215,11 +222,11 @@ export const checkout = comHandler(async (request) => {
   // --- 6. Preferência de pagamento ------------------------------------
   try {
     const preferencia = await criarPreferencia({
-      itens: [estrela, estrela2].filter((e): e is EstrelaDoPedido => Boolean(e)).map((e) => ({
+      itens: [estrela, estrela2].filter((e): e is EstrelaDoPedido => Boolean(e)).map((e, i) => ({
         titulo: `Certificado de ${e.name}`,
-        descricao: produto.name,
+        descricao: estrela2 ? `${produto.name} · par de estrelas (${DESCONTO_PAR_PERCENTUAL}% off)` : produto.name,
         quantidade: 1,
-        precoUnitario: e.precoCentavos,
+        precoUnitario: precos[i],
       })),
       payerEmail: comum.customer_email,
       payerName: comum.customer_name,

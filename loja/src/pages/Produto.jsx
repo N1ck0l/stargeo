@@ -11,6 +11,7 @@ import { Link } from '../lib/Link.jsx'
 import { buscarEstrela, comoSeVe, normalizar, reais } from '../lib/catalogo.js'
 import { ocasiaoPorSlug, SUGESTOES_GERAIS } from '../lib/ocasioes.js'
 import { registrar } from '../lib/metricas.js'
+import { DESCONTO_PAR_PERCENTUAL, precoDoPar } from '../../../shared/preco.js'
 import { EMAIL_ATIVO } from '../lib/config.js'
 
 /**
@@ -139,7 +140,9 @@ export default function Produto({ slug }) {
   // Qual das duas folhas a prévia mostra.
   const [folhaVisivel, setFolhaVisivel] = useState(1)
   const indisponivel2 = Boolean(estrela2?.status) && estrela2.status !== 'disponivel'
-  const totalCentavos = estrela.precoCentavos + (emPar && estrela2 ? estrela2.precoCentavos : 0)
+  // O par tem desconto (`shared/preco.js` — a mesma conta do servidor).
+  const doPar = emPar && estrela2 ? precoDoPar(estrela.precoCentavos, estrela2.precoCentavos) : null
+  const totalCentavos = doPar ? doPar.total : estrela.precoCentavos
   const preco = reais(totalCentavos)
   const [paraQuem, setParaQuem] = useState('')
   const [assinatura, setAssinatura] = useState('')
@@ -447,8 +450,8 @@ export default function Produto({ slug }) {
                     Dar um par de estrelas
                     <span className="mt-0.5 block text-xs text-ivory/55">
                       Uma estrela para cada pessoa — casal, irmãos, mãe e filha. Cada uma ganha o próprio
-                      certificado e a própria página, ligados um ao outro (“em par com…”). O preço é a soma das
-                      duas estrelas.
+                      certificado e a própria página, ligados um ao outro (“em par com…”). No par, as duas
+                      estrelas saem com {DESCONTO_PAR_PERCENTUAL}% de desconto.
                     </span>
                   </span>
                 </label>
@@ -657,6 +660,14 @@ export default function Produto({ slug }) {
                     <dd className="text-right text-ivory/85">{valor}</dd>
                   </div>
                 ))}
+                {doPar && (
+                  <div className="flex justify-between gap-4">
+                    <dt className="shrink-0 text-ivory/50">Desconto do par ({DESCONTO_PAR_PERCENTUAL}%)</dt>
+                    <dd className="text-right text-emerald-300">
+                      <span className="mr-2 text-ivory/40 line-through">{reais(doPar.cheio)}</span>− {reais(doPar.desconto)}
+                    </dd>
+                  </div>
+                )}
                 <div className="flex justify-between gap-4 border-t border-white/10 pt-3">
                   <dt className="text-ivory/70">Total</dt>
                   <dd className="font-display text-xl text-gold">{preco}</dd>

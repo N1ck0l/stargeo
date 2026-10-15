@@ -136,7 +136,7 @@ const FAQ = [
   {
     pergunta: 'Dá para dar estrelas para duas pessoas?',
     resposta:
-      'Dá: marque "Dar um par de estrelas" no produto. Cada pessoa ganha a própria estrela, o próprio certificado e a própria página — e um cita o outro ("em par com…"). O preço é a soma das duas estrelas, num pagamento só.',
+      'Dá: marque "Dar um par de estrelas" no produto. Cada pessoa ganha a própria estrela, o próprio certificado e a própria página — e um cita o outro ("em par com…"). No par, as duas estrelas saem com 10% de desconto, num pagamento só.',
   },
   {
     pergunta: 'Posso comprar antes e entregar no dia?',
