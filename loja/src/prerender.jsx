@@ -33,7 +33,9 @@ const arvore = () => (
  * NÃO pode ser trocado — só o endereço muda.
  */
 function noEndereco(caminho) {
-  if (typeof window === 'undefined') {
+  // Sem `window`, ou com o mínimo que este arquivo mesmo criou (sem histórico):
+  // é o build.
+  if (typeof window === 'undefined' || !window.history) {
     globalThis.window = { location: { pathname: caminho, search: '', origin: 'https://stellara.invalid' } }
   } else {
     window.history.pushState(null, '', caminho)
