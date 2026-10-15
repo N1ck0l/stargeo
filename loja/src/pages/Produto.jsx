@@ -389,45 +389,14 @@ export default function Produto({ slug }) {
           (30rem), e o formulário fica com o resto — em retrato a folha é
           estreita, e dar mais largura só a faria passar da altura da tela.
         */}
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)]">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)]">
           {/* --- Formulário --------------------------------------------------
               No celular o formulário vem DEPOIS da prévia (`order-2`): quem
               compra pelo telefone precisa ver o certificado antes de
               começar a digitar. No desktop, os dois cabem lado a lado. */}
-          <div className="order-2 space-y-8 lg:order-1">
-            <Secao numero="1" titulo="Para quem é o certificado?">
-              <Campo
-                rotulo="Nome de quem recebe"
-                obrigatorio
-                value={paraQuem}
-                onChange={setParaQuem}
-                onBlur={() => {
-                  marcarTocado('honoreeName')
-                  if (paraQuem.trim()) registrar('personalizar')
-                }}
-                erro={erroDe('honoreeName')}
-                placeholder="Ex.: Maria Fernanda Oliveira"
-                maxLength={80}
-              />
-              <p className="mt-2 text-xs text-ivory/50">
-                Se o nome não couber em duas linhas, o corpo da letra diminui um pouco — nunca é
-                cortado.
-              </p>
-              <div className="mt-5">
-                <Campo
-                  rotulo="Um nome para a estrela (opcional)"
-                  value={apelido}
-                  onChange={setApelido}
-                  onBlur={() => marcarTocado('starNickname')}
-                  erro={erroDe('starNickname')}
-                  placeholder="Ex.: Nossa Luz, A Estrela da Vó Lúcia"
-                  maxLength={40}
-                  dica="Aparece no certificado e na página como o nome desta homenagem. O nome oficial da estrela nos catálogos continua o mesmo."
-                />
-              </div>
-            </Secao>
-
-            <Secao numero="2" titulo="Qual estrela?">
+          <div className="order-2 min-w-0 space-y-8 lg:order-1">
+            <IndicadorDeEtapas />
+            <Secao id="etapa-estrela" numero="1" titulo="Escolha a estrela">
               {/* A escolhida: história, céu real em volta e o preço da faixa. */}
               <div className="cartao flex flex-col gap-5 sm:flex-row sm:items-start">
                 <div className="min-w-0 flex-1">
@@ -480,6 +449,38 @@ export default function Produto({ slug }) {
                   titulo="Escolher outra estrela"
                 />
               </div>
+            </Secao>
+
+            <Secao id="etapa-para-quem" numero="2" titulo="Para quem é o certificado?">
+              <Campo
+                rotulo="Nome de quem recebe"
+                obrigatorio
+                value={paraQuem}
+                onChange={setParaQuem}
+                onBlur={() => {
+                  marcarTocado('honoreeName')
+                  if (paraQuem.trim()) registrar('personalizar')
+                }}
+                erro={erroDe('honoreeName')}
+                placeholder="Ex.: Maria Fernanda Oliveira"
+                maxLength={80}
+              />
+              <p className="mt-2 text-xs text-ivory/50">
+                Se o nome não couber em duas linhas, o corpo da letra diminui um pouco — nunca é
+                cortado.
+              </p>
+              <div className="mt-5">
+                <Campo
+                  rotulo="Um nome para a estrela (opcional)"
+                  value={apelido}
+                  onChange={setApelido}
+                  onBlur={() => marcarTocado('starNickname')}
+                  erro={erroDe('starNickname')}
+                  placeholder="Ex.: Nossa Luz, A Estrela da Vó Lúcia"
+                  maxLength={40}
+                  dica="Aparece no certificado e na página como o nome desta homenagem. O nome oficial da estrela nos catálogos continua o mesmo."
+                />
+              </div>
 
               <MaisEstrelas
                 principal={estrela}
@@ -493,7 +494,7 @@ export default function Produto({ slug }) {
               />
             </Secao>
 
-            <Secao numero="3" titulo="Sua mensagem (opcional)">
+            <Secao id="etapa-mensagem" numero="3" titulo="Sua mensagem (opcional)">
               <Campo
                 rotulo="Mensagem no certificado"
                 value={mensagem}
@@ -578,7 +579,7 @@ export default function Produto({ slug }) {
               </div>
             </Secao>
 
-            <Secao numero="4" titulo="Seus dados">
+            <Secao id="etapa-dados" numero="4" titulo="Seus dados">
               <Campo
                 rotulo="Seu nome"
                 obrigatorio
@@ -598,7 +599,7 @@ export default function Produto({ slug }) {
                   onChange={setEmail}
                   onBlur={() => marcarTocado('customerEmail')}
                   erro={erroDe('customerEmail')}
-                  placeholder="para enviar o certificado"
+                  placeholder={EMAIL_ATIVO ? 'para enviar o certificado' : 'seu@email.com'}
                   dica={
                     EMAIL_ATIVO
                       ? 'É para cá que o certificado chega. Não pedimos CPF para emitir.'
@@ -619,7 +620,7 @@ export default function Produto({ slug }) {
 
             {/* Resumo antes de pagar: o que é, para quem, quando chega e
                 quanto custa — sem surpresa na tela do Mercado Pago. */}
-            <section aria-labelledby="resumo-titulo" className="cartao">
+            <section id="etapa-pagamento" aria-labelledby="resumo-titulo" className="cartao scroll-mt-40">
               <h2 id="resumo-titulo" className="font-display text-lg text-ivory">
                 Resumo do pedido
               </h2>
@@ -758,11 +759,12 @@ export default function Produto({ slug }) {
  * parece mais trabalho do que é, e a pessoa que começa costuma terminar. A
  * revelação envolve o bloco inteiro — o comentário sobre isso está no JSX.
  */
-function Secao({ numero, titulo, children }) {
+function Secao({ id, numero, titulo, children }) {
   return (
     // A revelação envolve a seção inteira: o número, o título e o campo entram
     // juntos, como no site pessoal — e com movimento reduzido já nascem visíveis.
-    <Reveal as="section">
+    // `scroll-mt`: o indicador de etapas, fixo no topo, não cobre o título.
+    <Reveal as="section" id={id} className="scroll-mt-40">
       <h2 className="flex items-center gap-3 font-display text-lg text-ivory">
         <span className="flex size-7 items-center justify-center rounded-full border border-gold/50 text-xs text-gold">
           {numero}
@@ -771,6 +773,73 @@ function Secao({ numero, titulo, children }) {
       </h2>
       <div className="mt-5">{children}</div>
     </Reveal>
+  )
+}
+
+/**
+ * As etapas da compra, fixas no topo do formulário: 1 Estrela · 2 Para quem ·
+ * 3 Mensagem · 4 Seus dados · Pagamento. Um toque leva à etapa; a etapa em
+ * que a pessoa está fica marcada (a seção que ocupa o alto da tela).
+ */
+const ETAPAS = [
+  ['etapa-estrela', 'Estrela'],
+  ['etapa-para-quem', 'Para quem'],
+  ['etapa-mensagem', 'Mensagem'],
+  ['etapa-dados', 'Seus dados'],
+  ['etapa-pagamento', 'Pagamento'],
+]
+
+function IndicadorDeEtapas() {
+  const [atual, setAtual] = useState(ETAPAS[0][0])
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return undefined
+    // A faixa de observação é o terço de cima da tela: a seção que passa por
+    // ali é a etapa atual.
+    const observador = new IntersectionObserver(
+      (entradas) => {
+        const visivel = entradas.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0]
+        if (visivel) setAtual(visivel.target.id)
+      },
+      { rootMargin: '-20% 0px -65% 0px' },
+    )
+    for (const [id] of ETAPAS) {
+      const el = document.getElementById(id)
+      if (el) observador.observe(el)
+    }
+    return () => observador.disconnect()
+  }, [])
+
+  const indice = ETAPAS.findIndex(([id]) => id === atual)
+
+  return (
+    <nav
+      aria-label="Etapas da compra"
+      className="sticky top-20 z-20 -mx-4 border-b border-white/10 bg-night/[0.97] px-4 py-2.5 backdrop-blur-md sm:mx-0 sm:rounded-2xl sm:border"
+    >
+      <ol className="flex items-center justify-between gap-1 overflow-x-auto text-xs">
+        {ETAPAS.map(([id, rotulo], i) => (
+          <li key={id} className="shrink-0">
+            <a
+              href={`#${id}`}
+              aria-current={id === atual ? 'step' : undefined}
+              className={`flex items-center gap-1.5 rounded-full px-2 py-1 transition ${
+                id === atual ? 'text-gold' : i < indice ? 'text-ivory/75' : 'text-ivory/45'
+              } hover:text-gold`}
+            >
+              <span
+                className={`flex size-5 items-center justify-center rounded-full border text-[10px] ${
+                  id === atual ? 'border-gold bg-gold text-night' : i < indice ? 'border-gold/60 text-gold' : 'border-white/25'
+                }`}
+              >
+                {i < indice ? '✓' : i + 1}
+              </span>
+              {rotulo}
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
   )
 }
 

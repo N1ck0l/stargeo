@@ -93,77 +93,92 @@ const CONFianca = [
 
 const FAQ = [
   {
+    grupo: 'produto',
     pergunta: 'Isso é uma estrela de verdade?',
     resposta:
       'A estrela é real, e a posição vem do catálogo Hipparcos, da Agência Espacial Europeia — uma das medições mais precisas já feitas do céu. O nome é simbólico: ninguém é dono de uma estrela, e nenhuma empresa dá nome oficial a elas (isso cabe à União Astronômica Internacional). O que você recebe é uma homenagem: o certificado e a página que dedicam aquela estrela, no catálogo da Stellara, a quem você escolheu.',
   },
   {
+    grupo: 'produto',
     pergunta: 'Consigo ver a estrela no Brasil?',
     resposta:
       'Depende da estrela, e a gente diz antes: cada uma mostra se aparece a olho nu, com binóculo ou só de telescópio, e qual a melhor época. O filtro "Visíveis em todo o Brasil", ligado por padrão na busca, esconde as que nunca sobem acima do nosso horizonte.',
   },
   {
+    grupo: 'produto',
     pergunta: 'Outra pessoa pode ganhar a mesma estrela?',
     resposta:
       'Não pela Stellara: cada estrela do catálogo é dedicada uma única vez e, depois disso, sai da lista. Uma nota honesta — nenhuma empresa dá nome oficial a estrelas (isso é da União Astronômica Internacional). O que é exclusivo é o registro dela no nosso catálogo, a página e o certificado.',
   },
   {
+    grupo: 'produto',
     pergunta: 'Por que as estrelas têm preços diferentes?',
     resposta:
       'São mais de 118 mil, e não são todas iguais: as mais brilhantes e as que têm nome próprio há séculos (Sirius, Vega, Antares…) são poucas e custam mais. As que só aparecem de telescópio são as mais acessíveis — e guardam um céu que pouca gente já viu.',
   },
   {
+    grupo: 'entrega',
     pergunta: 'Como recebo?',
     resposta:
       'Assim que o pagamento é confirmado (com Pix, costuma ser na hora), a página da sua estrela fica pronta: lá você vê o certificado, baixa o PDF nas versões escura e clara e pega o link para enviar a quem vai receber.' +
       (EMAIL_ATIVO ? ' O link também vai para o e-mail da compra.' : ''),
   },
   {
+    grupo: 'entrega',
     pergunta: 'Vocês enviam o certificado impresso?',
     resposta:
       'Ainda não: o certificado é digital, em PDF A4 de alta resolução, pensado para imprimir em casa ou numa gráfica rápida e caber nas molduras de papelaria. A versão clara gasta pouca tinta e fica muito bonita em papel fosco.',
   },
   {
+    grupo: 'pagamento',
     pergunta: 'E se o pagamento não for aprovado?',
     resposta:
       'Nada é cobrado. A estrela fica reservada para você por 30 minutos enquanto paga; se o pagamento não acontecer, ela volta ao catálogo e você pode tentar de novo.',
   },
   {
+    grupo: 'pagamento',
     pergunta: 'O que vocês fazem com os meus dados?',
     resposta:
       'Só o necessário para fazer e entregar o certificado: seu nome, seu e-mail e o texto que você escreve. Os dados do cartão ficam com o Mercado Pago. Os detalhes estão em Políticas, no rodapé.',
   },
   {
+    grupo: 'produto',
     pergunta: 'Dá para dar estrelas para várias pessoas?',
     resposta:
       'Dá, até 6 numa compra: no produto, use "Adicionar outra pessoa". Cada pessoa ganha a própria estrela, o próprio certificado e a própria página, e todas aparecem juntas numa página do grupo, no mesmo céu. Desconto: 2 estrelas, 10%; 3, 15%; 4 a 6, 20% — num pagamento só.',
   },
   {
+    grupo: 'entrega',
     pergunta: 'Posso comprar antes e entregar no dia?',
     resposta:
       'Pode. Marque "Guardar a surpresa até uma data" e escolha o dia. Você recebe o certificado na hora; a página da estrela mostra só uma contagem regressiva até a data — dá para mandar o link antes, num cartão ou numa mensagem, sem estragar a surpresa.',
   },
   {
+    grupo: 'produto',
     pergunta: 'Posso dar um nome à estrela?',
     resposta:
       'Pode. É opcional: escreva um nome como "Nossa Luz" no campo "Um nome para a estrela" e ele sai no certificado ("chamada, nesta homenagem, de…") e na página. É um nome simbólico, desta homenagem — nos catálogos dos astrônomos, a estrela continua com o nome oficial, que também aparece na folha.',
   },
   {
+    grupo: 'entrega',
     pergunta: 'Posso escrever uma mensagem?',
     resposta:
       'Sim, e é a melhor parte. O campo de mensagem aparece na prévia e sai impresso no certificado. Não aceitamos telefone, e-mail ou endereço de rede social: um documento desses pode ser usado para golpe, e não queremos participar disso.',
   },
   {
+    grupo: 'depois',
     pergunta: 'E se eu errar o nome?',
     resposta:
       'Escreva com calma — a prévia mostra exatamente o que vai sair antes de você pagar. Se ainda assim precisar corrigir, é só falar com a gente pelo código do pedido, sem custo.',
   },
   {
+    grupo: 'entrega',
     pergunta: 'Dá para imprimir?',
     resposta:
       'O PDF é feito para isso: A4 em alta resolução, com uma versão clara que economiza tinta de jato de tinta. Muita gente imprime e emoldura.',
   },
   {
+    grupo: 'depois',
     pergunta: 'Já comprei, como acesso minha página?',
     resposta:
       'Clique em "Editar minha página" no rodapé, ou venha direto para Editar. Digite o código do pedido (' + (EMAIL_ATIVO ? 'veio no e-mail da compra' : 'aparece no fim da compra e no endereço da página, depois de /p/') + ') e o e-mail usado no pagamento — a página abre e você ajusta a carta, a assinatura e a mensagem pessoal quando quiser.',
@@ -280,6 +295,18 @@ function Hero() {
             <a href="#certificados" className="btn btn-secundario">
               Conhecer a experiência
             </a>
+          </Reveal>
+
+          {/* O produto em três passos, para quem decide em segundos. */}
+          <Reveal as="ol" delay={580} className="mt-8 flex max-w-lg flex-wrap gap-x-5 gap-y-2 text-sm text-ivory/80">
+            {['Escolha uma estrela', 'Personalize a homenagem', 'Receba o certificado'].map((passo, i) => (
+              <li key={passo} className="flex items-center gap-2">
+                <span className="flex size-6 items-center justify-center rounded-full border border-gold/50 font-display text-xs text-gold">
+                  {i + 1}
+                </span>
+                {passo}
+              </li>
+            ))}
           </Reveal>
 
           <Reveal delay={640}>
@@ -847,8 +874,22 @@ function Ocasioes() {
  * que está aberta clicando de novo. Começa em `0` porque a primeira pergunta
  * ("isso é uma estrela de verdade?") é o argumento que segura a venda.
  */
+/**
+ * Os assuntos do FAQ, na ordem da decisão de compra: primeiro o que é o
+ * produto (as dúvidas que decidem), depois entrega, pagamento e o pós-venda.
+ * Com 15 perguntas, a lista inteira cansava; uma aba por vez, não.
+ */
+const ASSUNTOS_FAQ = [
+  ['produto', 'O produto'],
+  ['entrega', 'Certificado e entrega'],
+  ['pagamento', 'Pagamento e dados'],
+  ['depois', 'Depois da compra'],
+]
+
 function Faq() {
+  const [assunto, setAssunto] = useState('produto')
   const [aberta, setAberta] = useState(0)
+  const perguntas = FAQ.filter((item) => item.grupo === assunto)
 
   return (
     <section id="faq" className="espaco-secao border-t border-white/8">
@@ -859,8 +900,27 @@ function Faq() {
           </h2>
         </Reveal>
 
-        <Reveal delay={120} className="mt-10 divide-y divide-white/10">
-          {FAQ.map((item, i) => {
+        <div role="group" aria-label="Assunto das perguntas" className="mt-8 flex flex-wrap justify-center gap-2">
+          {ASSUNTOS_FAQ.map(([id, rotulo]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => {
+                setAssunto(id)
+                setAberta(0)
+              }}
+              aria-pressed={assunto === id}
+              className={`rounded-full border px-4 py-2 text-sm transition ${
+                assunto === id ? 'border-gold/70 bg-gold/15 text-gold' : 'border-white/12 text-ivory/70 hover:border-white/30'
+              }`}
+            >
+              {rotulo}
+            </button>
+          ))}
+        </div>
+
+        <Reveal delay={120} className="mt-6 divide-y divide-white/10">
+          {perguntas.map((item, i) => {
             const abertaAqui = aberta === i
             return (
               <div key={item.pergunta}>

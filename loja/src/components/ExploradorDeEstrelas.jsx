@@ -176,7 +176,13 @@ export function ExploradorDeEstrelas({ selecionada, aoEscolher, titulo = 'Buscar
               : 'Nenhuma estrela livre com esses filtros.')}
       </p>
 
-      <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+      {/*
+        Cartão para decidir: o NOME e o PREÇO em destaque, e a ação à vista.
+        Constelação e brilho numa linha discreta; a designação técnica
+        (α Scorpii, HIP 12345) fica no `title` e na página da estrela — ela
+        disputava atenção com o que importa para escolher.
+      */}
+      <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {resultado.estrelas.map((estrela) => {
           const ativa = estrela.slug === selecionada
           return (
@@ -185,18 +191,23 @@ export function ExploradorDeEstrelas({ selecionada, aoEscolher, titulo = 'Buscar
                 type="button"
                 onClick={() => aoEscolher(estrela)}
                 aria-pressed={ativa}
-                className={`flex w-full items-start justify-between gap-3 rounded-xl border p-3 text-left transition ${
-                  ativa ? 'border-gold/70 bg-gold/10' : 'border-white/10 bg-white/[0.03] hover:border-white/25'
+                title={estrela.bayer}
+                className={`flex w-full items-center justify-between gap-4 rounded-2xl border px-4 py-3.5 text-left transition ${
+                  ativa ? 'border-gold/70 bg-gold/10' : 'border-white/10 bg-white/[0.03] hover:border-gold/40 hover:bg-white/[0.05]'
                 }`}
               >
                 <span className="min-w-0">
-                  <span className="block truncate font-serif text-sm leading-tight text-ivory">{estrela.name}</span>
-                  <span className="mt-1 block truncate text-[11px] text-gold/70">
-                    {estrela.bayer} · {estrela.constellation}
+                  <span className="block truncate font-serif text-lg leading-tight text-ivory">{estrela.name}</span>
+                  <span className="mt-1 block truncate text-xs text-ivory/50">
+                    {estrela.constellation} · {comoSeVe(estrela.magnitude)}
                   </span>
-                  <span className="mt-0.5 block text-[11px] text-ivory/45">{comoSeVe(estrela.magnitude)}</span>
                 </span>
-                <span className="shrink-0 text-xs text-ivory/80">{reais(estrela.precoCentavos)}</span>
+                <span className="shrink-0 text-right">
+                  <span className="block font-display text-base text-gold">{reais(estrela.precoCentavos)}</span>
+                  <span className={`mt-0.5 block text-[11px] ${ativa ? 'text-gold' : 'text-ivory/45'}`}>
+                    {ativa ? 'Escolhida ✓' : 'Escolher'}
+                  </span>
+                </span>
               </button>
             </li>
           )
