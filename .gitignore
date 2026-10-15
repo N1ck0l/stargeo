@@ -30,3 +30,6 @@ dist-ssr
 *.sw?
 
 supabase/.temp
+
+# Cache local da Netlify (CLI e build): nunca versionar.
+.netlify/

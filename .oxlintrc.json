@@ -17,7 +17,8 @@
   "ignorePatterns": [
     "dist-loja/**",
     "node_modules/**",
-    "loja/public/**"
+    "loja/public/**",
+    ".netlify/**"
   ],
   "env": {
     "browser": true,
