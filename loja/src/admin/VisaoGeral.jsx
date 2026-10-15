@@ -60,6 +60,7 @@ export function VisaoGeral({ aoExpirar, aoAbrirPagina, aoIrParaPedidos }) {
 
   return (
     <div>
+      <EntregasTravadas lista={dados.entregasTravadas ?? []} aoExpirar={aoExpirar} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {cartoes.map((cartao) => (
           <div key={cartao.rotulo} className="rounded-2xl border border-white/8 bg-white/5 p-4">
@@ -201,6 +202,60 @@ function Funil({ funil }) {
       <p className="mt-3 text-[11px] text-ivory/45">
         Contagem anônima, sem cookie. Compras são os pedidos pagos; as outras etapas são aproximadas.
       </p>
+    </section>
+  )
+}
+
+/**
+ * O alerta mais importante do painel: pedido PAGO há mais de 10 minutos sem
+ * PDF ou sem página — alguém pagou e não recebeu nada. "Refazer entrega"
+ * roda o mesmo caminho do webhook (idempotente), e a linha some quando dá certo.
+ */
+function EntregasTravadas({ lista, aoExpirar }) {
+  const [resolvidos, setResolvidos] = useState({})
+  const [refazendo, setRefazendo] = useState(null)
+  const [falha, setFalha] = useState('')
+
+  const pendentes = lista.filter((p) => !resolvidos[p.id])
+  if (!pendentes.length) return null
+
+  async function refazer(pedido) {
+    setRefazendo(pedido.id)
+    setFalha('')
+    try {
+      await chamarAdmin('refazerEntrega', { orderId: pedido.id })
+      setResolvidos((r) => ({ ...r, [pedido.id]: true }))
+    } catch (e) {
+      const mensagem = tratarErro(e, aoExpirar)
+      if (mensagem) setFalha(`${pedido.code}: ${mensagem}`)
+    } finally {
+      setRefazendo(null)
+    }
+  }
+
+  return (
+    <section role="alert" className="mb-6 rounded-2xl border border-red-400/40 bg-red-500/10 p-5">
+      <h2 className="text-sm font-medium text-red-100">
+        {pendentes.length === 1 ? '1 pedido pago não foi entregue' : `${pendentes.length} pedidos pagos não foram entregues`}
+      </h2>
+      <ul className="mt-3 space-y-2">
+        {pendentes.map((p) => (
+          <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 text-sm">
+            <span className="text-ivory/85">
+              <span className="font-mono">{p.code}</span> · {p.paraQuem} · <span className="text-red-200">{p.motivo}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => refazer(p)}
+              disabled={refazendo !== null}
+              className="btn btn-primary px-3 py-1 text-xs"
+            >
+              {refazendo === p.id ? 'Refazendo…' : 'Refazer entrega'}
+            </button>
+          </li>
+        ))}
+      </ul>
+      {falha && <p className="mt-3 text-xs text-red-200">{falha}</p>}
     </section>
   )
 }

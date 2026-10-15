@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { rastrear, ErroApi } from '../lib/api.js'
 import { Link } from '../lib/Link.jsx'
+import { EMAIL_ATIVO } from '../lib/config.js'
+import { CompartilharPagina } from '../components/CompartilharPagina.jsx'
 
 /**
  * Página de retorno do pagamento.
@@ -32,6 +34,10 @@ export default function Obrigado() {
   const [estado, setEstado] = useState('consultando')
   // Código da página dedicada, quando o webhook já a criou.
   const [pagina, setPagina] = useState(null)
+  // Código do pedido: sem e-mail de entrega, esta tela é onde ele aparece.
+  const [codigo, setCodigo] = useState(null)
+  // Para a mensagem do WhatsApp: primeiro nome e data de revelação.
+  const [envio, setEnvio] = useState({ para: '', revelaEm: null, par: null })
 
   useEffect(() => {
     let cancelado = false
@@ -53,6 +59,8 @@ export default function Obrigado() {
         const novo = descrever(pedido)
         setEstado(novo)
         setPagina(pedido.pagina ?? null)
+        setCodigo(pedido.code ?? null)
+        setEnvio({ para: String(pedido.paraQuem ?? '').trim().split(/\s+/)[0], revelaEm: pedido.revelaEm ?? null, par: pedido.par ?? null })
         const final = novo === 'recusado' || (novo === 'aprovado' && pedido.pagina)
         if (!final && tentativas < 15) timer = setTimeout(consultar, 4000)
       } catch {
@@ -76,7 +84,7 @@ export default function Obrigado() {
       */}
       <div key={estado} className="animate-fade-in pilha max-w-xl">
         {estado === 'consultando' && <Consultando />}
-        {estado === 'aprovado' && <Aprovado pagina={pagina} />}
+        {estado === 'aprovado' && <Aprovado pagina={pagina} codigo={codigo} envio={envio} />}
         {estado === 'processando' && <Processando />}
         {estado === 'recusado' && <Recusado />}
         {estado === 'sem-dados' && <SemDados />}
@@ -153,7 +161,7 @@ function Consultando() {
  * folha, o PDF para baixar na hora e o link para mandar a quem recebe — sem
  * depender do e-mail chegar.
  */
-function Aprovado({ pagina }) {
+function Aprovado({ pagina, codigo, envio }) {
   return (
     <div className="text-center">
       <Icone tipo="check" />
@@ -161,7 +169,7 @@ function Aprovado({ pagina }) {
       {pagina ? (
         <p className="mt-4 leading-relaxed text-ivory/70">
           A página da sua estrela está pronta. Lá você vê o certificado, baixa o PDF agora mesmo e
-          pega o link para enviar a quem vai receber. Uma cópia também segue para o seu e-mail.
+          pega o link para enviar a quem vai receber.{EMAIL_ATIVO && ' Uma cópia também segue para o seu e-mail.'}
         </p>
       ) : (
         <p className="mt-4 leading-relaxed text-ivory/70" aria-live="polite">
@@ -183,9 +191,38 @@ function Aprovado({ pagina }) {
           Voltar à loja
         </Link>
       </div>
-      <p className="mt-6 text-sm text-ivory/50">
-        O e-mail não chegou? Veja a caixa de spam e confira se o endereço é o mesmo da compra.
-      </p>
+      {pagina && (
+        <div className="mt-8">
+          <p className="mb-3 text-sm text-ivory/60">Mande para quem vai receber:</p>
+          <CompartilharPagina codigo={pagina} para={envio?.para} revelaEm={envio?.revelaEm} />
+        </div>
+      )}
+      {envio?.par?.pagina && (
+        <div className="mt-8">
+          <p className="mb-3 text-sm text-ivory/60">
+            E a estrela do par ({envio.par.estrela}), para {envio.par.paraQuem}:
+          </p>
+          <CompartilharPagina
+            codigo={envio.par.pagina}
+            para={String(envio.par.paraQuem).trim().split(' ')[0]}
+            revelaEm={envio?.revelaEm}
+          />
+        </div>
+      )}
+      {codigo && (
+        <div className="mx-auto mt-8 max-w-sm rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4">
+          <p className="text-xs tracking-[0.2em] text-gold/80 uppercase">Código do pedido</p>
+          <p className="mt-1 font-mono text-2xl text-ivory select-all">{codigo}</p>
+          <p className="mt-2 text-xs leading-relaxed text-ivory/50">
+            Guarde este código: com ele e o seu e-mail você rastreia o pedido e edita a página quando quiser.
+          </p>
+        </div>
+      )}
+      {EMAIL_ATIVO && (
+        <p className="mt-6 text-sm text-ivory/50">
+          O e-mail não chegou? Veja a caixa de spam e confira se o endereço é o mesmo da compra.
+        </p>
+      )}
       {pagina && (
         <p className="mx-auto mt-8 max-w-md rounded-2xl border border-gold/20 bg-gold/[0.05] px-5 py-4 text-sm leading-relaxed text-ivory/70">
           Depois que a pessoa receber, conte para a gente como foi: na edição da página há um espaço
@@ -205,11 +242,9 @@ function Processando() {
       <Icone tipo="relogio" />
       <h1 className="font-display mt-6 text-3xl text-ivory">Pagamento em análise</h1>
       <p className="mt-4 leading-relaxed text-ivory/70">
-        O Pix e o cartão são confirmados em segundos. Assim que cair, o certificado é gerado
-        automaticamente e enviado para o seu e-mail.
-      </p>
-      <p className="mt-4 text-sm text-ivory/50">
-        Se for boleto, a confirmação leva até 3 dias úteis.
+        O Pix e o cartão costumam ser confirmados em segundos; alguns cartões passam por uma análise
+        do banco. Assim que cair, o certificado e a página da estrela são gerados automaticamente
+        {EMAIL_ATIVO ? ' e enviados para o seu e-mail' : ' — acompanhe pelo rastreamento'}.
       </p>
       <Link para="/rastrear" className="btn btn-primary mt-8">
         Rastrear meu pedido
@@ -245,8 +280,8 @@ function SemDados() {
       <Icone tipo="info" />
       <h1 className="font-display mt-6 text-2xl text-ivory">Não achamos este pedido aqui</h1>
       <p className="mt-4 leading-relaxed text-ivory/70">
-        Isso acontece quando a compra foi feita em outro navegador ou aparelho. Com o código e o
-        e-mail da compra, a gente encontra em qualquer lugar.
+        Isso acontece quando a compra foi feita em outro navegador ou aparelho. Com o código do
+        pedido e o e-mail da compra, a gente encontra em qualquer lugar.
       </p>
       <Link para="/rastrear" className="btn btn-primary mt-8">
         Rastrear pelo código

@@ -64,6 +64,14 @@ const casos = {
     message: 'Para você lembrar de olhar para cima.',
     starNickname: 'Nossa Luz',
   }),
+  'par no pior caso': dados('alpha-centauri', {
+    honoreeName: 'Maria Eduarda Albuquerque de Vasconcelos Cavalcanti Figueiredo Pessoa Junior'.slice(0, LIMITES.honoreeName.max),
+    message: mensagemLonga.slice(0, LIMITES.message.max),
+    fromName: 'Com todo o amor do mundo, para sempre seu, hoje e amanhã'.slice(0, LIMITES.fromName.max),
+    starNickname: 'A Estrela Mais Brilhante da Vovó Lúcia e do Vovô'.slice(0, LIMITES.starNickname.max),
+    parEstrela: 'HD 224700',
+    parNome: 'João Pedro Albuquerque de Vasconcelos Cavalcanti Figueiredo Pessoa Neto'.slice(0, LIMITES.honoreeName.max),
+  }),
   'nome da estrela sem espaços': dados('sirius', {
     starNickname: 'WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW'.slice(0, LIMITES.starNickname.max),
   }),
@@ -140,6 +148,13 @@ describe('desenharCertificado', () => {
     expect(com).toContain('Vega')
     const sem = desenharCertificado(casos.típico).itens.filter((i) => i.tipo === 'texto').map((t) => t.texto)
     expect(sem).not.toContain('chamada, nesta homenagem, de')
+  })
+
+  it('par de estrelas: a linha "Em par com" aparece; sem par, não', () => {
+    const com = desenharCertificado(dados('vega', { parEstrela: 'Altair', parNome: 'Pedro' })).itens.map((i) => i.texto)
+    expect(com).toContain('Em par com Altair, dedicada a Pedro')
+    const sem = desenharCertificado(casos.típico).itens.map((i) => i.texto).join(' ')
+    expect(sem).not.toContain('Em par com')
   })
 
   it('a mesma entrada dá sempre a mesma folha (céu de fundo com sorteio fixo)', () => {

@@ -46,7 +46,7 @@ supabase/
   functions/       Edge Functions (Deno): checkout, webhook, rastreio,
                    páginas, edição, painel, reenvio
   migrations/      schema, RLS, seeds, catálogo, busca, métricas,
-                   depoimentos e revelação na data (0001–0019)
+                   depoimentos, revelação na data e par (0001–0020)
 netlify/
   edge-functions/  prévia social por página (/p/CODE no WhatsApp), título e
                    canônico de /estrelas/<slug>, sitemap.xml e robots.txt

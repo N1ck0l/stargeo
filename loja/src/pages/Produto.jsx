@@ -11,6 +11,7 @@ import { Link } from '../lib/Link.jsx'
 import { buscarEstrela, comoSeVe, normalizar, reais } from '../lib/catalogo.js'
 import { ocasiaoPorSlug, SUGESTOES_GERAIS } from '../lib/ocasioes.js'
 import { registrar } from '../lib/metricas.js'
+import { EMAIL_ATIVO } from '../lib/config.js'
 
 /**
  * Produtos que têm página. O PREÇO não mora aqui: ele é o da faixa da estrela
@@ -125,7 +126,21 @@ export default function Produto({ slug }) {
   // Cada estrela é exclusiva: dedicada (ou reservada por outro pagamento em
   // curso) não dá para comprar.
   const indisponivel = Boolean(estrela.status) && estrela.status !== 'disponivel'
-  const preco = reais(estrela.precoCentavos)
+
+  /*
+   * Par de estrelas (migration 0020): uma estrela para cada pessoa — casal,
+   * irmãos, mãe e filha. São dois certificados e duas páginas, ligados ("Em
+   * par com …"), pagos juntos. O preço é a soma das faixas das duas.
+   */
+  const [emPar, setEmPar] = useState(false)
+  const [estrela2, setEstrela2] = useState(null)
+  const [paraQuem2, setParaQuem2] = useState('')
+  const [apelido2, setApelido2] = useState('')
+  // Qual das duas folhas a prévia mostra.
+  const [folhaVisivel, setFolhaVisivel] = useState(1)
+  const indisponivel2 = Boolean(estrela2?.status) && estrela2.status !== 'disponivel'
+  const totalCentavos = estrela.precoCentavos + (emPar && estrela2 ? estrela2.precoCentavos : 0)
+  const preco = reais(totalCentavos)
   const [paraQuem, setParaQuem] = useState('')
   const [assinatura, setAssinatura] = useState('')
   // Nome dado à estrela nesta homenagem (opcional, simbólico).
@@ -168,10 +183,20 @@ export default function Produto({ slug }) {
     customerEmail: email,
   })
 
+  // A segunda pessoa do par passa pela mesma régua (nome e nome da estrela).
+  const validacao2 = emPar
+    ? validarPedido({ honoreeName: paraQuem2, starNickname: apelido2, customerName: 'Comprador', customerEmail: 'a@b.co' })
+    : { ok: true, erros: [] }
+
   /** Mensagem de erro do campo, nula enquanto a pessoa não tiver tocado nele. */
   const erroDe = (campo) => {
     if (!tocou[campo]) return null
     return validacao.erros.find((e) => e.campo === campo)?.motivo ?? null
+  }
+  /** O mesmo, para os campos da segunda pessoa (`par.honoreeName`, …). */
+  const erroDe2 = (campo) => {
+    if (!tocou[`par.${campo}`]) return null
+    return validacao2.erros.find((e) => e.campo === campo)?.motivo ?? null
   }
 
   /** Marca o campo como tocado. É idempotente: repetir devolve o mesmo objeto e não re-renderiza. */
@@ -210,6 +235,25 @@ export default function Produto({ slug }) {
       setErro('Esta estrela já tem dono. Escolha outra no catálogo acima — são milhares livres.')
       return
     }
+    if (emPar) {
+      if (!estrela2) {
+        setErro('Escolha a segunda estrela do par — ou desmarque "Dar um par de estrelas".')
+        return
+      }
+      if (estrela2.slug === estrela.slug) {
+        setErro('O par precisa de duas estrelas diferentes.')
+        return
+      }
+      if (indisponivel2) {
+        setErro('A segunda estrela já tem dono. Escolha outra.')
+        return
+      }
+      if (!validacao2.ok) {
+        setTocou((t) => ({ ...t, 'par.honoreeName': true, 'par.starNickname': true }))
+        setErro(explicarErros(validacao2.erros))
+        return
+      }
+    }
     if (guardar && !revelarEm) {
       setErro('Escolha o dia em que a página se revela — ou desmarque "Guardar a surpresa até uma data".')
       return
@@ -233,6 +277,10 @@ export default function Produto({ slug }) {
         fromName: assinatura || undefined,
         starNickname: apelido.trim() || undefined,
         revealOn: guardar && revelarEm ? revelarEm : undefined,
+        par:
+          emPar && estrela2
+            ? { starSlug: estrela2.slug, honoreeName: paraQuem2, starNickname: apelido2.trim() || undefined }
+            : undefined,
         message: mensagem || undefined,
         dedicationDate: data || undefined,
         customerEmail: email,
@@ -268,6 +316,7 @@ export default function Produto({ slug }) {
       // banco, e a tela passa a mostrá-la como indisponível.
       if (falha instanceof ErroApi && falha.codigo === 'estrela_indisponivel') {
         buscarEstrela(estrela.slug).then((e) => e && setEstrela(e)).catch(() => {})
+        if (estrela2) buscarEstrela(estrela2.slug).then((e) => e && setEstrela2(e)).catch(() => {})
       }
       setEnviando(false)
     }
@@ -335,7 +384,10 @@ export default function Produto({ slug }) {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <h3 className="font-serif text-xl text-ivory">{estrela.name}</h3>
-                    <span className="text-sm text-gold">{preco}</span>
+                    <span className="text-right text-sm text-gold">
+                      {preco}
+                      <span className="block text-[11px] text-ivory/45">Pix ou até 12x no cartão</span>
+                    </span>
                   </div>
                   <p className="mt-1 text-xs text-gold/80">
                     {estrela.bayer} · {estrela.constellation}
@@ -378,6 +430,75 @@ export default function Produto({ slug }) {
                   aoEscolher={escolherEstrela}
                   titulo="Escolher outra estrela"
                 />
+              </div>
+
+              <div className="mt-8 rounded-2xl border border-gold/25 bg-gold/[0.04] p-5">
+                <label className="flex cursor-pointer items-start gap-2.5 text-sm text-ivory/90">
+                  <input
+                    type="checkbox"
+                    checked={emPar}
+                    onChange={(e) => {
+                      setEmPar(e.target.checked)
+                      if (!e.target.checked) setFolhaVisivel(1)
+                    }}
+                    className="mt-1 accent-[#d8b66a]"
+                  />
+                  <span>
+                    Dar um par de estrelas
+                    <span className="mt-0.5 block text-xs text-ivory/55">
+                      Uma estrela para cada pessoa — casal, irmãos, mãe e filha. Cada uma ganha o próprio
+                      certificado e a própria página, ligados um ao outro (“em par com…”). O preço é a soma das
+                      duas estrelas.
+                    </span>
+                  </span>
+                </label>
+
+                {emPar && (
+                  <div className="mt-5 space-y-5">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Campo
+                        name="par-nome"
+                        rotulo="Nome da segunda pessoa"
+                        obrigatorio
+                        value={paraQuem2}
+                        onChange={setParaQuem2}
+                        onBlur={() => marcarTocado('par.honoreeName')}
+                        erro={erroDe2('honoreeName')}
+                        placeholder="Ex.: Pedro Henrique Lima"
+                        maxLength={80}
+                      />
+                      <Campo
+                        name="par-apelido"
+                        rotulo="Nome para a segunda estrela (opcional)"
+                        value={apelido2}
+                        onChange={setApelido2}
+                        onBlur={() => marcarTocado('par.starNickname')}
+                        erro={erroDe2('starNickname')}
+                        maxLength={40}
+                      />
+                    </div>
+
+                    {estrela2 ? (
+                      <p className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-ivory/85">
+                        Segunda estrela: <span className="font-serif text-ivory">{estrela2.name}</span>
+                        <span className="text-ivory/50"> · {estrela2.constellation} · {reais(estrela2.precoCentavos)}</span>
+                        {indisponivel2 && <span className="block text-xs text-amber-200">Esta já tem dono — escolha outra.</span>}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-ivory/55">Escolha abaixo a estrela da segunda pessoa.</p>
+                    )}
+
+                    <ExploradorDeEstrelas
+                      selecionada={estrela2?.slug}
+                      aoEscolher={(e) => {
+                        if (e.slug === estrela.slug) return
+                        setEstrela2(e)
+                        setFolhaVisivel(2)
+                      }}
+                      titulo="Escolher a segunda estrela"
+                    />
+                  </div>
+                )}
               </div>
             </Secao>
 
@@ -487,7 +608,11 @@ export default function Produto({ slug }) {
                   onBlur={() => marcarTocado('customerEmail')}
                   erro={erroDe('customerEmail')}
                   placeholder="para enviar o certificado"
-                  dica="É para cá que o certificado chega. Não pedimos CPF para emitir."
+                  dica={
+                    EMAIL_ATIVO
+                      ? 'É para cá que o certificado chega. Não pedimos CPF para emitir.'
+                      : 'Com ele (e o código do pedido) você abre e edita a página depois. Não pedimos CPF.'
+                  }
                 />
               </div>
             </Secao>
@@ -512,9 +637,20 @@ export default function Produto({ slug }) {
                   ['Estrela', `${estrela.name} · ${estrela.constellation}`],
                   ['Dedicada a', paraQuem.trim() || '—'],
                   ...(apelido.trim() ? [['Nome da homenagem', `“${apelido.trim()}”`]] : []),
+                  ...(emPar
+                    ? [
+                        ['Segunda estrela', estrela2 ? `${estrela2.name} · ${estrela2.constellation}` : '—'],
+                        ['Segunda dedicada a', paraQuem2.trim() || '—'],
+                      ]
+                    : []),
                   ...(guardar && revelarEm ? [['Página revelada em', dataEmPortugues(revelarEm)]] : []),
                   ['Formato', 'Certificado digital em PDF A4 (versões escura e clara) + página da estrela'],
-                  ['Entrega', 'Logo após a confirmação do pagamento, na página da estrela e no seu e-mail'],
+                  [
+                    'Entrega',
+                    EMAIL_ATIVO
+                      ? 'Logo após a confirmação do pagamento, na página da estrela e no seu e-mail'
+                      : 'Logo após a confirmação do pagamento, na página da estrela (com o PDF para baixar)',
+                  ],
                 ].map(([rotulo, valor]) => (
                   <div key={rotulo} className="flex justify-between gap-4">
                     <dt className="shrink-0 text-ivory/50">{rotulo}</dt>
@@ -533,7 +669,7 @@ export default function Produto({ slug }) {
                 {enviando ? 'Abrindo o pagamento…' : `Finalizar · ${preco}`}
               </button>
               <p className="text-xs text-ivory/45">
-                Você paga no Mercado Pago, por Pix ou cartão em até 12x. A estrela fica reservada para
+                Você paga no Mercado Pago, por Pix ou cartão em até 12x. {emPar ? 'As estrelas ficam reservadas' : 'A estrela fica reservada'} para
                 você por 30 minutos enquanto paga.{' '}
                 <Link para="/politicas" className="underline decoration-white/30 hover:text-gold">
                   Entrega, reembolso e privacidade
@@ -581,17 +717,53 @@ export default function Produto({ slug }) {
                 ela fique mais alta que a tela no desktop.
               */}
               <div className="shimmer-border mx-auto max-w-[30rem] overflow-hidden rounded-2xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
-                <Folha
+                {emPar && estrela2 && folhaVisivel === 2 ? (
+                  <Folha
+                    estrela={estrela2}
+                    honoreeName={paraQuem2}
+                    message={mensagem}
+                    fromName={assinatura}
+                    starNickname={apelido2}
+                    par={{ estrela: estrela.name, nome: paraQuem.trim() || 'quem recebe' }}
+                    dedicationDate={dataEmPortugues(data)}
+                    code="SG-XXXX-XXXX"
+                    light={versaoClara}
+                  />
+                ) : (
+                  <Folha
                     estrela={estrela}
                     honoreeName={paraQuem}
                     message={mensagem}
                     fromName={assinatura}
                     starNickname={apelido}
+                    par={emPar && estrela2 ? { estrela: estrela2.name, nome: paraQuem2.trim() || 'a segunda pessoa' } : undefined}
                     dedicationDate={dataEmPortugues(data)}
                     code="SG-XXXX-XXXX"
                     light={versaoClara}
                   />
+                )}
               </div>
+
+              {emPar && estrela2 && (
+                <div role="group" aria-label="Qual folha do par" className="mt-3 flex justify-center gap-2 text-xs">
+                  {[
+                    [1, paraQuem.trim().split(' ')[0] || 'Primeira'],
+                    [2, paraQuem2.trim().split(' ')[0] || 'Segunda'],
+                  ].map(([n, rotulo]) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setFolhaVisivel(n)}
+                      aria-pressed={folhaVisivel === n}
+                      className={`rounded-full border px-3 py-1.5 transition ${
+                        folhaVisivel === n ? 'border-gold/70 bg-gold/15 text-gold' : 'border-white/15 text-ivory/70'
+                      }`}
+                    >
+                      Folha de {rotulo}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               <p className="mt-3 text-xs leading-relaxed text-ivory/45">
                 A prévia usa as mesmas medidas e as mesmas fontes do PDF que você vai receber. O

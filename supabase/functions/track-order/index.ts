@@ -21,6 +21,7 @@
 import { comHandler, ErroApp, ipDe, json, lerJson } from '../_shared/http.ts'
 import { admin } from '../_shared/supabase.ts'
 import { limitar } from '../_shared/limite.ts'
+import { dadosDoPar } from '../_shared/par.ts'
 
 /**
  * O que volta para o cliente.
@@ -37,7 +38,9 @@ const CAMPOS = [
   'star_slug',
   'honoree_name',
   'dedication_date',
+  'reveal_on',
   'amount_cents',
+  'group_id',
   'created_at',
   'delivered_at',
   'email_error',
@@ -57,6 +60,8 @@ interface PedidoRastreio {
   star_slug: string
   honoree_name: string
   dedication_date: string | null
+  reveal_on: string | null
+  group_id: string | null
   amount_cents: number
   created_at: string
   delivered_at: string | null
@@ -127,6 +132,9 @@ Deno.serve(
       .eq('status', 'published')
       .maybeSingle()
 
+    // Par de estrelas (0020): a outra página, para a tela de obrigado mandar as duas.
+    const par = await dadosDoPar(db, pedido.id, pedido.group_id)
+
     return json(request, {
       pedido: {
         code: pedido.code,
@@ -142,6 +150,9 @@ Deno.serve(
         entregueEm: pedido.delivered_at,
         pendencia: pedido.email_error ?? null,
         pagina: pagina?.code ?? null,
+        // Revelação na data (0019): a mensagem de envio não entrega a estrela.
+        revelaEm: pedido.reveal_on ?? null,
+        par: par ? { pagina: par.pagina, paraQuem: par.honoreeName, estrela: par.starName } : null,
       },
     })
   }, 'track-order'),

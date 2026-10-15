@@ -75,6 +75,9 @@ export async function gerarEGuardar(
     ),
     fromName: pedido.from_name ? String(pedido.from_name) : undefined,
     starNickname: pedido.star_nickname ? String(pedido.star_nickname) : undefined,
+    // Par de estrelas (0020): quem chama põe `par_estrela`/`par_nome` no pedido.
+    parEstrela: pedido.par_estrela ? String(pedido.par_estrela) : undefined,
+    parNome: pedido.par_nome ? String(pedido.par_nome) : undefined,
     message: pedido.message ? String(pedido.message) : undefined,
   }
 

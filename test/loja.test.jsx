@@ -254,11 +254,13 @@ describe('configurador', () => {
   })
 
   // --- Dica do e-mail: a prop se chama `dica`, não `hint` ---
-  it('mostra a dica do e-mail (o certificado chega para lá)', () => {
+  it('mostra a dica do e-mail, sem prometer envio enquanto o e-mail está desligado', () => {
     // Regressão: o campo passava `hint="…"` e o componente só lia `dica`, então
-    // o texto de ajuda ficava invisível mesmo com a prop preenchida.
+    // o texto de ajuda ficava invisível mesmo com a prop preenchida. Sem
+    // `VITE_EMAIL_ATIVO` (testes), a dica não diz que o certificado chega lá.
     render(<Produto slug="certificado-digital" />)
-    expect(screen.getByText(/É para cá que o certificado chega/i)).toBeTruthy()
+    expect(screen.getByText(/você abre e edita a página depois/i)).toBeTruthy()
+    expect(screen.queryByText(/É para cá que o certificado chega/i)).toBeNull()
   })
 
   it('slug descontinuado cai na tela de não encontrado, não em erro', () => {

@@ -132,6 +132,34 @@ bloqueante antes, sem nenhuma violação.
   o site deixa claro que o certificado é digital e que a moldura da prévia é
   só ilustração.
 
+### 1.12 Rodada de 15/10 (noite)
+
+- **Promessa de e-mail sob chave**: enquanto `VITE_EMAIL_ATIVO` não for `1`
+  (Netlify → Environment variables), o site não diz que manda e-mail, e a tela
+  de obrigado mostra o código do pedido. Quando o domínio do Resend estiver
+  verificado e um e-mail de teste chegar, ligue a chave e refaça o deploy.
+- **Entregas travadas**: alerta vermelho no topo do painel para pedido pago há
+  mais de 10 min sem PDF ou sem página, com "Refazer entrega".
+- **Cartão com QR** (`/p/CODE/cartao`) e **"Enviar pelo WhatsApp"** na tela de
+  obrigado, na edição e na página (para a dona).
+- **Parcelamento**: "Pix ou até 12x no cartão" junto do preço — sem valor de
+  parcela, porque os juros são do Mercado Pago.
+- **Par de estrelas**: dois pedidos ligados (`group_id`), um pagamento. Preço =
+  soma das duas faixas, SEM desconto — se quiser dar desconto no par, é uma
+  decisão sua (me diga o valor).
+- **Teste do fluxo inteiro** (`test/fluxo.test.js`): checkout → webhook →
+  estrela dedicada → certificado → página, com o código real das funções.
+  Falta o teste com dinheiro de mentira de verdade, que é seu:
+  1. No painel do Mercado Pago, crie as credenciais de TESTE e dois usuários de
+     teste (vendedor e comprador).
+  2. Ponha o access token de teste em `MERCADO_PAGO_ACCESS_TOKEN` (secrets do
+     Supabase) e publique as funções.
+  3. Compre no site logado com o comprador de teste, usando um cartão de teste
+     do Mercado Pago (titular `APRO` aprova).
+  4. Confira: tela de obrigado com o código, página da estrela no ar, pedido
+     "Pago" no painel. Repita com um par.
+  5. Volte o token de produção e publique de novo.
+
 ### 1.11 Rodada de 15/10 (tarde)
 
 - **Corrigir texto de um pedido**: painel → Pedidos → "Corrigir texto". Muda

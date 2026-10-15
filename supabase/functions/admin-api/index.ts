@@ -42,6 +42,8 @@ import {
 } from '../_shared/pagina.ts'
 import { explicarErros, limpar, validarPedido, validarTextoLivre } from '../../../shared/moderation.js'
 import { enviarEmail, gerarEGuardar } from '../_shared/certificado.ts'
+import { entregasTravadas, type PedidoPago } from './entregas.ts'
+import { dadosDoPar } from '../_shared/par.ts'
 
 const RE_CODIGO = /^SG-[A-Z0-9]{4}-[A-Z0-9]{4}$/
 const RE_DATA = /^\d{4}-\d{2}-\d{2}$/
@@ -86,6 +88,9 @@ Deno.serve(
 
       case 'corrigirPedido':
         return json(request, await corrigirPedido(db, corpo))
+
+      case 'refazerEntrega':
+        return json(request, await refazerEntrega(db, corpo))
 
       case 'estrelas':
         return json(request, await listarEstrelas(db, corpo))
@@ -185,7 +190,7 @@ async function visaoGeral(db: ReturnType<typeof admin>) {
   // Funil dos últimos 30 dias (migration 0017): só contadores, sem pessoa.
   const desde = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10)
 
-  const [resumo, recentes, paginas, publicadas, rascunhos, paginasRecentes, metricas, depoimentosPendentes, compras] = await Promise.all([
+  const [resumo, recentes, paginas, publicadas, rascunhos, paginasRecentes, metricas, depoimentosPendentes, compras, pagos] = await Promise.all([
     db.rpc('resumo_pedidos'),
     db
       .from('orders')
@@ -204,9 +209,17 @@ async function visaoGeral(db: ReturnType<typeof admin>) {
     db.from('depoimentos').select('id', { count: 'exact', head: true }).eq('status', 'pendente'),
     // Compras: os pedidos pagos de verdade, não um evento do navegador.
     db.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'approved').gte('created_at', desde),
+    // Pagos do último mês, com a página (se houver): base das entregas travadas.
+    db
+      .from('orders')
+      .select('id, code, honoree_name, created_at, certificate_path, pages(id)')
+      .eq('status', 'approved')
+      .gte('created_at', desde)
+      .order('created_at', { ascending: false })
+      .limit(500),
   ])
 
-  for (const r of [resumo, recentes, paginas, publicadas, rascunhos, paginasRecentes, metricas, depoimentosPendentes, compras]) {
+  for (const r of [resumo, recentes, paginas, publicadas, rascunhos, paginasRecentes, metricas, depoimentosPendentes, compras, pagos]) {
     if (r.error) throw new ErroApp('consulta_falhou', 'Falha ao montar o painel.', 500, r.error.message)
   }
 
@@ -235,8 +248,10 @@ async function visaoGeral(db: ReturnType<typeof admin>) {
     },
     funil: { ...somarPorEvento(metricas.data ?? []), compra_aprovada: compras.count ?? 0 },
     depoimentosPendentes: depoimentosPendentes.count ?? 0,
+    entregasTravadas: entregasTravadas((pagos.data ?? []) as unknown as PedidoPago[]),
   }
 }
+
 
 /** Soma os contadores diários por evento (as faixas entram juntas). */
 function somarPorEvento(linhas: Array<{ evento: string; total: number }>): Record<string, number> {
@@ -450,24 +465,79 @@ async function corrigirPedido(db: ReturnType<typeof admin>, corpo: Record<string
   const { data: estrela } = await db.from('stars').select('*').eq('slug', pedido.star_slug).maybeSingle()
   if (!estrela) throw new ErroApp('estrela_inexistente', 'A estrela do pedido não está no catálogo.', 409)
 
-  const corrigido = { ...pedido, ...colunas }
-  let caminho = ''
-  for (const luz of [false, true]) {
-    caminho = (await gerarEGuardar(db, corrigido, estrela as Record<string, unknown>, luz)).caminho
+  const par = await dadosDoPar(db, orderId, pedido.group_id)
+  const corrigido = { ...pedido, ...colunas, ...comPar(par) }
+  const caminho = await refazerPdfs(db, corrigido, estrela as Record<string, unknown>)
+
+  // Par de estrelas: a folha do OUTRO pedido diz "dedicada a <este nome>" —
+  // se o nome mudou, ela é refeita também (sem e-mail).
+  if (par && colunas.honoree_name !== pedido.honoree_name) {
+    const { data: outro } = await db.from('orders').select('*').eq('id', par.orderId).maybeSingle()
+    const { data: estrelaOutro } = await db.from('stars').select('*').eq('slug', par.starSlug).maybeSingle()
+    if (outro?.status === 'approved' && estrelaOutro) {
+      await refazerPdfs(db, { ...outro, par_estrela: estrela.name, par_nome: colunas.honoree_name }, estrelaOutro as Record<string, unknown>)
+    }
   }
-  await db.from('orders').update({ certificate_path: caminho, certificate_url: caminho }).eq('id', orderId).throwOnError()
 
   if (corpo.reenviar !== true) return { corrigido: true, reenviado: false }
+  return { corrigido: true, ...(await tentarEmail(db, corrigido, estrela as Record<string, unknown>, caminho)) }
+}
 
+/** Campos da linha "Em par com …" do certificado, quando o pedido é de um par. */
+function comPar(par: Awaited<ReturnType<typeof dadosDoPar>>) {
+  return par ? { par_estrela: par.starName, par_nome: par.honoreeName } : {}
+}
+
+/** Gera as duas versões do PDF no lugar de sempre e grava o caminho no pedido. */
+async function refazerPdfs(db: ReturnType<typeof admin>, pedido: Record<string, unknown>, estrela: Record<string, unknown>) {
+  let caminho = ''
+  for (const luz of [false, true]) {
+    caminho = (await gerarEGuardar(db, pedido, estrela, luz)).caminho
+  }
+  await db.from('orders').update({ certificate_path: caminho, certificate_url: caminho }).eq('id', String(pedido.id)).throwOnError()
+  return caminho
+}
+
+/** E-mail que não derruba nada: falha fica registrada no pedido, como na entrega. */
+async function tentarEmail(db: ReturnType<typeof admin>, pedido: Record<string, unknown>, estrela: Record<string, unknown>, caminho: string) {
   try {
-    await enviarEmail(db, corrigido, estrela as Record<string, unknown>, caminho)
+    await enviarEmail(db, pedido, estrela, caminho)
   } catch (erro) {
     const motivo = erro instanceof Error ? erro.message : 'Falha desconhecida'
-    await db.from('orders').update({ email_error: motivo }).eq('id', orderId)
-    return { corrigido: true, reenviado: false, motivo }
+    await db.from('orders').update({ email_error: motivo }).eq('id', String(pedido.id))
+    return { reenviado: false, motivo }
   }
-  await db.from('orders').update({ delivered_at: new Date().toISOString(), email_error: null }).eq('id', orderId)
-  return { corrigido: true, reenviado: true, para: pedido.customer_email }
+  await db.from('orders').update({ delivered_at: new Date().toISOString(), email_error: null }).eq('id', String(pedido.id))
+  return { reenviado: true, para: pedido.customer_email }
+}
+
+/**
+ * Refaz a entrega de um pedido pago que travou (ver `entregasTravadas`): o
+ * mesmo caminho do webhook — dedica a estrela, gera os PDFs, cria a página se
+ * faltar e tenta o e-mail. Cada passo é idempotente, então repetir é seguro.
+ */
+async function refazerEntrega(db: ReturnType<typeof admin>, corpo: Record<string, unknown>) {
+  const orderId = String(corpo.orderId ?? '')
+  if (!/^[0-9a-f-]{36}$/i.test(orderId)) throw new ErroApp('pedido_ausente', 'Informe o pedido.', 422)
+
+  const { data: pedido } = await db.from('orders').select('*').eq('id', orderId).maybeSingle()
+  if (!pedido) throw new ErroApp('pedido_inexistente', 'Pedido não encontrado.', 404)
+  if (pedido.status !== 'approved') throw new ErroApp('pedido_nao_pago', 'Só pedido pago tem entrega.', 409)
+
+  const { data: estrela } = await db.from('stars').select('*').eq('slug', pedido.star_slug).maybeSingle()
+  if (!estrela) throw new ErroApp('estrela_inexistente', 'A estrela do pedido não está no catálogo.', 409)
+
+  const { data: dedicou } = await db.rpc('dedicar_estrela', { p_slug: pedido.star_slug, p_order: orderId }).throwOnError()
+  if (!dedicou) {
+    throw new ErroApp('estrela_de_outro', 'A estrela deste pedido já é de outro pedido — reembolse ou troque a estrela.', 409)
+  }
+
+  const comLinhaDoPar = { ...pedido, ...comPar(await dadosDoPar(db, orderId, pedido.group_id)) }
+  const caminho = await refazerPdfs(db, comLinhaDoPar, estrela as Record<string, unknown>)
+  const paginaId = await criarPaginaDoPedido(db, pedido, estrela as Record<string, unknown>)
+  if (!paginaId) throw new ErroApp('pagina_falhou', 'O PDF saiu, mas a página não pôde ser criada. Tente de novo.', 500)
+
+  return { entregue: true, ...(await tentarEmail(db, pedido, estrela as Record<string, unknown>, caminho)) }
 }
 
 // ---------------------------------------------------------------------------

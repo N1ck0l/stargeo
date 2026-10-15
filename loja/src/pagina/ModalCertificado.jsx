@@ -38,6 +38,7 @@ export function ModalCertificado({ open, onClose }) {
     message: content.mensagemPessoal,
     fromName: content.assinatura,
     starNickname: content.apelidoEstrela,
+    par: content.par ? { estrela: content.par.estrela, nome: content.par.nome } : undefined,
     dedicationDate: content.data,
     code: content.registro,
   }

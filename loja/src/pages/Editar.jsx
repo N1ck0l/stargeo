@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from '../lib/Link.jsx'
+import { EMAIL_ATIVO } from '../lib/config.js'
 import { navegar } from '../lib/rota.js'
 import { Reveal } from '../components/Reveal.jsx'
 
@@ -34,7 +35,11 @@ export default function Editar() {
     const limpo = codigo.trim().toUpperCase()
 
     if (!RE_CODIGO.test(limpo)) {
-      setErro('O código tem o formato SG-XXXX-XXXX — está no e-mail da compra.')
+      setErro(
+        EMAIL_ATIVO
+          ? 'O código tem o formato SG-XXXX-XXXX — está no e-mail da compra.'
+          : `O código tem o formato SG-XXXX-XXXX — ${'o código (SG-XXXX-XXXX) aparece na tela do fim da compra e no endereço da página da estrela'}.`,
+      )
       return
     }
 

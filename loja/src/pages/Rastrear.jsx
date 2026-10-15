@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { rastrear, ErroApi } from '../lib/api.js'
 import { Link } from '../lib/Link.jsx'
+import { EMAIL_ATIVO } from '../lib/config.js'
 import { Reveal } from '../components/Reveal.jsx'
 
 /**
@@ -57,7 +58,10 @@ export default function Rastrear() {
         <Reveal>
           <h1 className="font-display text-center text-3xl text-ivory sm:text-4xl">Rastrear pedido</h1>
           <p className="mt-4 text-center leading-relaxed text-ivory/70">
-            O código veio no e-mail da compra. Sem ele, não conseguimos encontrar o pedido.
+            {EMAIL_ATIVO
+              ? 'O código veio no e-mail da compra.'
+              : 'O código aparece na tela do fim da compra e no endereço da página da estrela (depois de /p/).'}{' '}
+            Sem ele, não conseguimos encontrar o pedido.
           </p>
         </Reveal>
 

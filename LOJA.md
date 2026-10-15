@@ -23,7 +23,7 @@ supabase/
 │                    completo, faixas e busca (0010–0015); nome dado à
 │                    estrela (0016); contadores anônimos do funil (0017);
 │                    depoimentos com aprovação (0018); revelação da
-│                    página numa data (0019)
+│                    página numa data (0019); par de estrelas (0020)
 └── functions/       create-checkout, mp-webhook, track-order,
 │                    resend-certificate, get-page, page-auth, page-update,
 │                    admin-api, testimonial (depoimento do comprador),

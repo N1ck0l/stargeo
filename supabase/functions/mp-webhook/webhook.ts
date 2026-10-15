@@ -42,6 +42,7 @@ import { admin } from '../_shared/supabase.ts'
 import { buscarPagamento, ehAprovado, valorConfere, verificarAssinatura } from '../_shared/mercadoPago.ts'
 import { enviarEmail, gerarEGuardar } from '../_shared/certificado.ts'
 import { criarPaginaDoPedido } from '../_shared/pagina.ts'
+import { dadosDoPar } from '../_shared/par.ts'
 import { validarPedido } from '../../../shared/moderation.js'
 
 /** Campos que a entrega precisa. Estão na lista porque `select *` num pedido
@@ -49,7 +50,7 @@ import { validarPedido } from '../../../shared/moderation.js'
 const CAMPOS_PEDIDO = [
   'id', 'code', 'status', 'customer_email', 'customer_name', 'honoree_name',
   'from_name', 'star_nickname', 'message', 'dedication_date', 'reveal_on', 'star_slug', 'product_name',
-  'amount_cents', 'delivered_at',
+  'amount_cents', 'delivered_at', 'group_id',
 ]
 
 /** Reserva mais velha que isto é de uma função que morreu no meio. */
@@ -118,33 +119,54 @@ export const webhook = comHandler(async (request) => {
   // com tipos gerados (`supabase gen types`), este cast sai.
   const pedido = linha as unknown as Record<string, unknown>
 
+  // Par de estrelas (0020): o pagamento cobre o GRUPO inteiro — os dois
+  // pedidos mudam de status juntos, o valor é conferido contra a soma e cada
+  // um é entregue. Fora de um par, o grupo é só este pedido.
+  let grupo: Array<Record<string, unknown>> = [pedido]
+  if (pedido.group_id) {
+    const { data: doGrupo } = await db
+      .from('orders')
+      .select(CAMPOS_PEDIDO.join(','))
+      .eq('group_id', String(pedido.group_id))
+      .throwOnError()
+    const linhas = (doGrupo ?? []) as unknown as Array<Record<string, unknown>>
+    // O pedido do `external_reference` primeiro, como na compra.
+    grupo = [pedido, ...linhas.filter((l) => l.id !== pedido.id)]
+  }
+
   // --- 3. Registra o status do pagamento ------------------------------
   // Se esta gravação falhar, `throwOnError` sobe o erro para o `comHandler`,
   // que responde 500 — e o Mercado Pago reenvia, repetindo este passo.
   const novoStatus = traduzirStatus(pagamento.status)
-  await db
-    .from('orders')
-    .update({
-      status: novoStatus,
-      payment_id: String(pagamento.id),
-      payment_method: pagamento.payment_method_id ?? null,
-      paid_at: pagamento.date_approved ?? null,
-    })
-    .eq('id', pedidoId)
-    .throwOnError()
+  for (const p of grupo) {
+    await db
+      .from('orders')
+      .update({
+        status: novoStatus,
+        payment_id: String(pagamento.id),
+        payment_method: pagamento.payment_method_id ?? null,
+        paid_at: pagamento.date_approved ?? null,
+      })
+      .eq('id', String(p.id))
+      .throwOnError()
+  }
 
   if (!ehAprovado(pagamento.status)) {
     // Recusado ou cancelado: a estrela reservada por ESTE pedido volta ao
     // catálogo (a função só solta a reserva dele, nunca a de outro).
-    if (novoStatus === 'cancelled') {
-      await db.rpc('liberar_estrela', { p_slug: pedido.star_slug, p_order: pedidoId }).throwOnError()
-    }
-    // Estornado (desistência em 7 dias, chargeback): a estrela volta ao
-    // catálogo e a página sai do ar — é o que a política promete.
-    if (novoStatus === 'refunded' || novoStatus === 'charged_back') {
-      await db.rpc('devolver_estrela', { p_slug: pedido.star_slug, p_order: pedidoId }).throwOnError()
-      await db.from('pages').update({ status: 'draft' }).eq('order_id', pedidoId).throwOnError()
-      console.log(`[webhook ${id}] pedido ${pedidoId} estornado: estrela devolvida, página despublicada`)
+    for (const p of grupo) {
+      const slug = p.star_slug
+      const ordem = String(p.id)
+      if (novoStatus === 'cancelled') {
+        await db.rpc('liberar_estrela', { p_slug: slug, p_order: ordem }).throwOnError()
+      }
+      // Estornado (desistência em 7 dias, chargeback): a estrela volta ao
+      // catálogo e a página sai do ar — é o que a política promete.
+      if (novoStatus === 'refunded' || novoStatus === 'charged_back') {
+        await db.rpc('devolver_estrela', { p_slug: slug, p_order: ordem }).throwOnError()
+        await db.from('pages').update({ status: 'draft' }).eq('order_id', ordem).throwOnError()
+        console.log(`[webhook ${id}] pedido ${ordem} estornado: estrela devolvida, página despublicada`)
+      }
     }
     // Pix pendente, cartão em análise: nada a entregar ainda.
     // 200 porque o evento foi tratado, só não exige ação.
@@ -152,21 +174,51 @@ export const webhook = comHandler(async (request) => {
     return json(request, { recebido: true, entregue: false, status: novoStatus })
   }
 
-  if (pedido.delivered_at) {
+  if (grupo.every((p) => p.delivered_at)) {
     // Segundo evento do mesmo pagamento: o cliente já recebeu o e-mail.
     console.log(`[webhook ${id}] pedido ${pedidoId} já entregue; evento ignorado`)
     return json(request, { recebido: true, entregue: true, repetido: true })
   }
 
-  if (!valorConfere(pagamento, Number(pedido.amount_cents))) {
+  const esperado = grupo.reduce((soma, p) => soma + Number(p.amount_cents), 0)
+  if (!valorConfere(pagamento, esperado)) {
     console.error(
       `[webhook ${id}] pedido ${pedidoId}: pago ${pagamento.transaction_amount} ${pagamento.currency_id ?? '?'}, ` +
-        `esperado ${Number(pedido.amount_cents) / 100} BRL`,
+        `esperado ${esperado / 100} BRL`,
     )
-    await marcarPendencia(db, pedidoId, 'Valor pago diverge do pedido — conferir no Mercado Pago')
+    for (const p of grupo) await marcarPendencia(db, String(p.id), 'Valor pago diverge do pedido — conferir no Mercado Pago')
     // 200: reenviar não muda o valor. Decisão humana.
     return json(request, { recebido: true, entregue: false, motivo: 'valor_divergente' })
   }
+
+  if (grupo.length === 1) return await entregarPedido(request, db, pedido, id, String(pedidoId))
+
+  const resultados: Array<Record<string, unknown>> = []
+  for (const p of grupo) {
+    if (p.delivered_at) {
+      resultados.push({ code: p.code, entregue: true, repetido: true })
+      continue
+    }
+    const resposta = await entregarPedido(request, db, p, id, String(p.id))
+    resultados.push({ code: p.code, ...(await resposta.json()) })
+  }
+  return json(request, { recebido: true, entregue: resultados.every((r) => r.entregue), pedidos: resultados })
+}, 'mp-webhook')
+
+/**
+ * Do passo 4 em diante, para UM pedido: dedica a estrela, reserva a entrega
+ * e entrega. No par, roda uma vez para cada pedido do grupo.
+ */
+async function entregarPedido(
+  request: Request,
+  db: Db,
+  pedidoOriginal: Record<string, unknown>,
+  id: string,
+  pedidoId: string,
+): Promise<Response> {
+  // A linha "Em par com …" do certificado (0020).
+  const par = await dadosDoPar(db, pedidoId, pedidoOriginal.group_id)
+  const pedido = par ? { ...pedidoOriginal, par_estrela: par.starName, par_nome: par.honoreeName } : pedidoOriginal
 
   // --- 4. A estrela passa a ser DESTE pedido ----------------------------
   // Cada estrela é exclusiva. Se a reserva venceu e outra pessoa comprou a
@@ -195,7 +247,7 @@ export const webhook = comHandler(async (request) => {
     // devolve o pedido para o próximo evento tentar sem esperar a reserva vencer.
     await db.from('orders').update({ delivery_started_at: null }).eq('id', pedidoId)
   }
-}, 'mp-webhook')
+}
 
 /**
  * Update condicional: só grava a reserva se o pedido não foi entregue e não

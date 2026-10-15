@@ -3,6 +3,7 @@ import { ErroApi } from '../lib/api.js'
 import { entrarEdicao, salvarEdicao } from '../lib/pagina.js'
 import { Link } from '../lib/Link.jsx'
 import { Depoimento } from './Depoimento.jsx'
+import { CompartilharPagina } from '../components/CompartilharPagina.jsx'
 
 /**
  * Edição do cliente — `/p/SG-XXXX-XXXX/editar`.
@@ -286,6 +287,13 @@ export function EdicaoPagina({ codigo }) {
             Ver a página
           </Link>
         </div>
+
+        <CompartilharPagina
+          codigo={codigo}
+          para={pagina?.conteudo?.nomeCurto}
+          revelaEm={revelaEm || null}
+          className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4"
+        />
 
         {pagina?.status === 'draft' && (
           <p className="mt-6 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">

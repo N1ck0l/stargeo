@@ -8,6 +8,7 @@ import { PersonalMessage } from './secoes/PersonalMessage.jsx'
 import { ErroApi } from '../lib/api.js'
 import { buscarPagina, tokenGuardado } from '../lib/pagina.js'
 import { PaginaGuardada } from './PaginaGuardada.jsx'
+import { CompartilharPagina } from '../components/CompartilharPagina.jsx'
 import { montarConteudo } from '../lib/conteudoPagina.js'
 import { Link } from '../lib/Link.jsx'
 
@@ -65,7 +66,7 @@ export function PaginaDedicada({ codigo }) {
   const conteudo = useMemo(
     () =>
       estado.fase === 'pronta' && !estado.dados.guardada
-        ? montarConteudo(estado.dados.pagina, estado.dados.estrela, estado.ceu)
+        ? { ...montarConteudo(estado.dados.pagina, estado.dados.estrela, estado.ceu), par: estado.dados.par ?? null }
         : null,
     [estado],
   )
@@ -138,10 +139,32 @@ export function PaginaDedicada({ codigo }) {
       <LoveLetter />
       <PersonalMessage />
 
+      {/* Par de estrelas (0020): o caminho até a outra estrela. */}
+      {conteudo.par && (
+        <section className="mx-auto max-w-xl px-5 pb-12 text-center">
+          <div className="cartao">
+            <p className="font-display text-[11px] tracking-[0.3em] text-gold/80 uppercase">Esta estrela tem um par</p>
+            <p className="mt-3 font-serif text-xl text-ivory">
+              {conteudo.par.estrela}, a estrela de {conteudo.par.para}
+            </p>
+            <Link para={`/p/${conteudo.par.code}`} className="btn btn-secundario mt-5 text-sm">
+              Ver a estrela do par
+            </Link>
+          </div>
+        </section>
+      )}
+
       {/* Porta de entrada do cliente: daqui ele vai para o login de edição
           (código + e-mail). Discreto — quem só lê a carta passa reto. */}
       <div className="mx-auto max-w-3xl px-5 pb-14 text-center">
         {dona ? (
+          <>
+          <CompartilharPagina
+            codigo={codigo}
+            para={conteudo?.nomeCurto}
+            revelaEm={revelaEm}
+            className="mb-5"
+          />
           <p className="text-xs text-ivory/55">
             <Link para={`/p/${codigo}/editar`} className="transition hover:text-gold">
               Editar a página
@@ -150,7 +173,12 @@ export function PaginaDedicada({ codigo }) {
             <Link para={`/p/${codigo}/editar#depoimento`} className="text-gold/80 transition hover:text-gold">
               Conte como foi a entrega
             </Link>
+            <span className="mx-2 text-ivory/25">·</span>
+            <Link para={`/p/${codigo}/cartao`} className="transition hover:text-gold">
+              Cartão com QR para imprimir
+            </Link>
           </p>
+          </>
         ) : (
           <Link
             para={`/p/${codigo}/editar`}

@@ -128,6 +128,7 @@ export default function Estrela({ slug }) {
                   <span className="text-sm text-ivory/60">Dedicar esta estrela</span>
                   <span className="font-display text-2xl text-gold">{reais(estrela.precoCentavos)}</span>
                 </p>
+                <p className="mt-1 text-right text-[11px] text-ivory/45">Pix ou até 12x no cartão, pelo Mercado Pago</p>
                 <Link
                   para={`/produto/certificado-digital?estrela=${estrela.slug}`}
                   className="btn btn-primary mt-4 w-full"

@@ -39,6 +39,7 @@ const Catalogo = lazy(() => import('./pages/Catalogo.jsx'))
 const Estrela = lazy(() => import('./pages/Estrela.jsx'))
 const Politicas = lazy(() => import('./pages/Politicas.jsx'))
 const PaginaDedicada = lazy(() => import('./pagina/PaginaDedicada.jsx').then((m) => ({ default: m.PaginaDedicada })))
+const CartaoPresente = lazy(() => import('./pagina/CartaoPresente.jsx').then((m) => ({ default: m.CartaoPresente })))
 const EdicaoPagina = lazy(() => import('./pagina/EdicaoPagina.jsx').then((m) => ({ default: m.EdicaoPagina })))
 const AdminPagina = lazy(() => import('./admin/AdminPagina.jsx').then((m) => ({ default: m.AdminPagina })))
 
@@ -91,6 +92,9 @@ function telaPara(caminho) {
     // normalizamos para maiúsculas porque o endereço pode chegar digitado à
     // mão — e a edição vive sob o mesmo código, mais `/editar`.
     const resto = limpo.slice('/p/'.length).toUpperCase()
+    if (resto.endsWith('/CARTAO')) {
+      return <CartaoPresente codigo={resto.slice(0, -'/CARTAO'.length)} />
+    }
     if (resto.endsWith('/EDITAR')) {
       return <EdicaoPagina codigo={resto.slice(0, -'/EDITAR'.length)} />
     }

@@ -22,7 +22,8 @@ export function TabelaDeFaixas() {
       </ul>
       <p className="mt-4 text-center text-xs leading-relaxed text-ivory/55">
         Todas as faixas incluem o certificado em PDF A4 (versão escura e versão clara para imprimir), a
-        página da estrela com mapa do céu e Mira celeste, e a estrela exclusiva — pronto em minutos.
+        página da estrela com mapa do céu e Mira celeste, e a estrela exclusiva — pronto em minutos. Pix
+        ou até 12x no cartão, pelo Mercado Pago.
       </p>
     </div>
   )

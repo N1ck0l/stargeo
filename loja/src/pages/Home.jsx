@@ -5,6 +5,7 @@ import { Vitrine } from '../components/Vitrine.jsx'
 import { OCASIOES } from '../lib/ocasioes.js'
 import { SimboloOficial } from '../components/SimboloOficial.jsx'
 import { Link } from '../lib/Link.jsx'
+import { EMAIL_ATIVO } from '../lib/config.js'
 import { buscarDepoimentos, estadoDasEstrelas, reais, useFaixas } from '../lib/catalogo.js'
 import { useEffect, useState } from 'react'
 import { Reveal } from '../components/Reveal.jsx'
@@ -114,7 +115,8 @@ const FAQ = [
   {
     pergunta: 'Como recebo?',
     resposta:
-      'Assim que o pagamento é confirmado (com Pix, costuma ser na hora), a página da sua estrela fica pronta: lá você vê o certificado, baixa o PDF nas versões escura e clara e pega o link para enviar a quem vai receber. O link também vai para o e-mail da compra.',
+      'Assim que o pagamento é confirmado (com Pix, costuma ser na hora), a página da sua estrela fica pronta: lá você vê o certificado, baixa o PDF nas versões escura e clara e pega o link para enviar a quem vai receber.' +
+      (EMAIL_ATIVO ? ' O link também vai para o e-mail da compra.' : ''),
   },
   {
     pergunta: 'Vocês enviam o certificado impresso?',
@@ -130,6 +132,11 @@ const FAQ = [
     pergunta: 'O que vocês fazem com os meus dados?',
     resposta:
       'Só o necessário para fazer e entregar o certificado: seu nome, seu e-mail e o texto que você escreve. Os dados do cartão ficam com o Mercado Pago. Os detalhes estão em Políticas, no rodapé.',
+  },
+  {
+    pergunta: 'Dá para dar estrelas para duas pessoas?',
+    resposta:
+      'Dá: marque "Dar um par de estrelas" no produto. Cada pessoa ganha a própria estrela, o próprio certificado e a própria página — e um cita o outro ("em par com…"). O preço é a soma das duas estrelas, num pagamento só.',
   },
   {
     pergunta: 'Posso comprar antes e entregar no dia?',
@@ -159,7 +166,7 @@ const FAQ = [
   {
     pergunta: 'Já comprei, como acesso minha página?',
     resposta:
-      'Clique em "Editar minha página" no rodapé, ou venha direto para Editar. Digite o código que veio no e-mail da compra e o e-mail usado no pagamento — a página abre e você ajusta a carta, a assinatura e a mensagem pessoal quando quiser.',
+      'Clique em "Editar minha página" no rodapé, ou venha direto para Editar. Digite o código do pedido (' + (EMAIL_ATIVO ? 'veio no e-mail da compra' : 'aparece no fim da compra e no endereço da página, depois de /p/') + ') e o e-mail usado no pagamento — a página abre e você ajusta a carta, a assinatura e a mensagem pessoal quando quiser.',
   },
 ]
 

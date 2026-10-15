@@ -1,4 +1,5 @@
 import { Link } from '../lib/Link.jsx'
+import { EMAIL_ATIVO } from '../lib/config.js'
 import { useMetaPagina } from '../lib/meta.js'
 
 /**
@@ -27,7 +28,8 @@ const SECOES = [
     titulo: 'Entrega',
     paragrafos: [
       'O certificado é digital: um PDF em A4, nas versões escura e clara (para imprimir), e uma página da estrela com endereço próprio. Não enviamos certificado impresso, moldura nem embalagem física.',
-      'A entrega é automática, logo depois que o Mercado Pago confirma o pagamento — com Pix costuma ser na hora; com cartão, em poucos minutos. A página da estrela fica disponível no endereço que aparece depois da compra e no rastreamento do pedido, onde também dá para baixar o PDF. O link vai para o e-mail informado na compra.',
+      'A entrega é automática, logo depois que o Mercado Pago confirma o pagamento — com Pix costuma ser na hora; com cartão, em poucos minutos. A página da estrela fica disponível no endereço que aparece depois da compra e no rastreamento do pedido, onde também dá para baixar o PDF.' +
+        (EMAIL_ATIVO ? ' O link vai para o e-mail informado na compra.' : ''),
       'Se você escolher "Guardar a surpresa até uma data", o certificado chega para você na hora, mas a página da estrela mostra só uma contagem regressiva até o dia escolhido (meia-noite de Brasília). Você pode mudar ou tirar a data na edição da página.',
       'Se algo atrasar, o rastreamento mostra o estado do pedido, e você pode falar com a gente pelo e-mail abaixo informando o código do pedido.',
     ],
@@ -38,6 +40,7 @@ const SECOES = [
     paragrafos: [
       'O pagamento é feito no Mercado Pago, por Pix ou cartão (em até 12x, com os juros do parcelamento informados pelo Mercado Pago). A Stellara não recebe nem guarda dados do seu cartão.',
       'O preço depende da faixa da estrela (pelo brilho e por ela ter ou não nome próprio) e é mostrado antes de pagar, no resumo do pedido. O valor cobrado é sempre o calculado pelo nosso servidor.',
+      'No par de estrelas, o preço é a soma das faixas das duas estrelas, num pagamento só. Cada pessoa recebe o próprio certificado e a própria página; o reembolso de um par devolve as duas estrelas.',
       'Durante o pagamento, a estrela fica reservada para você por cerca de 30 minutos. Se o pagamento não for concluído nesse prazo, nada é cobrado e a estrela volta ao catálogo.',
     ],
   },
