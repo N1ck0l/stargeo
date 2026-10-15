@@ -241,21 +241,34 @@ export function Starfield() {
       }
     }
 
-    resize()
-    seedStars()
+    /*
+     * O céu começa quando o navegador fica OCIOSO (no máximo 1,5 s): sortear
+     * as estrelas e pintar as nebulosas disputava o processador com o
+     * conteúdo da página, e no celular isso atrasava o título em ~1 s
+     * (Lighthouse). Até lá, o fundo é o degradê do CSS — ninguém nota.
+     */
+    const iniciar = () => {
+      resize()
+      seedStars()
 
-    if (reduced) renderFrame(performance.now(), false)
-    else {
-      nextMeteor = performance.now() + 1200
-      raf = requestAnimationFrame(loop)
+      if (reduced) renderFrame(performance.now(), false)
+      else {
+        nextMeteor = performance.now() + 1200
+        raf = requestAnimationFrame(loop)
+      }
+
+      window.addEventListener('resize', handleResize)
+      window.addEventListener('pointermove', onMove)
+      document.addEventListener('visibilitychange', handleVisibility)
+      motionQuery.addEventListener('change', handleMotionChange)
     }
-
-    window.addEventListener('resize', handleResize)
-    window.addEventListener('pointermove', onMove)
-    document.addEventListener('visibilitychange', handleVisibility)
-    motionQuery.addEventListener('change', handleMotionChange)
+    const ocioso = window.requestIdleCallback
+      ? window.requestIdleCallback(iniciar, { timeout: 1500 })
+      : setTimeout(iniciar, 600)
 
     return () => {
+      if (window.cancelIdleCallback) window.cancelIdleCallback(ocioso)
+      else clearTimeout(ocioso)
       cancelAnimationFrame(raf)
       window.removeEventListener('resize', handleResize)
       window.removeEventListener('pointermove', onMove)

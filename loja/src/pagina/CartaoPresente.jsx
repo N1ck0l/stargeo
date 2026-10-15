@@ -45,7 +45,7 @@ export function CartaoPresente({ codigo }) {
       </div>
     )
   }
-  if (!dados) return <div className="espaco-secao min-h-[60vh]" aria-busy="true" />
+  if (!dados) return <div className="espaco-secao min-h-dvh" aria-busy="true" />
 
   const url = `${window.location.origin}/p/${codigo}`
   const quando = dados.revelaEm

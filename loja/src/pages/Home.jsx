@@ -231,6 +231,12 @@ export default function Home() {
  */
 
 function Hero() {
+  /*
+   * Sem animação de entrada no topo: o título e o texto aparecem NA HORA.
+   * Com elas (opacidade 0 até o efeito terminar), o navegador só dava a
+   * página por pintada ~4 s depois no celular (Lighthouse, LCP) — e é isso
+   * que o anúncio pago cobra. O movimento fica para o resto da página.
+   */
   const scrollY = useScroll()
   const { output: titulo, done: tituloPronto } = useTypewriter('Presente com coordenada')
 
@@ -258,32 +264,28 @@ function Hero() {
             oculta do announce e o texto completo é exposto uma vez, quando
             termina. A altura fica reservada para o resto não pular.
           */}
-          <Reveal
-            as="p"
-            delay={80}
+          <p
             className="min-h-[1.1em] font-display text-xs tracking-[0.3em] text-gold uppercase"
           >
             <span aria-hidden={!tituloPronto}>{titulo}</span>
             {!tituloPronto && <span className="type-cursor" aria-hidden="true" />}
             <span className="sr-only">{tituloPronto ? titulo : ''}</span>
-          </Reveal>
+          </p>
 
-          <Reveal
-            as="h1"
-            delay={220}
+          <h1
             className="font-display mt-5 text-[2.15rem] leading-[1.12] text-ivory sm:text-5xl lg:text-[3.4rem]"
           >
             Alguns sentimentos merecem um lugar{' '}
             <span className="gold-text">entre as estrelas</span>
-          </Reveal>
+          </h1>
 
-          <Reveal as="p" delay={360} className="mt-6 max-w-lg text-base leading-relaxed text-ivory/75 sm:text-lg">
+          <p className="mt-6 max-w-lg text-base leading-relaxed text-ivory/75 sm:text-lg">
             Dedique uma estrela real a alguém especial e receba um certificado personalizado — com o
             nome, a sua dedicatória e o céu onde ela brilha. Fica pronto em minutos, para guardar,
             imprimir e emoldurar.
-          </Reveal>
+          </p>
 
-          <Reveal delay={500} className="mt-9 flex flex-wrap gap-4">
+          <div className="mt-9 flex flex-wrap gap-4">
             {/*
               O principal vai DIRETO à personalização: quem já decidiu não
               precisa rolar a página inteira. O secundário fica na página,
@@ -295,10 +297,10 @@ function Hero() {
             <a href="#certificados" className="btn btn-secundario">
               Conhecer a experiência
             </a>
-          </Reveal>
+          </div>
 
           {/* O produto em três passos, para quem decide em segundos. */}
-          <Reveal as="ol" delay={580} className="mt-8 flex max-w-lg flex-wrap gap-x-5 gap-y-2 text-sm text-ivory/80">
+          <ol className="mt-8 flex max-w-lg flex-wrap gap-x-5 gap-y-2 text-sm text-ivory/80">
             {['Escolha uma estrela', 'Personalize a homenagem', 'Receba o certificado'].map((passo, i) => (
               <li key={passo} className="flex items-center gap-2">
                 <span className="flex size-6 items-center justify-center rounded-full border border-gold/50 font-display text-xs text-gold">
@@ -307,9 +309,9 @@ function Hero() {
                 {passo}
               </li>
             ))}
-          </Reveal>
+          </ol>
 
-          <Reveal delay={640}>
+          <div>
             <dl className="mt-12 grid max-w-lg grid-cols-3 gap-6">
               {[
                 ['118 mil', 'estrelas reais no catálogo'],
@@ -322,7 +324,7 @@ function Hero() {
                 </div>
               ))}
             </dl>
-          </Reveal>
+          </div>
         </div>
 
         <div

@@ -147,7 +147,10 @@ export default function App() {
           reaproveitaria a árvore e o `animation` não dispararia.
         */}
         <div key={caminho} className="animate-fade-in">
-          <Suspense fallback={<div className="min-h-[60vh]" aria-busy="true" />}>{telaPara(caminho)}</Suspense>
+          {/* A altura reservada é a da TELA: com menos (era 60vh), o rodapé
+              aparecia no meio da tela enquanto a página carregava e depois
+              pulava para baixo — o "pulo" que o Lighthouse mede (CLS). */}
+          <Suspense fallback={<div className="min-h-dvh" aria-busy="true" />}>{telaPara(caminho)}</Suspense>
         </div>
       </main>
 

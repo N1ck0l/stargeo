@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { existsSync, renameSync, rmdirSync } from 'node:fs'
@@ -85,6 +85,27 @@ function metaSocial() {
   }
 }
 
+/**
+ * Conexão adiantada com o Supabase (`preconnect`): o catálogo, a página da
+ * estrela e o checkout falam com ele logo na abertura, e abrir DNS + TLS
+ * junto com o HTML poupa ~300 ms no celular (Lighthouse). A origem vem da
+ * mesma `VITE_SUPABASE_URL` do app; sem ela (testes, build local), nada.
+ */
+function preconexao() {
+  return {
+    name: 'stellara-preconexao',
+    transformIndexHtml() {
+      const url = process.env.VITE_SUPABASE_URL || loadEnv('production', raiz, 'VITE_').VITE_SUPABASE_URL
+      if (!url) return []
+      const origem = new URL(url).origin
+      return [
+        { tag: 'link', attrs: { rel: 'preconnect', href: origem, crossorigin: '' }, injectTo: 'head-prepend' },
+        { tag: 'link', attrs: { rel: 'dns-prefetch', href: origem }, injectTo: 'head-prepend' },
+      ]
+    },
+  }
+}
+
 export default defineConfig({
   root: raiz,
   base: process.env.BASE_URL || '/',
@@ -138,5 +159,5 @@ export default defineConfig({
     },
   },
 
-  plugins: [react(), tailwindcss(), metaSocial(), achatarHtml()],
+  plugins: [react(), tailwindcss(), metaSocial(), preconexao(), achatarHtml()],
 })

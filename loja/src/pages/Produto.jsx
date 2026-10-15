@@ -11,6 +11,7 @@ import { Link } from '../lib/Link.jsx'
 import { buscarEstrela, comoSeVe, consultarCupom, normalizar, reais } from '../lib/catalogo.js'
 import { ocasiaoPorSlug, SUGESTOES_GERAIS } from '../lib/ocasioes.js'
 import { registrar } from '../lib/metricas.js'
+import { useMetaPagina } from '../lib/meta.js'
 import { aplicarCupom, precoDoGrupo } from '../../../shared/preco.js'
 import { linhaDoGrupo } from '../../../shared/grupo.js'
 import { MaisEstrelas } from '../components/MaisEstrelas.jsx'
@@ -117,6 +118,11 @@ export default function Produto({ slug }) {
   }, [estrelaInicial])
 
   useEffect(() => registrar('ver_produto'), [])
+  useMetaPagina({
+    titulo: 'Monte seu certificado de estrela | Stellara',
+    descricao:
+      'Escolha uma estrela real, escreva o nome de quem você ama e a sua dedicatória, e veja a prévia do certificado antes de pagar. Pix ou até 12x no cartão.',
+  })
 
   function escolherEstrela(nova) {
     setEstrela(nova)

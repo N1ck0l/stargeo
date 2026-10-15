@@ -49,7 +49,7 @@ export default function Estrela({ slug }) {
   })
 
   if (estrela === undefined) {
-    return <div className="espaco-secao min-h-[60vh]" aria-busy="true" />
+    return <div className="espaco-secao min-h-dvh" aria-busy="true" />
   }
 
   if (!estrela) {
