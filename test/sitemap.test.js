@@ -32,4 +32,11 @@ describe('sitemap e robots', () => {
     expect(xml).toContain('<loc>https://stellara.com.br/estrelas</loc>')
     expect(xml).not.toContain('/estrelas/')
   })
+
+  it('sitemap incompleto não fica em cache; o completo fica um dia', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('fora do ar') }))
+    expect((await sitemap(new Request('https://stellara.com.br/sitemap.xml'))).headers.get('Cache-Control')).toBe('no-store')
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ slugs: ['vega'] }))))
+    expect((await sitemap(new Request('https://stellara.com.br/sitemap.xml'))).headers.get('Cache-Control')).toBe('public, max-age=86400')
+  })
 })

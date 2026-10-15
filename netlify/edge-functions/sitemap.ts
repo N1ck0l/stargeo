@@ -47,7 +47,9 @@ export default async function sitemap(request: Request): Promise<Response> {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lista: 'sitemap' }),
-        signal: AbortSignal.timeout(3000),
+        // Robô de busca não tem pressa: folga para a função acordar (partida a
+        // frio passava de 3 s e o sitemap saía só com as telas fixas).
+        signal: AbortSignal.timeout(8000),
       })
       if (consulta.ok) slugs = ((await consulta.json())?.slugs ?? []).filter((s: unknown) => typeof s === 'string')
     } catch {
@@ -64,7 +66,11 @@ export default async function sitemap(request: Request): Promise<Response> {
     '\n</urlset>\n'
 
   return new Response(xml, {
-    headers: { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=86400' },
+    headers: {
+      'Content-Type': 'application/xml; charset=utf-8',
+      // Incompleto (catálogo fora do ar) não pode ficar guardado um dia.
+      'Cache-Control': slugs.length ? 'public, max-age=86400' : 'no-store',
+    },
   })
 }
 
