@@ -281,7 +281,8 @@ export function conteudoDoPedido(
     ) ?? '',
     registro: String(pedido.code ?? ''),
     tituloHero: `a estrela de ${curto}`,
-    fraseHero: `Uma estrela real, ${bayer}, escolhida para ${curto}.`,
+    // A estrela aparece logo abaixo, na linha de fatos do topo: a frase não a repete.
+    fraseHero: 'Este pedaço do universo foi escolhido para você.',
     tituloEstrela: apelido
       ? `${nomeEstrela}, agora também “${apelido}”`
       : `${nomeEstrela}, agora também de ${curto}`,

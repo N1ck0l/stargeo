@@ -855,7 +855,9 @@ export function SkyMap({ onOpenCertificate }) {
             <dl className="mt-5 space-y-3 text-sm">
               <div className="flex justify-between gap-4">
                 <dt className="text-ivory/60">Magnitude</dt>
-                <dd className="text-right">{selected?.mag.toFixed(2)}</dd>
+                <dd className="text-right">
+                  {selected ? selected.mag.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace('-', '−') : ''}
+                </dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-ivory/60">Ascensão reta</dt>

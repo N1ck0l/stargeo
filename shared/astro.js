@@ -179,7 +179,8 @@ export function formatRa(raHours) {
   const minutesExact = (total - hours) * 60
   const minutes = Math.floor(minutesExact)
   const seconds = (minutesExact - minutes) * 60
-  return `${pad(hours)}h ${pad(minutes)}m ${seconds.toFixed(1).padStart(4, '0')}s`
+  // Vírgula decimal, como no certificado e na ficha da estrela.
+  return `${pad(hours)}h ${pad(minutes)}m ${seconds.toFixed(1).padStart(4, '0').replace('.', ',')}s`
 }
 
 /** Formata declinação decimal (graus) como `−34° 23′ 04.6″`. */
@@ -203,7 +204,7 @@ export function formatDec(decDeg) {
     degrees += 1
   }
 
-  return `${sign}${degrees}° ${pad(arcmin)}′ ${arcsec.toFixed(1).padStart(4, '0')}″`
+  return `${sign}${degrees}° ${pad(arcmin)}′ ${arcsec.toFixed(1).padStart(4, '0').replace('.', ',')}″`
 }
 
 /**

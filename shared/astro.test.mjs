@@ -199,9 +199,9 @@ const wrapped = panBy({ ra: 19.5, dec: -30, scale: SCALE_DEFAULT }, 300, 0)
 check('não “quebra” ao passar de 19h para 20h', wrapped.ra > 19.5 && wrapped.ra < 24, `ra=${wrapped.ra.toFixed(4)}`)
 
 console.log('\n=== 9. formatação ===')
-check('AR', formatRa(18.40286622) === '18h 24m 10.3s', formatRa(18.40286622))
-check('Dec mantém a casa decimal', formatDec(-34.38461647) === '−34° 23′ 04.6″', formatDec(-34.38461647))
-check('Dec positiva', formatDec(12.5) === '+12° 30′ 00.0″', formatDec(12.5))
+check('AR', formatRa(18.40286622) === '18h 24m 10,3s', formatRa(18.40286622))
+check('Dec mantém a casa decimal', formatDec(-34.38461647) === '−34° 23′ 04,6″', formatDec(-34.38461647))
+check('Dec positiva', formatDec(12.5) === '+12° 30′ 00,0″', formatDec(12.5))
 check('carry de segundos', !formatDec(-34.9999999).includes('60'), formatDec(-34.9999999))
 check('carry de minutos', !formatDec(-35.99999999).includes('60'), formatDec(-35.99999999))
 

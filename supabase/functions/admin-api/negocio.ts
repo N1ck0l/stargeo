@@ -169,11 +169,14 @@ export async function relatorio(db: Db, corpo: Record<string, unknown>) {
   const inicio = new Date(`${de}T00:00:00-03:00`).toISOString()
   const fim = new Date(new Date(`${ate}T00:00:00-03:00`).getTime() + 86_400_000).toISOString()
 
+  // `stars!orders_star_slug_fkey`: pedido e estrela se ligam pelos DOIS lados
+  // (`orders.star_slug` e `stars.order_id`, a estrela dedicada), e o PostgREST
+  // recusa o `stars(...)` sem dizer qual — o relatório saía sempre com erro.
   const { data, error } = await db
     .from('orders')
     .select(
       'id, code, group_id, status, paid_at, customer_name, customer_email, customer_doc, honoree_name, star_slug, ' +
-        'amount_cents, desconto_cupom_cents, cupom, payment_method, payment_id, stars(name, faixa)',
+        'amount_cents, desconto_cupom_cents, cupom, payment_method, payment_id, stars!orders_star_slug_fkey(name, faixa)',
     )
     .in('status', ['approved', 'refunded', 'charged_back'])
     .gte('paid_at', inicio)

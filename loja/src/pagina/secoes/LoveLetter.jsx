@@ -73,7 +73,7 @@ export function LoveLetter() {
       <Reveal
         delay={140}
         distance={40}
-        className="shimmer-border mt-10 rounded-3xl border border-gold/15 bg-[#120c28]/70 p-8 font-serif text-lg leading-8 text-ivory/85 italic sm:p-12"
+        className="shimmer-border mt-10 rounded-3xl border border-gold/15 bg-[#120c28]/70 px-6 py-8 font-serif text-[17px] leading-8 text-ivory/85 italic sm:p-12 sm:text-lg"
       >
         {paragrafos.map((paragraph, index) => (
           <Reveal

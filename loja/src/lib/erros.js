@@ -12,7 +12,10 @@
  */
 const URL_BASE = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '')
 const CHAVE = import.meta.env.VITE_SUPABASE_ANON_KEY
-const ativo = Boolean(URL_BASE && CHAVE) && import.meta.env.MODE !== 'test'
+// Fora do site publicado (localhost, rede local) não registra: erro de teste no
+// computador de quem desenvolve não pode aparecer no painel como erro do site.
+const local = typeof window !== 'undefined' && /^(localhost|127\.|192\.168\.|10\.|\[::1\])/.test(window.location.hostname)
+const ativo = Boolean(URL_BASE && CHAVE) && import.meta.env.MODE !== 'test' && !local
 
 const vistos = new Set()
 let enviados = 0

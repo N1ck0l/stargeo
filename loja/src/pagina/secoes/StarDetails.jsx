@@ -32,19 +32,26 @@ export function StarDetails({ onOpenCertificate }) {
    * são condicionais: numa página de outra estrela o que não temos não aparece,
    * em vez de virar "undefined" na tela.
    */
+  // Números no padrão brasileiro (vírgula), como no certificado.
+  const numero = (v, casas) => Number(v).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas }).replace('-', '−')
   const facts = [
-    { label: 'Nome oficial / científico', value: `${estrela.commonName} (${estrela.bayer})` },
-    { label: 'Nome batizado', value: content.nome },
-    { label: 'Constelação', value: `${estrela.constellation} (${estrela.constellationLatin})` },
+    // Nome e designação em duas linhas: "Kaus Australis (ε / Sagittarii)"
+    // quebrava no meio do parêntese.
+    { label: 'Nome oficial', value: estrela.commonName, detalhe: estrela.bayer },
+    content.apelidoEstrela
+      ? { label: 'Nome nesta homenagem', value: `“${content.apelidoEstrela}”`, detalhe: `Dedicada a ${content.nome}` }
+      : { label: 'Dedicada a', value: content.nome },
+    { label: 'Constelação', value: estrela.constellation, detalhe: estrela.constellationLatin },
     { label: 'Ascensão reta (J2000)', value: estrela.ra.formatted },
     { label: 'Declinação (J2000)', value: estrela.dec.formatted },
     {
       label: 'Magnitude aparente',
-      value: estrela.magnitudeRange ?? String(estrela.magnitude),
+      value: estrela.magnitudeRange ?? numero(estrela.magnitude, 2),
     },
     {
       label: 'Distância',
-      value: estrela.distanceLy ? `${estrela.distanceLy} anos-luz (~${estrela.distancePc} pc)` : 'não medida com precisão',
+      value: estrela.distanceLy ? `${numero(estrela.distanceLy, estrela.distanceLy < 100 ? 1 : 0)} anos-luz` : 'não medida com precisão',
+      detalhe: estrela.distanceLy && estrela.distancePc ? `cerca de ${numero(estrela.distancePc, 1)} parsecs` : undefined,
     },
     { label: 'Tipo espectral', value: estrela.spectralType },
     estrela.hip && estrela.hd && estrela.hr
@@ -74,9 +81,9 @@ export function StarDetails({ onOpenCertificate }) {
             <button
               type="button"
               onClick={onOpenCertificate}
-              className="animate-pulse-glow mt-8 rounded-full bg-gold px-6 py-3 text-sm font-medium text-night transition hover:bg-gold-soft hover:shadow-[0_0_30px_rgba(216,182,106,0.5)]"
+              className="mt-8 rounded-full bg-gold px-6 py-3 text-sm font-medium text-night transition hover:bg-gold-soft hover:shadow-[0_0_28px_rgba(216,182,106,0.45)]"
             >
-              Visualizar Certificado Digital
+              Ver o certificado
             </button>
           </Reveal>
         </div>
@@ -91,7 +98,10 @@ export function StarDetails({ onOpenCertificate }) {
               className="tilt rounded-2xl border border-white/8 bg-white/5 p-4"
             >
               <dt className="text-[11px] tracking-wide text-gold/80 uppercase">{fact.label}</dt>
-              <dd className="mt-2 font-serif text-lg text-ivory">{fact.value}</dd>
+              <dd className="mt-2 font-serif text-lg leading-snug text-ivory">
+                {fact.value}
+                {fact.detalhe && <span className="mt-0.5 block font-sans text-xs text-ivory/55">{fact.detalhe}</span>}
+              </dd>
             </Reveal>
           ))}
         </dl>
