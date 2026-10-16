@@ -37,7 +37,7 @@ describe('personalização em etapas', () => {
   it('as etapas seguem a ordem da decisão, com a estrela primeiro', () => {
     render(<Produto slug="certificado-digital" />)
     const etapas = within(screen.getByRole('navigation', { name: 'Etapas da compra' })).getAllByRole('link')
-    expect(etapas.map((e) => e.textContent.replace(/^\d|✓/, ''))).toEqual(['Estrela', 'Para quem', 'Mensagem', 'Carta', 'Seus dados', 'Pagamento'])
+    expect(etapas.map((e) => e.textContent.replace(/^\d|✓/, ''))).toEqual(['Estrela', 'Para quem', 'Mensagem', 'Carta', 'Dados', 'Pagar'])
     // Cada etapa aponta para uma seção que existe.
     for (const e of etapas) expect(document.querySelector(e.getAttribute('href'))).toBeTruthy()
 

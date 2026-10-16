@@ -1061,8 +1061,8 @@ const ETAPAS = [
   ['etapa-para-quem', 'Para quem'],
   ['etapa-mensagem', 'Mensagem'],
   ['etapa-carta', 'Carta'],
-  ['etapa-dados', 'Seus dados'],
-  ['etapa-pagamento', 'Pagamento'],
+  ['etapa-dados', 'Dados'],
+  ['etapa-pagamento', 'Pagar'],
 ]
 
 function IndicadorDeEtapas() {
@@ -1093,13 +1093,17 @@ function IndicadorDeEtapas() {
       aria-label="Etapas da compra"
       className="sticky top-20 z-20 -mx-4 border-b border-white/10 bg-night/[0.97] px-4 py-2.5 backdrop-blur-md sm:mx-0 sm:rounded-2xl sm:border"
     >
-      <ol className="flex items-center justify-between gap-1 overflow-x-auto text-xs">
+      {/* Sem rolagem lateral: a barra é um `@container`, e os nomes das
+          etapas só aparecem quando cabem todos (≥ 34rem, medido); antes disso, só o
+          da etapa atual — as outras ficam no número. */}
+      <ol className="@container flex items-center justify-between gap-1 text-xs">
         {ETAPAS.map(([id, rotulo], i) => (
-          <li key={id} className="shrink-0">
+          <li key={id} className="min-w-0 shrink-0">
             <a
               href={`#${id}`}
               aria-current={id === atual ? 'step' : undefined}
-              className={`flex items-center gap-1.5 rounded-full px-2 py-1 transition ${
+              aria-label={rotulo}
+              className={`flex items-center gap-1.5 rounded-full px-1.5 py-1 whitespace-nowrap transition ${
                 id === atual ? 'text-gold' : i < indice ? 'text-ivory/75' : 'text-ivory/45'
               } hover:text-gold`}
             >
@@ -1110,7 +1114,7 @@ function IndicadorDeEtapas() {
               >
                 {i < indice ? '✓' : i + 1}
               </span>
-              {rotulo}
+              <span className={id === atual ? '' : 'hidden @[34rem]:inline'}>{rotulo}</span>
             </a>
           </li>
         ))}
