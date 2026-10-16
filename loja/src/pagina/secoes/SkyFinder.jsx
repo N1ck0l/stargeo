@@ -7,18 +7,21 @@ import { useContent } from '../../lib/contentContext'
 import {
   devicePointing,
   equatorialToHorizontal,
-  guidance,
   visibility,
   visibilityMessage,
   wrap180,
 } from '../../../../shared/sky.js'
 
 /**
- * Campo de visão horizontal da câmera traseira, em graus.
- * Varia bastante entre aparelhos (55°–80°), então é apenas uma aproximação —
- * e o usuário pode ajustar pelo controle de calibração.
+ * Campo de visão VERTICAL da câmera traseira com o celular em pé, em graus
+ * (o lado comprido da imagem). O horizontal sai da proporção da tela, que o
+ * vídeo cobre recortando as laterais. Varia entre aparelhos (55°–80°): é uma
+ * aproximação, e a pessoa ajusta pelo controle de calibração.
  */
 const CAMERA_FOV = 68
+
+/** Raio do retículo no centro da tela, em px: estrela dentro dele = "ali está". */
+const RETICULO = 56
 
 /**
  * Cidades brasileiras como alternativa quando a pessoa recusa a localização.
@@ -81,6 +84,15 @@ export function SkyFinder({ onClose }) {
   const videoRef = useRef(null)
   const streamRef = useRef(null)
   const dialogRef = useRef(null)
+  const [tela, setTela] = useState(() => ({
+    largura: typeof window === 'undefined' ? 390 : window.innerWidth,
+    altura: typeof window === 'undefined' ? 844 : window.innerHeight,
+  }))
+  useEffect(() => {
+    const medir = () => setTela({ largura: window.innerWidth, altura: window.innerHeight })
+    window.addEventListener('resize', medir)
+    return () => window.removeEventListener('resize', medir)
+  }, [])
 
   /*
    * O alvo e a figura do céu vêm do conteúdo quando a página é de um cliente;
@@ -194,9 +206,27 @@ export function SkyFinder({ onClose }) {
      * `alpha` que define para que azimute o aparelho está virado; a conversão
      * completa para (altura, azimute) da câmera vive em `devicePointing`.
      */
+    /*
+     * O NORTE de verdade. No Android, o Chrome manda em `deviceorientation`
+     * um alpha RELATIVO (zero = para onde o celular apontava quando a página
+     * abriu) — a estrela "mudava de lugar" a cada vez que se abria a mira. A
+     * bússola vem em `deviceorientationabsolute`. No iPhone, o norte vem em
+     * `webkitCompassHeading` (graus no sentido horário; alpha é o contrário).
+     */
+    const absolutoDisponivel = 'ondeviceorientationabsolute' in window
     const onOrientation = (event) => {
-      if (event.alpha === null || !mounted) return
-      setPointing(devicePointing(event.alpha, event.beta ?? 0, event.gamma ?? 0))
+      if (!mounted) return
+      let alpha = null
+      if (typeof event.webkitCompassHeading === 'number' && event.webkitCompassHeading >= 0) {
+        alpha = (360 - event.webkitCompassHeading) % 360
+      } else if (event.type === 'deviceorientationabsolute' || event.absolute) {
+        alpha = event.alpha
+      } else if (!absolutoDisponivel) {
+        // Último recurso (aparelho sem bússola absoluta): melhor que nada.
+        alpha = event.alpha
+      }
+      if (alpha === null || alpha === undefined) return
+      setPointing(devicePointing(alpha, event.beta ?? 0, event.gamma ?? 0))
       // Só o Android publica a precisão da bússola; no iOS `accuracy` fica nulo
       // e a qualidade aparece como "desconhecida" — não como "ruim".
       if (typeof event.webkitCompassAccuracy === 'number') setAccuracy(event.webkitCompassAccuracy)
@@ -205,6 +235,7 @@ export function SkyFinder({ onClose }) {
     }
 
     window.addEventListener('deviceorientation', onOrientation)
+    if (absolutoDisponivel) window.addEventListener('deviceorientationabsolute', onOrientation)
 
     /*
      * Não dá para confiar só na permissão: o navegador pode autorizar e ainda
@@ -219,6 +250,7 @@ export function SkyFinder({ onClose }) {
       mounted = false
       clearTimeout(timer)
       window.removeEventListener('deviceorientation', onOrientation)
+      window.removeEventListener('deviceorientationabsolute', onOrientation)
     }
   }, [stage])
 
@@ -305,7 +337,6 @@ export function SkyFinder({ onClose }) {
     return equatorialToHorizontal(estrela.ra.hoursDecimal, estrela.dec.decimal, fix.lat, fix.lon, now)
   }, [estrela, fix, now])
 
-  const guide = target && pointing ? guidance(target, pointing) : null
 
   /**
    * Onde a estrela está e se dá para vê-la agora. Calcula nascer, pôr e a
@@ -381,10 +412,39 @@ export function SkyFinder({ onClose }) {
     [skyStars, celestes],
   )
 
-  // O azimute do alvo vira deslocamento horizontal na tela. Dividir por
-  // `fov / 2` converte graus em fração do meio-campo; o `clamp` impede que a
-  // seta saia do retículo quando a estrela está atrás do aparelho.
-  const arrowShift = guide ? Math.max(-1, Math.min(1, guide.bearing / (fov / 2))) : 0
+  /*
+   * Céu → tela. `fov` é o campo de visão VERTICAL da câmera (retrato); o
+   * horizontal sai da proporção da tela. A diferença de azimute encolhe com o
+   * cosseno da altura (perto do zênite, 10° de azimute são poucos graus de
+   * céu). Centro da tela = para onde o celular aponta.
+   */
+  const fovV = fov
+  const fovH = fov * (tela.largura / tela.altura)
+  const naTela = (pos) => {
+    const dx = wrap180(pos.azimuth - pointing.azimuth) * Math.cos((pos.altitude * Math.PI) / 180)
+    const dy = pos.altitude - pointing.altitude
+    return { dx, dy, x: 50 + (dx / fovH) * 100, y: 50 - (dy / fovV) * 100 }
+  }
+
+  /*
+   * A estrela em relação ao retículo, em PIXELS: "alinhado" é o ponto dentro
+   * do círculo que a pessoa vê — o mesmo critério para o texto e para a seta,
+   * que assim nunca se contradizem.
+   */
+  const alvo = (() => {
+    if (!target || !pointing) return null
+    const t = naTela(target)
+    const px = ((t.x - 50) / 100) * tela.largura
+    const py = ((t.y - 50) / 100) * tela.altura
+    return {
+      ...t,
+      dentro: t.x > -2 && t.x < 102 && t.y > -2 && t.y < 102 && target.altitude > -2,
+      alinhado: Math.hypot(px, py) <= RETICULO,
+      angulo: (Math.atan2(py, px) * 180) / Math.PI,
+      // Os graus que o raio do retículo cobre: abaixo disso, "bem perto".
+      tolerancia: (RETICULO / tela.altura) * fovV,
+    }
+  })()
 
   // Cardeais em português e em azimute: Norte 0°, Leste 90°, Sul 180°, Oeste 270°.
   const compassPoints = { N: 0, L: 90, S: 180, O: 270 }
@@ -456,8 +516,8 @@ export function SkyFinder({ onClose }) {
             <h3 className="font-serif mt-6 text-2xl">Aponte a câmera para o céu</h3>
             <p className="mt-4 text-ivory/75 leading-relaxed">
               O celular usa a bússola para mostrar para onde fica {estrela.commonName},
-              na constelação de {estrela.constellation}. Gire devagar até a seta
-              apontar para ela.
+              na constelação de {estrela.constellation}. Siga a seta até a estrela
+              cair dentro do círculo no centro da tela.
             </p>
             <p className="mt-4 text-sm text-ivory/60">
               Funciona melhor à noite, ao ar livre, e precisa de <strong>HTTPS</strong> e
@@ -501,110 +561,102 @@ export function SkyFinder({ onClose }) {
             </div>
           </div>
 
-          {/* Retículo e seta */}
-          {/* `min-h-0` é essencial: sem ele o flexível não encolhe abaixo do conteúdo e
-              empurra o rodapé para fora da tela em aparelhos baixos. */}
-          <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6">
-            {target && guide ? (
-              <>
-                <div
-                  className="pointer-events-none relative flex h-40 w-40 items-center justify-center transition-transform duration-300"
-                  style={{ transform: `translateX(${arrowShift * 38}%)` }}
-                >
-                  <span className="absolute inset-0 rounded-full border border-gold/25" />
-                  <span className="absolute inset-6 rounded-full border border-gold/15" />
-                  <svg
-                    width="40"
-                    height="40"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                    className={`text-gold ${guide.bearing >= 0 ? '' : 'rotate-180'}`}
-                  >
-                    <path d="M8 5 L16 12 L8 19" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
+          {/*
+            UMA camada só, do tamanho da tela, sobre a câmera: o centro da tela
+            é para onde o celular aponta, e a estrela, a constelação e o céu
+            ficam no lugar deles na imagem (`naTela`). Antes eram duas peças —
+            um retículo com seta no alto e um quadradinho de céu mais abaixo —
+            e a estrela parecia estar em dois lugares.
+          */}
+          {target && pointing && (
+            <div className="pointer-events-none absolute inset-0 z-[5] overflow-hidden" aria-hidden="true">
+              {skyBackdrop.map((star) => {
+                const t = naTela(star)
+                const r = Math.max(2, Math.min(6, 9 - star.mag * 1.8))
+                return (
+                  <span
+                    key={`sky-${star.ra}-${star.dec}`}
+                    className="absolute rounded-full bg-ivory/60"
+                    style={{ left: `${t.x}%`, top: `${t.y}%`, width: r, height: r, marginLeft: -r / 2, marginTop: -r / 2 }}
+                  />
+                )
+              })}
+              {constellation
+                .filter((star) => !star.dedicated)
+                .map((star) => {
+                  const t = naTela(star)
+                  return (
+                    <span
+                      key={star.id}
+                      className="absolute size-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-ivory/75"
+                      style={{ left: `${t.x}%`, top: `${t.y}%` }}
+                    />
+                  )
+                })}
 
-                {/*
-                  Instruções em texto, para quem não vê (ou não entende) a seta.
-                  `role="status"` faz o leitor de tela anunciar a mudança sem
-                  roubar o foco. Os limiares de 4° vêm de `guidance()`: dentro
-                  disso já se está "ali".
-                */}
-                <p className="mt-6 max-w-sm text-center text-lg" role="status">
-                  {guide.aligned ? (
-                    <span className="font-serif text-2xl text-gold">Ali está a sua estrela ✦</span>
-                  ) : (
-                    <>
-                      {Math.abs(guide.bearing) > 4 && (
-                        <span className="block">
-                          Gire para a {guide.bearing > 0 ? 'direita' : 'esquerda'}
-                          {Math.abs(guide.bearing) > 45 && ' bastante'}
-                        </span>
-                      )}
-                      {guide.elevation > 4 && <span className="block">Levante um pouco o celular</span>}
-                      {guide.elevation < -4 && <span className="block">Abaixe um pouco o celular</span>}
-                      {Math.abs(guide.bearing) <= 4 && Math.abs(guide.elevation) <= 4 && (
-                        <span className="block">Está bem perto, ajuste devagar</span>
-                      )}
-                    </>
-                  )}
-                </p>
-              </>
+              {/* A estrela: dentro da imagem, um ponto dourado com anel e o nome. */}
+              {alvo.dentro && (
+                <span className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${alvo.x}%`, top: `${alvo.y}%` }}>
+                  <span className="block size-4 rounded-full bg-gold shadow-[0_0_22px_rgba(216,182,106,0.95)]" />
+                  <span className="absolute -inset-3 rounded-full border border-gold/60" />
+                  <span className="absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap font-serif text-sm text-gold">
+                    {estrela.commonName}
+                  </span>
+                </span>
+              )}
+
+              {/* Retículo: fixo no centro (para onde o celular aponta). */}
+              <span
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-gold/40"
+                style={{ width: RETICULO * 2, height: RETICULO * 2 }}
+              />
+              <span className="absolute top-1/2 left-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold/70" />
+              {/* Fora do círculo, a seta na borda dele aponta para a estrela —
+                  em qualquer direção, inclusive para cima e para baixo. */}
+              {!alvo.alinhado && (
+                <svg
+                  width="42"
+                  height="42"
+                  viewBox="0 0 24 24"
+                  className="absolute top-1/2 left-1/2 text-gold drop-shadow-[0_0_6px_rgba(0,0,0,0.85)]"
+                  style={{
+                    transform: `translate(-50%, -50%) rotate(${alvo.angulo}deg) translateX(${RETICULO + 22}px)`,
+                  }}
+                >
+                  <path d="M8 5 L16 12 L8 19" stroke="currentColor" strokeWidth="2.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </div>
+          )}
+
+          {/* Instruções em texto (também para leitor de tela), abaixo do centro. */}
+          <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-end overflow-y-auto px-6 pb-6">
+            {target && pointing ? (
+              <p className="max-w-sm text-center text-lg" role="status">
+                {alvo.alinhado ? (
+                  <span className="font-serif text-2xl text-gold">Ali está a sua estrela ✦</span>
+                ) : (
+                  <>
+                    {Math.abs(alvo.dx) > alvo.tolerancia && (
+                      <span className="block">
+                        Gire para a {alvo.dx > 0 ? 'direita' : 'esquerda'}
+                        {Math.abs(alvo.dx) > 45 && ' bastante'}
+                      </span>
+                    )}
+                    {alvo.dy > alvo.tolerancia && <span className="block">Levante um pouco o celular</span>}
+                    {alvo.dy < -alvo.tolerancia && <span className="block">Abaixe um pouco o celular</span>}
+                    {Math.abs(alvo.dx) <= alvo.tolerancia && Math.abs(alvo.dy) <= alvo.tolerancia && (
+                      <span className="block">Está bem perto, ajuste devagar</span>
+                    )}
+                  </>
+                )}
+              </p>
             ) : (
               <p className="max-w-sm text-center text-ivory/70" role="status">
                 {pointing
                   ? 'Precisando da sua localização para calcular onde a estrela está…'
                   : 'Sem os sensores de orientação. A mira precisa de um celular com bússola.'}
               </p>
-            )}
-
-{/* Bule de chá desenhado no céu. O quadro é quadrado e cobre exatamente o
-                campo de visão da câmera, então graus saem direto em porcentagem.
-                O teto em `vh` impede que ele coma a altura do rodapé. */}
-            {constellation.length > 0 && (
-              <div
-                className="pointer-events-none relative mx-auto mt-6 aspect-square w-full max-w-[min(100%,26vh)]"
-                aria-hidden="true"
-              >
-                {/* Céu de fundo: as estrelas mais brilhantes, sem nome.
-                    O eixo X vem do bearing (diferença de azimute para o
-                    aparelho) e o Y da ALTITUDE RELATIVA à do aparelho — é ela
-                    que diz se a estrela está acima ou abaixo da linha do meio.
-                    Ambos em graus ÷ fov = porcentagem do quadro.
-                    O raio cai com a magnitude: `9 − mag × 1,8`, preso entre
-                    2 e 6 px — mais brilhante, ponto maior. */}
-                {skyBackdrop.map((star) => (
-                  <span
-                    key={`sky-${star.ra}-${star.dec}`}
-                    className="absolute rounded-full bg-ivory/60"
-                    style={{
-                      left: `${50 + (star.bearing / fov) * 100}%`,
-                      top: `${50 - ((star.altitude - pointing.altitude) / fov) * 100}%`,
-                      width: Math.max(2, Math.min(6, 9 - star.mag * 1.8)),
-                      height: Math.max(2, Math.min(6, 9 - star.mag * 1.8)),
-                      marginLeft: -3,
-                      marginTop: -3,
-                    }}
-                  />
-                ))}
-
-                {/* Bule de chá de Sagitário, por cima. */}
-                {constellation.map((star) => (
-                  <span
-                    key={star.id}
-                    className={`absolute rounded-full ${star.dedicated ? 'bg-gold' : 'bg-ivory/70'}`}
-                    style={{
-                      left: `${50 + (star.bearing / fov) * 100}%`,
-                      top: `${50 - ((star.altitude - pointing.altitude) / fov) * 100}%`,
-                      width: star.dedicated ? 14 : 7,
-                      height: star.dedicated ? 14 : 7,
-                      marginLeft: star.dedicated ? -7 : -3.5,
-                      marginTop: star.dedicated ? -7 : -3.5,
-                      boxShadow: star.dedicated ? '0 0 20px rgba(216,182,106,0.9)' : 'none',
-                    }}
-                  />
-                ))}
-              </div>
             )}
           </div>
 

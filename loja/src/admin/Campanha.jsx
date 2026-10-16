@@ -50,9 +50,11 @@ export function Campanha({ aoExpirar }) {
   const [aberta, setAberta] = useState(null)
 
   const carregar = useCallback(() => {
-    setErro('')
     return chamarAdmin('campanha', { campanha: CAMPANHA })
-      .then(setDados)
+      .then((d) => {
+        setErro('')
+        setDados(d)
+      })
       .catch((e) => setErro(tratarErro(e, aoExpirar)))
   }, [aoExpirar])
 
