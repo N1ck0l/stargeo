@@ -54,6 +54,7 @@ function preCarregarProduto() {
 }
 import Footer from './components/Footer.jsx'
 import { ScrollProgress } from './components/ScrollProgress.jsx'
+import { TrilhaStellara } from './components/TrilhaStellara.jsx'
 import { Simbolo } from './components/Simbolo.jsx'
 import { Starfield } from './components/Starfield.jsx'
 
@@ -176,6 +177,9 @@ export default function App() {
       </main>
 
       <Footer />
+
+      {/* Trilha Stellara: opcional, desligada por padrão; fora do painel. */}
+      {!caminho.startsWith('/admin') && <TrilhaStellara />}
     </div>
   )
 }

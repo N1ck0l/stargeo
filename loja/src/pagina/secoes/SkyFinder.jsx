@@ -4,6 +4,7 @@ import { StarTrails } from './StarTrails'
 import { brightStars } from '../../data/brightStars'
 import { kausAustralis, sagittariusStars } from '../../data/star'
 import { useContent } from '../../lib/contentContext'
+import { pausarTrilha, useTrilha } from '../../lib/trilha.js'
 import { cardinal, devicePointing, equatorialToHorizontal, wrap180 } from '../../../../shared/sky.js'
 import {
   emPunhos,
@@ -95,6 +96,8 @@ export function SkyFinder({ onClose }) {
   const closedRef = useRef(false)
 
   const { content } = useContent()
+  // A mira cobre o botão da trilha: se ela estiver tocando, o "pausar" vem para cá.
+  const trilha = useTrilha()
   const estrela = content.estrela ?? kausAustralis
   const celestes = content.skyFigura?.stars ?? sagittariusStars
 
@@ -434,6 +437,16 @@ export function SkyFinder({ onClose }) {
             <p className="font-display text-[10px] tracking-[0.3em] text-gold uppercase">Mira celeste</p>
             <h2 className="font-serif mt-1 truncate text-2xl sm:text-3xl">{estrela.commonName}</h2>
           </div>
+          <div className="flex shrink-0 items-center gap-2">
+          {trilha.tocando && (
+            <button
+              type="button"
+              onClick={pausarTrilha}
+              className="min-h-11 rounded-full border border-white/25 bg-night/40 px-3 text-sm text-ivory/85 transition hover:border-gold hover:text-gold"
+            >
+              Pausar música
+            </button>
+          )}
           <button
             type="button"
             onClick={onClose}
@@ -442,6 +455,7 @@ export function SkyFinder({ onClose }) {
           >
             Fechar
           </button>
+          </div>
         </div>
         {stage === 'active' && (
           <div role="group" aria-label="Modo da mira" className="mt-3 inline-flex rounded-full border border-white/15 bg-night/60 p-1 text-sm">
