@@ -49,6 +49,15 @@ function traduzirAuth(erro) {
   if (texto.includes('failed to fetch') || texto.includes('network')) {
     return 'Sem conexão com o servidor de acesso. Tente de novo.'
   }
+  if (texto.includes('same_password') || texto.includes('should be different')) {
+    return 'A nova senha precisa ser diferente da atual.'
+  }
+  if (texto.includes('weak_password') || texto.includes('at least')) {
+    return `Senha fraca: use pelo menos ${SENHA_MINIMA} caracteres.`
+  }
+  if (texto.includes('session') && texto.includes('missing')) {
+    return 'O link de recuperação venceu. Peça outro em "Esqueci minha senha".'
+  }
   return 'Não foi possível entrar no painel.'
 }
 
@@ -58,6 +67,45 @@ export async function entrarNoPainel(email, senha) {
   const { data, error } = await db.auth.signInWithPassword({ email, password: senha })
   if (error) throw new ErroApi('login_falhou', traduzirAuth(error), 401)
   return data.session
+}
+
+/** Senha mínima do painel — a mesma do Supabase Auth (`password_min_length`). */
+export const SENHA_MINIMA = 10
+
+/**
+ * O link do e-mail de recuperação abre `/admin#access_token=…&type=recovery`
+ * (ou `#error=…` se venceu). Tem de ser lido ANTES de o cliente Supabase
+ * nascer: ele consome o endereço, cria a sessão e limpa o `#`.
+ *
+ * @returns {'recuperacao' | 'link_vencido' | null}
+ */
+export function chegouPeloLinkDeRecuperacao() {
+  if (typeof window === 'undefined') return null
+  const hash = window.location.hash
+  if (/[#&]type=recovery/.test(hash)) return 'recuperacao'
+  if (/[#&]error_code=otp_expired/.test(hash) || /[#&]error=access_denied/.test(hash)) return 'link_vencido'
+  return null
+}
+
+/**
+ * "Esqueci minha senha": o Supabase manda o link para o e-mail, SE ele tiver
+ * conta — a resposta é a mesma nos dois casos, para ninguém descobrir quem é
+ * administrador.
+ */
+export async function pedirRecuperacao(email) {
+  const db = await supabase()
+  const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/admin` })
+  // Só o limite de envio vale contar; o resto seria pista sobre a conta.
+  if (error && /rate limit|too many/i.test(`${error.code ?? ''} ${error.message ?? ''}`)) {
+    throw new ErroApi('limite', 'Muitos pedidos em pouco tempo. Aguarde uma hora e tente de novo.', 429)
+  }
+}
+
+/** Define a senha nova da conta logada (pelo link de recuperação ou no painel). */
+export async function definirNovaSenha(senha) {
+  const db = await supabase()
+  const { error } = await db.auth.updateUser({ password: senha })
+  if (error) throw new ErroApi('senha_falhou', traduzirAuth(error), 400)
 }
 
 /** Sessão atual, ou `null` se ninguém entrou (ou a sessão venceu). */

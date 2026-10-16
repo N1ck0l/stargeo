@@ -52,6 +52,10 @@ só envia de domínio verificado). O site já não promete e-mail enquanto a cha
       variables) e `EDICAO_POR_EMAIL=1` (secrets do Supabase), e refazer o deploy.
 - [ ] Conferir a prévia do link no WhatsApp (imagem e título) com o domínio novo.
 - [ ] Cadastrar o site no Google Search Console e enviar `/sitemap.xml`.
+- [ ] Ligar o Resend como SMTP do Supabase Auth (Authentication → SMTP) e pôr
+      o e-mail de recuperação de senha em português.
+- [ ] Trocar no Supabase Auth `site_url` e a lista de endereços permitidos
+      para o domínio novo (o link de recuperação volta para `/admin`).
 
 Com os tokens no `.env` (Supabase e Netlify), o Claude faz as trocas de
 variáveis e o deploy assim que o domínio existir.
@@ -103,6 +107,10 @@ variáveis e o deploy assim que o domínio existir.
 
 Tudo pelo painel `/admin` (conta `nickolasfelipe225@gmail.com`, Supabase Auth;
 a permissão é a linha em `public.admins`). Mudar texto não precisa de deploy.
+Senha: "Trocar senha" no painel; esquecida, "Esqueci minha senha" no login (o
+link vale 1 hora; o e-mail sai do Supabase, em inglês, até o e-mail próprio —
+1.3 — virar o SMTP do Auth). Cadastro público desligado: conta nova só pelo
+Supabase (Authentication → Users) + linha em `admins`.
 
 | Aba | Para quê |
 | --- | --- |
