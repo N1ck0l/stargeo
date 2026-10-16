@@ -77,6 +77,7 @@ export const OCASIOES = [
 
 /** Sugestões quando a pessoa não veio de uma ocasião. */
 export const SUGESTOES_GERAIS = [
+  'Que esta estrela seja um lembrete eterno do lugar especial que você ocupa no meu universo.',
   'Que esta estrela te lembre, todas as noites, do quanto você é amada.',
   'Mesmo longe, a gente olha para o mesmo céu.',
   'Um presente que representa o que as palavras nem sempre conseguem dizer.',

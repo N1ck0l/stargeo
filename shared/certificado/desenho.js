@@ -26,6 +26,9 @@ import { projetarCeu, raioDaEstrela } from './mapa.js'
 /** A4 retrato, em milímetros. */
 export const PAGINA = { largura: 210, altura: 297 }
 
+/** O mapa do céu na folha: centro e raio, em mm. */
+export const MAPA = { cx: 150, cy: 229, r: 25 }
+
 /** 25,4 mm ÷ 72 pt: corpo de fonte (pt) para milímetros. */
 export const MM_POR_PT = 25.4 / 72
 
@@ -189,26 +192,31 @@ export function desenharCertificado(dados, opcoes = {}) {
   // --- Moldura ---------------------------------------------------------------
   moldura(add, p)
 
+  /*
+   * Hierarquia, do maior para o menor: o nome de quem recebe, o nome da
+   * estrela, o título, a marca e os dados. A marca é a assinatura da casa,
+   * não a manchete — fica menor que o título.
+   */
+
   // --- Marca -----------------------------------------------------------------
-  simboloOficial(add, p, { cx: CENTRO_X, cy: 33, altura: 22 })
-  marcaEmCurvas(add, NOME_EM_CURVAS, { cx: CENTRO_X, base: 55, caixaAlta: 6.2, cor: p.destaque })
-  marcaEmCurvas(add, SLOGAN_EM_CURVAS, { cx: CENTRO_X, base: 60.6, caixaAlta: 1.55, cor: p.destaque, opacidade: 0.85 })
-  divisor(add, p, 70.5, 30)
+  simboloOficial(add, p, { cx: CENTRO_X, cy: 29, altura: 15 })
+  marcaEmCurvas(add, NOME_EM_CURVAS, { cx: CENTRO_X, base: 45.5, caixaAlta: 3.7, cor: p.destaque })
+  marcaEmCurvas(add, SLOGAN_EM_CURVAS, { cx: CENTRO_X, base: 50, caixaAlta: 1.25, cor: p.destaque, opacidade: 0.85 })
+  divisor(add, p, 58.5, 30)
 
   // --- Título ----------------------------------------------------------------
-  texto('CERTIFICADO DE DEDICAÇÃO', { y: 86, fonte: 'serif', pt: 17, cor: p.destaque, espaco: 2.2 })
-  texto('DE UMA ESTRELA', { y: 92.6, fonte: 'sansMedio', pt: 6.2, cor: p.rotulo, espaco: 2.6, opacidade: 0.9 })
+  texto('CERTIFICADO DE DEDICAÇÃO', { y: 72, fonte: 'serif', pt: 16, cor: p.destaque, espaco: 2.2 })
+  texto('DE UMA ESTRELA', { y: 78.4, fonte: 'sansMedio', pt: 6.4, cor: p.rotulo, espaco: 2.6, opacidade: 0.9 })
 
-  // --- Bloco central: estrela, nome e mensagem -------------------------------
-  blocoCentral(add, texto, dados, p, { topo: 103, base: 197 })
+  // --- Bloco central: a homenagem e a estrela ---------------------------------
+  blocoCentral(add, texto, dados, p, { topo: 88, base: 192 })
 
-  // --- Dados, mapa do céu e frase --------------------------------------------
-  add({ tipo: 'linha', x1: 34, y1: 202.5, x2: 176, y2: 202.5, cor: p.moldura, espessura: 0.18, opacidade: 0.35 })
+  // --- Dados e mapa do céu ---------------------------------------------------
+  // Sem frase fixa aqui: ela não servia a toda homenagem. A frase da folha é
+  // a mensagem de quem dá — no centro, com sugestões no formulário.
+  add({ tipo: 'linha', x1: 34, y1: 198.5, x2: 176, y2: 198.5, cor: p.moldura, espessura: 0.18, opacidade: 0.35 })
   dadosAstronomicos(texto, dados, p)
-  texto('Algumas estrelas são feitas para sempre.', {
-    x: 26, y: 254.5, fonte: 'serifItalico', pt: 10, cor: p.destaque, alinhar: 'esquerda', opacidade: 0.95,
-  })
-  mapaDoCeu(add, texto, dados, p, { cx: 152, cy: 232, r: 23 })
+  mapaDoCeu(add, texto, dados, p, MAPA)
 
   // --- Rodapé ----------------------------------------------------------------
   rodape(add, texto, dados, p)
@@ -237,7 +245,7 @@ function ceuDeFundo(add, semente, p) {
     const opacidade = 0.12 + sorteio() * 0.38
     // Fora da coluna de texto do miolo e da área dos dados/mapa: estrelinha
     // em cima de uma letra parece sujeira de impressão, não céu.
-    const noTexto = (cx > 30 && cx < 180 && cy > 76 && cy < 200) || (cy > 205 && cy < 285)
+    const noTexto = (cx > 30 && cx < 180 && cy > 62 && cy < 196) || (cy > 201 && cy < 285)
     if (!noTexto) add({ tipo: 'circulo', cx, cy, r, preenchimento: p.estrelaCeu, opacidade })
   }
 }
@@ -312,13 +320,19 @@ function divisor(add, p, y, meia) {
 }
 
 /**
- * Estrela, nome e mensagem: o único bloco de tamanho variável.
+ * A homenagem e a estrela: o único bloco de tamanho variável.
+ *
+ * A homenagem vem primeiro — "Esta estrela é dedicada a", o nome de quem
+ * recebe (o maior texto da folha) e a mensagem de quem dá, no centro dela.
+ * Depois, a estrela: o nome oficial, a designação e, se houver, o nome dado
+ * nesta homenagem.
  *
  * Cada elemento declara a altura das maiúsculas e o vão até o próximo; o
  * conjunto é centralizado na faixa. Se não couber, os vãos apertam primeiro
  * (até 65%), depois a mensagem encolhe (até 8,5 pt) e por último o nome (até
- * 22 pt) — o nome de quem recebe é a última coisa a diminuir. O pior caso medido (nome de 80 caracteres +
- * mensagem de 600) cabe; o teste `certificado.test.js` garante.
+ * 22 pt) — o nome de quem recebe é a última coisa a diminuir. O pior caso
+ * medido (nome de 80 caracteres + mensagem de 600) cabe; o teste
+ * `certificado.test.js` garante.
  */
 function blocoCentral(add, texto, dados, p, { topo, base }) {
   const nome = String(dados.honoreeName ?? '').trim() || 'Nome de quem recebe'
@@ -327,10 +341,13 @@ function blocoCentral(add, texto, dados, p, { topo, base }) {
   const par = dados.parEstrela && dados.parNome
     ? { estrela: String(dados.parEstrela).trim(), nome: String(dados.parNome).trim() }
     : null
-  const estrelaPt = medir('serif', dados.starName, 26) > 150 ? 21 : 26
+  // O nome oficial da estrela, em versais espaçadas: segundo na hierarquia.
+  const estrelaTexto = String(dados.starName ?? '').toLocaleUpperCase('pt-BR')
+  let estrelaPt = 21
+  while (estrelaPt > 13 && medir('serif', estrelaTexto, estrelaPt, 3) > 160) estrelaPt -= 0.5
 
-  let nomePt = 34
-  let msgPt = 11
+  let nomePt = 36
+  let msgPt = 12
   let aperto = 1
   let montagem
   for (;;) {
@@ -356,56 +373,52 @@ function blocoCentral(add, texto, dados, p, { topo, base }) {
       pt -= 1
       nomeLinhas = quebrar(nome, 'serifItalico', pt, 160)
     }
-    const msgLinhas = mensagem ? quebrar(mensagem, 'serifItalico', msgPt, 156) : []
+    const msgLinhas = mensagem ? quebrar(mensagem, 'serifItalico', msgPt, 150) : []
     // O nome dado à estrela: uma linha só, entre aspas; encolhe para caber.
     const apelidoTexto = apelido ? `“${apelido}”` : ''
-    let apelidoPt = 17
-    while (apelido && apelidoPt > 11 && medir('serifItalico', apelidoTexto, apelidoPt) > 160) apelidoPt -= 0.5
-    // Par de estrelas: uma linha discreta sob o nome, ligando as duas folhas.
+    let apelidoPt = 15
+    while (apelido && apelidoPt > 10 && medir('serifItalico', apelidoTexto, apelidoPt) > 160) apelidoPt -= 0.5
+    // Par ou grupo: uma linha discreta sob o nome, ligando as folhas.
     const parTexto = String(dados.grupoLinha ?? '').trim() || (par ? `Em par com ${par.estrela}, dedicada a ${par.nome}` : '')
     let parPt = 8.5
     while (parTexto && parPt > 6 && medir('sansItalico', parTexto, parPt) > 156) parPt -= 0.25
     const passoNome = pt * MM_POR_PT * 1.18
-    const passoMsg = msgPt * MM_POR_PT * 1.5
+    const passoMsg = msgPt * MM_POR_PT * 1.55
+    // Folga para as hastes descendentes (g, p, q) do nome não tocarem o resto.
+    const descendente = pt * MM_POR_PT * 0.28
 
     // [altura das maiúsculas da 1ª linha, altura total, vão depois, desenhar(y da 1ª base)]
     const partes = [
-      [caixaAlta(8.5), caixaAlta(8.5), 5.5, (y) => texto('Certificamos que a estrela', { y, fonte: 'sans', pt: 8.5, cor: p.suave, opacidade: p.suaveOpacidade })],
-      [caixaAlta(estrelaPt), caixaAlta(estrelaPt), 4.2, (y) => texto(dados.starName, { y, fonte: 'serif', pt: estrelaPt, cor: p.destaque })],
-      [caixaAlta(12), caixaAlta(12), 8, (y) => texto(`${dados.bayer} · ${dados.constellation}`, { y, fonte: 'grego', pt: 12, cor: p.suave, opacidade: p.suaveOpacidade })],
-      // Nomeação simbólica, dita como tal: o nome oficial continua o de cima.
-      ...(apelido
-        ? [
-            [caixaAlta(8.5), caixaAlta(8.5), 4.6, (y) => texto('chamada, nesta homenagem, de', { y, fonte: 'sans', pt: 8.5, cor: p.suave, opacidade: p.suaveOpacidade })],
-            [
-              caixaAlta(apelidoPt),
-              caixaAlta(apelidoPt),
-              apelidoPt * MM_POR_PT * 0.28 + 6,
-              (y) => texto(apelidoTexto, { y, fonte: 'serifItalico', pt: apelidoPt, cor: p.destaque }),
-            ],
-          ]
-        : []),
-      [caixaAlta(8.5), caixaAlta(8.5), 7, (y) => texto('foi dedicada a', { y, fonte: 'sans', pt: 8.5, cor: p.suave, opacidade: p.suaveOpacidade })],
+      [caixaAlta(8.5), caixaAlta(8.5), 7.5, (y) => texto('Esta estrela é dedicada a', { y, fonte: 'sans', pt: 8.5, cor: p.suave, opacidade: p.suaveOpacidade, espaco: 0.4 })],
       [
         caixaAlta(pt),
         caixaAlta(pt) + (nomeLinhas.length - 1) * passoNome,
-        // Folga para as hastes descendentes (g, p, q) não tocarem o fio.
-        pt * MM_POR_PT * 0.28 + 3,
-        (y) => nomeLinhas.forEach((linha, i) => texto(linha, { y: y + i * passoNome, fonte: 'serifItalico', pt, cor: p.texto })),
+        descendente + (parTexto ? 4 : 6),
+        (y) => nomeLinhas.forEach((linha, i) => texto(linha, { y: y + i * passoNome, fonte: 'serifItalico', pt, cor: p.destaque })),
       ],
       ...(parTexto
-        ? [[caixaAlta(parPt), caixaAlta(parPt), 5, (y) => texto(parTexto, { y, fonte: 'sansItalico', pt: parPt, cor: p.destaque, opacidade: 0.9 })]]
+        ? [[caixaAlta(parPt), caixaAlta(parPt), 6, (y) => texto(parTexto, { y, fonte: 'sansItalico', pt: parPt, cor: p.suave, opacidade: p.suaveOpacidade })]]
         : []),
-      [0.2, 0.2, msgLinhas.length ? 6.5 : 0, (y) => add({ tipo: 'linha', x1: CENTRO_X - 22, y1: y, x2: CENTRO_X + 22, y2: y, cor: p.moldura, espessura: 0.2, opacidade: 0.6 })],
+      // Fio com a estrelinha: separa quem recebe do que se diz a ela.
+      [1.8, 1.8, msgLinhas.length ? 7.5 : 9, (y) => divisor(add, p, y - 0.9, 24)],
+      ...(msgLinhas.length
+        ? [[
+            caixaAlta(msgPt),
+            caixaAlta(msgPt) + (msgLinhas.length - 1) * passoMsg,
+            msgPt * MM_POR_PT * 0.28 + 10,
+            (y) => msgLinhas.forEach((linha, i) => texto(linha, { y: y + i * passoMsg, fonte: 'serifItalico', pt: msgPt, cor: p.texto, opacidade: 0.92 })),
+          ]]
+        : []),
+      [caixaAlta(estrelaPt), caixaAlta(estrelaPt), 4.6, (y) => texto(estrelaTexto, { y, fonte: 'serif', pt: estrelaPt, cor: p.destaque, espaco: 3 })],
+      [caixaAlta(11.5), caixaAlta(11.5), apelido ? 6 : 0, (y) => texto(`${dados.bayer} · ${dados.constellation}`, { y, fonte: 'grego', pt: 11.5, cor: p.suave, opacidade: p.suaveOpacidade })],
+      // Nomeação simbólica, dita como tal: o nome oficial continua o de cima.
+      ...(apelido
+        ? [
+            [caixaAlta(8), caixaAlta(8), 4.2, (y) => texto('chamada, nesta homenagem, de', { y, fonte: 'sans', pt: 8, cor: p.suave, opacidade: p.suaveOpacidade })],
+            [caixaAlta(apelidoPt), caixaAlta(apelidoPt), 0, (y) => texto(apelidoTexto, { y, fonte: 'serifItalico', pt: apelidoPt, cor: p.destaque })],
+          ]
+        : []),
     ]
-    if (msgLinhas.length) {
-      partes.push([
-        caixaAlta(msgPt),
-        caixaAlta(msgPt) + (msgLinhas.length - 1) * passoMsg,
-        0,
-        (y) => msgLinhas.forEach((linha, i) => texto(linha, { y: y + i * passoMsg, fonte: 'serifItalico', pt: msgPt, cor: p.suave, opacidade: p.suaveOpacidade })),
-      ])
-    }
     for (const parte of partes) parte[2] *= aperto
     const altura = partes.reduce((soma, [, total, vao], i) => soma + total + (i < partes.length - 1 ? vao : 0), 0)
     return { partes, altura }
@@ -421,7 +434,8 @@ function blocoCentral(add, texto, dados, p, { topo, base }) {
 
 /** Seis dados em duas colunas, à esquerda do mapa. */
 function dadosAstronomicos(texto, dados, p) {
-  const formatar = (v) => Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })
+  // Sinal de menos tipográfico (−), o mesmo da declinação — não o hífen.
+  const formatar = (v) => Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).replace('-', '−')
   const campos = [
     ['CONSTELAÇÃO', dados.constellationLatin],
     ['TIPO ESPECTRAL', dados.spectralType],
@@ -437,14 +451,15 @@ function dadosAstronomicos(texto, dados, p) {
         : 'não medida',
     ],
   ]
+  // Rótulo discreto, valor legível: é o que alguém vai querer ler de perto.
   campos.forEach(([rotulo, valor], i) => {
-    const x = i % 2 === 0 ? 26 : 70
-    const y = 212 + Math.floor(i / 2) * 13.5
-    texto(rotulo, { x, y, fonte: 'sansMedio', pt: 5.4, cor: p.rotulo, alinhar: 'esquerda', espaco: 1.2 })
-    // Valor longo encolhe para caber na coluna (40 mm), nunca invade a vizinha.
-    let pt = 9.5
-    while (pt > 7 && medir('sans', String(valor), pt) > 40) pt -= 0.5
-    texto(String(valor), { x, y: y + 5.4, fonte: 'sans', pt, cor: p.texto, alinhar: 'esquerda' })
+    const x = i % 2 === 0 ? 26 : 72
+    const y = 212 + Math.floor(i / 2) * 17
+    texto(rotulo, { x, y, fonte: 'sansMedio', pt: 6, cor: p.rotulo, alinhar: 'esquerda', espaco: 1.2, opacidade: 0.85 })
+    // Valor longo encolhe para caber na coluna (42 mm), nunca invade a vizinha.
+    let pt = 11
+    while (pt > 7.5 && medir('sans', String(valor), pt) > 42) pt -= 0.5
+    texto(String(valor), { x, y: y + 6.2, fonte: 'sans', pt, cor: p.texto, alinhar: 'esquerda' })
   })
 }
 
@@ -480,10 +495,13 @@ function mapaDoCeu(add, texto, dados, p, { cx, cy, r }) {
 
   // Borda por cima de tudo, e as direções.
   add({ tipo: 'circulo', cx, cy, r, traco: p.moldura, espessura: 0.35, opacidade: 0.9 })
+  // Os quatro pontos: norte em cima e leste à ESQUERDA (olhando para o céu).
   texto('N', { x: cx, y: cy - r - 1.6, fonte: 'sansMedio', pt: 5.4, cor: p.rotulo })
+  texto('S', { x: cx, y: cy + r + 3.6, fonte: 'sansMedio', pt: 5.4, cor: p.rotulo })
   texto('L', { x: cx - r - 2.6, y: cy + 0.9, fonte: 'sansMedio', pt: 5.4, cor: p.rotulo })
+  texto('O', { x: cx + r + 2.8, y: cy + 0.9, fonte: 'sansMedio', pt: 5.4, cor: p.rotulo })
   texto(`${String(dados.constellationLatin ?? '').toUpperCase()} · J2000`, {
-    x: cx, y: cy + r + 5, fonte: 'sansMedio', pt: 5, cor: p.rotulo, espaco: 1, opacidade: 0.9,
+    x: cx, y: cy + r + 9, fonte: 'sansMedio', pt: 5.2, cor: p.rotulo, espaco: 1, opacidade: 0.9,
   })
 }
 

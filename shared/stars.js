@@ -272,41 +272,48 @@ export function getStar(slug) {
 }
 
 /**
- * Formata ascensão reta em horas para exibição: 18.402866 → "18h 24m 10.32s".
+ * Horas (ou graus) → [inteiro, minutos, segundos com 2 casas], arredondando
+ * o TOTAL em centésimos de segundo: 59,996″ vira o minuto seguinte, nunca
+ * "60,00".
+ */
+function sexagesimal(valor) {
+  const centesimos = Math.round(Math.abs(valor) * 360000)
+  const inteiro = Math.floor(centesimos / 360000)
+  const minutos = Math.floor((centesimos % 360000) / 6000)
+  const segundos = ((centesimos % 6000) / 100).toFixed(2).padStart(5, '0').replace('.', ',')
+  return [inteiro, String(minutos).padStart(2, '0'), segundos]
+}
+
+/**
+ * Formata ascensão reta em horas para exibição: 18.402866 → "18h 24m 10,32s".
  *
  * Não confundir com a homônima de `shared/astro.js`: aquela formata com UMA
  * casa decimal para o mapa do céu; esta, com DUAS, para o certificado e a
  * página de produto — e só esta aceita sinal negativo (a do mapa nunca recebe
- * AR negativa, porque sempre passa por normalizeRa antes).
+ * AR negativa, porque sempre passa por normalizeRa antes). Vírgula decimal,
+ * como a magnitude ao lado no certificado.
  *
  * @param {number} hoursDecimal
  * @returns {string}
  */
 export function formatRa(hoursDecimal) {
-  const hours = Math.floor(hoursDecimal)
-  const minutesFloat = (hoursDecimal - hours) * 60
-  const minutes = Math.floor(minutesFloat)
-  const seconds = (minutesFloat - minutes) * 60
-  const sign = hoursDecimal < 0 ? '−' : ''
-  return `${sign}${Math.abs(hours)}h ${String(minutes).padStart(2, '0')}m ${seconds.toFixed(2).padStart(5, '0')}s`
+  const [h, m, s] = sexagesimal(hoursDecimal)
+  return `${hoursDecimal < 0 ? '−' : ''}${h}h ${m}m ${s}s`
 }
 
 /**
- * Formata declinação para exibição: -34.3846 → "−34° 23′ 04.62″".
+ * Formata declinação para exibição: -34.3846 → "−34° 23′ 04,62″";
+ * 38.78369 → "+38° 47′ 01,28″".
  *
  * Mesma relação com `shared/astro.js`: duas casas decimais aqui, uma na
- * versão do mapa — e aqui positivos não ganham "+" (só o sinal negativo é
- * impresso, como no resto do certificado).
+ * versão do mapa. Sinal sempre impresso, como nos catálogos: sem ele, uma
+ * declinação norte não se distingue de um valor que perdeu o "−".
  *
  * @param {number} decimal
  * @returns {string}
  */
 export function formatDec(decimal) {
-  const sign = decimal < 0 ? '−' : ''
-  const abs = Math.abs(decimal)
-  const degrees = Math.floor(abs)
-  const minutesFloat = (abs - degrees) * 60
-  const minutes = Math.floor(minutesFloat)
-  const seconds = (minutesFloat - minutes) * 60
-  return `${sign}${degrees}° ${String(minutes).padStart(2, '0')}′ ${seconds.toFixed(2).padStart(5, '0')}″`
+  const [g, m, s] = sexagesimal(decimal)
+  const sinal = g === 0 && m === '00' && s === '00,00' ? '' : decimal < 0 ? '−' : '+'
+  return `${sinal}${g}° ${m}′ ${s}″`
 }

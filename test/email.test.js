@@ -131,7 +131,7 @@ describe('enviarEmail', () => {
 
     expect(enviado.corpo.html).toContain('CERTIFICADO DE DEDICAÇÃO')
     expect(enviado.corpo.html).toContain('ε Sagittarii')
-    expect(enviado.corpo.html).toContain('18h 24m 10.32s')
+    expect(enviado.corpo.html).toContain('18h 24m 10,32s')
   })
 
   it('escapa HTML do nome, que é texto do cliente', async () => {

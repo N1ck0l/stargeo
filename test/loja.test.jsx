@@ -30,12 +30,12 @@ describe('CertificadoPreview', () => {
     // A marca é desenho (curvas), não texto; o título é texto.
     expect(texto).toContain('CERTIFICADO DE DEDICAÇÃO')
     expect(texto).toContain('Geovanna')
-    expect(texto).toContain('Kaus Australis')
+    expect(texto).toContain('KAUS AUSTRALIS')
     // A letra grega e os símbolos astronômicos são o motivo de o PDF usar as
     // fontes do site em vez das padrão do pdf-lib.
     expect(texto).toContain('ε Sagittarii')
-    expect(texto).toContain('18h 24m 10.32s')
-    expect(texto).toContain('−34° 23′ 04.62″')
+    expect(texto).toContain('18h 24m 10,32s')
+    expect(texto).toContain('−34° 23′ 04,62″')
     expect(texto).toContain('SG-TEST-TEST')
   })
 
@@ -53,9 +53,9 @@ describe('CertificadoPreview', () => {
     render(<CertificadoPreview estrela={estrela} honoreeName="Ana" code="X" />)
     const titulo = screen.getByText('CERTIFICADO DE DEDICAÇÃO')
 
-    // 17 pt × 0,3528 mm/pt = 6,0 mm no viewBox em milímetros. Dividindo,
-    // sairia 48 mm: o título oito vezes maior, estourando a folha.
-    expect(parseFloat(titulo.getAttribute('font-size'))).toBeCloseTo(6.0, 1)
+    // 16 pt × 0,3528 mm/pt = 5,64 mm no viewBox em milímetros. Dividindo,
+    // sairia 45 mm: o título oito vezes maior, estourando a folha.
+    expect(parseFloat(titulo.getAttribute('font-size'))).toBeCloseTo(5.64, 1)
   })
 
   it('desliga kerning e ligaduras, que o PDF não aplica', () => {

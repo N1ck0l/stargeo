@@ -20,7 +20,7 @@ import fontkit from '@pdf-lib/fontkit'
 import { decompress } from 'wawoff2'
 import { buildCertificatePdf } from '../shared/pdf.js'
 import { LIMITES } from '../shared/moderation.js'
-import { desenharCertificado, medir, MM_POR_PT, PAGINA, quebrar } from '../shared/certificado/desenho.js'
+import { desenharCertificado, medir, MAPA, MM_POR_PT, PAGINA, quebrar } from '../shared/certificado/desenho.js'
 import { METRICAS } from '../shared/certificado/metricas.js'
 import { STARS, formatDec, formatRa } from '../shared/stars.js'
 
@@ -134,9 +134,9 @@ describe('desenharCertificado', () => {
 
   it('o bloco central não desce até o fio que separa os dados', () => {
     for (const [nome, caso] of Object.entries(casos)) {
-      const textos = desenharCertificado(caso).itens.filter((i) => i.tipo === 'texto' && i.y > 100 && i.y < 205)
+      const textos = desenharCertificado(caso).itens.filter((i) => i.tipo === 'texto' && i.y > 85 && i.y < 200)
       const ultimo = Math.max(...textos.map((t) => caixa(t).y2))
-      expect(ultimo, nome).toBeLessThan(202.5)
+      expect(ultimo, nome).toBeLessThan(198.5)
     }
   })
 
@@ -151,7 +151,7 @@ describe('desenharCertificado', () => {
     expect(com).toContain('“Nossa Luz”')
     expect(com).toContain('chamada, nesta homenagem, de')
     // O nome oficial continua na folha.
-    expect(com).toContain('Vega')
+    expect(com).toContain('VEGA')
     const sem = desenharCertificado(casos.típico).itens.filter((i) => i.tipo === 'texto').map((t) => t.texto)
     expect(sem).not.toContain('chamada, nesta homenagem, de')
   })
@@ -172,7 +172,7 @@ describe('desenharCertificado', () => {
       const itens = desenharCertificado(dados(estrela.slug)).itens
       // Estrelas do mapa: círculos preenchidos dentro do círculo do mapa.
       const doMapa = itens.filter(
-        (i) => i.tipo === 'circulo' && i.preenchimento && (i.cx - 152) ** 2 + (i.cy - 232) ** 2 < 23 ** 2,
+        (i) => i.tipo === 'circulo' && i.preenchimento && (i.cx - MAPA.cx) ** 2 + (i.cy - MAPA.cy) ** 2 < MAPA.r ** 2,
       )
       const linhas = itens.filter((i) => i.tipo === 'linha' && i.espessura === 0.22)
       expect(doMapa.length, `${estrela.slug}: estrelas`).toBeGreaterThan(15)
