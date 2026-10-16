@@ -192,6 +192,10 @@ export default function Produto({ slug }) {
   // A carta que acompanha o certificado (opcional) e qual peça a prévia mostra.
   const [carta, setCarta] = useState('')
   const [peca, setPeca] = useState('certificado')
+  // Várias estrelas: uma carta para todas (padrão) ou uma para cada pessoa —
+  // `cartasOutras[id]` guarda a de cada uma das outras.
+  const [cartaPorPessoa, setCartaPorPessoa] = useState(false)
+  const [cartasOutras, setCartasOutras] = useState({})
   const [data, setData] = useState(dataDeHoje())
   const [versaoClara, setVersaoClara] = useState(false)
 
@@ -236,6 +240,21 @@ export default function Produto({ slug }) {
     ]),
   )
   const erroNomeGrupo = outras.length >= 2 && nomeGrupo.trim() ? validarTexto('groupName', nomeGrupo) : null
+
+  /*
+   * A carta que o campo mostra: a única, ou — com uma por pessoa — a da
+   * pessoa selecionada (a mesma seleção das folhas da prévia).
+   */
+  const porPessoa = emGrupo && cartaPorPessoa
+  const idDaVez = porPessoa && folhaVisivel > 0 ? outras[folhaVisivel - 1]?.id ?? null : null
+  const cartaDaVez = idDaVez === null ? carta : cartasOutras[idDaVez] ?? ''
+  const mudarCartaDaVez = (texto) =>
+    idDaVez === null ? setCarta(texto) : setCartasOutras((c) => ({ ...c, [idDaVez]: texto }))
+  const erroDaCarta = (texto) =>
+    validarPedido({ honoreeName: 'Quem recebe', letter: texto, customerName: 'Comprador', customerEmail: 'a@b.co' }).erros.find(
+      (e) => e.campo === 'letter',
+    )?.motivo ?? null
+  const temCarta = Boolean(carta.trim()) || (porPessoa && outras.some((o) => cartasOutras[o.id]?.trim()))
 
   /** Mensagem de erro do campo, nula enquanto a pessoa não tiver tocado nele. */
   const erroDe = (campo) => {
@@ -309,6 +328,16 @@ export default function Produto({ slug }) {
         return
       }
     }
+    if (porPessoa) {
+      const comErro = outras.find((o) => erroDaCarta(cartasOutras[o.id] ?? ''))
+      if (comErro) {
+        setFolhaVisivel(outras.indexOf(comErro) + 1)
+        setTocou((t) => ({ ...t, letter: true }))
+        setErro(`Revise a carta de ${comErro.nome.trim() || 'uma das pessoas'}.`)
+        document.getElementById('etapa-carta')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        return
+      }
+    }
     if (guardar && !revelarEm) {
       setErro('Escolha o dia em que a página se revela — ou desmarque "Guardar a surpresa até uma data".')
       return
@@ -333,8 +362,14 @@ export default function Produto({ slug }) {
         starNickname: apelido.trim() || undefined,
         revealOn: guardar && revelarEm ? revelarEm : undefined,
         outras: emGrupo
-          ? outras.map((o) => ({ starSlug: o.estrela.slug, honoreeName: o.nome, starNickname: o.apelido.trim() || undefined }))
+          ? outras.map((o) => ({
+              starSlug: o.estrela.slug,
+              honoreeName: o.nome,
+              starNickname: o.apelido.trim() || undefined,
+              letter: porPessoa ? cartasOutras[o.id]?.trim() || undefined : undefined,
+            }))
           : undefined,
+        cartaPorPessoa: porPessoa || undefined,
         nomeGrupo: outras.length >= 2 && nomeGrupo.trim() ? nomeGrupo.trim() : undefined,
         cupom: cupom?.codigo,
         message: mensagem || undefined,
@@ -629,19 +664,75 @@ export default function Produto({ slug }) {
                 quiser — uma lembrança, um agradecimento, o que nem sempre dá para dizer em voz alta. Curta ou
                 longa, ela sai bonita.
               </p>
+              {/* Várias estrelas: quem compra decide se a carta é uma só ou
+                  uma para cada pessoa. */}
+              {emGrupo && (
+                <div role="radiogroup" aria-label="Cartas da compra" className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {[
+                    [false, 'A mesma carta para todos', 'Uma carta só, que vai na página de cada pessoa.'],
+                    [true, 'Uma carta para cada pessoa', 'Escreva para cada uma; quem ficar sem carta recebe o texto padrão da Stellara na página.'],
+                  ].map(([valor, titulo, texto]) => (
+                    <button
+                      key={titulo}
+                      type="button"
+                      role="radio"
+                      aria-checked={cartaPorPessoa === valor}
+                      onClick={() => {
+                        setCartaPorPessoa(valor)
+                        setPeca('carta')
+                        setFolhaVisivel(0)
+                      }}
+                      className={`rounded-xl border p-3 text-left text-sm transition ${
+                        cartaPorPessoa === valor ? 'border-gold/70 bg-gold/10 text-ivory' : 'border-white/12 text-ivory/70 hover:border-white/30'
+                      }`}
+                    >
+                      {titulo}
+                      <span className="mt-0.5 block text-xs text-ivory/50">{texto}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {porPessoa && (
+                <div role="group" aria-label="De quem é a carta" className="mt-4 flex flex-wrap gap-2 text-xs">
+                  {[[0, paraQuem], ...outras.map((o, i) => [i + 1, o.nome, o.id])].map(([n, nomeDaPessoa, id]) => {
+                    const texto = n === 0 ? carta : cartasOutras[id] ?? ''
+                    return (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => {
+                          setFolhaVisivel(n)
+                          setPeca('carta')
+                        }}
+                        aria-pressed={folhaVisivel === n}
+                        className={`rounded-full border px-3 py-1.5 transition ${
+                          folhaVisivel === n ? 'border-gold/70 bg-gold/15 text-gold' : 'border-white/15 text-ivory/70'
+                        }`}
+                      >
+                        {primeiroNomeDe(nomeDaPessoa) || `Pessoa ${n + 1}`}
+                        {texto.trim() ? ' ✓' : ''}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
               <div className="mt-4">
                 <Campo
-                  rotulo={`Carta para ${primeiroNomeDe(paraQuem) || 'quem recebe'}`}
-                  value={carta}
-                  onChange={setCarta}
+                  key={idDaVez ?? 'principal'}
+                  rotulo={`Carta para ${
+                    (emGrupo && !porPessoa ? 'todos' : primeiroNomeDe(idDaVez === null ? paraQuem : outras[folhaVisivel - 1]?.nome)) ||
+                    'quem recebe'
+                  }`}
+                  value={cartaDaVez}
+                  onChange={mudarCartaDaVez}
                   onFocus={() => setPeca('carta')}
                   onBlur={() => marcarTocado('letter')}
-                  erro={erroDe('letter')}
+                  erro={tocou.letter ? erroDaCarta(cartaDaVez) : null}
                   placeholder={'Meu amor,\nEscolhi esta estrela porque…'}
                   maxLength={2000}
                   multiline
                   rows={8}
-                  contador={{ atual: carta.length, max: 2000 }}
+                  contador={{ atual: cartaDaVez.length, max: 2000 }}
                   dica="Cada linha vira um parágrafo; uma primeira linha curta (“Meu amor,”) vira a saudação. A assinatura é a do passo anterior."
                 />
               </div>
@@ -653,7 +744,7 @@ export default function Produto({ slug }) {
                       key={modelo.rotulo}
                       type="button"
                       onClick={() => {
-                        setCarta(modelo.texto)
+                        mudarCartaDaVez(modelo.texto)
                         setPeca('carta')
                       }}
                       className="rounded-full border border-white/12 px-3 py-1.5 text-xs text-ivory/75 transition hover:border-gold/50 hover:text-ivory"
@@ -737,7 +828,7 @@ export default function Produto({ slug }) {
                   ...(guardar && revelarEm ? [['Página revelada em', dataEmPortugues(revelarEm)]] : []),
                   [
                     'Formato',
-                    carta.trim()
+                    temCarta
                       ? 'Certificado e carta em PDF A4 (versões escura e clara) + página da estrela'
                       : 'Certificado digital em PDF A4 (versões escura e clara) + página da estrela',
                   ],
@@ -890,9 +981,9 @@ export default function Produto({ slug }) {
               <div className="shimmer-border mx-auto max-w-[30rem] overflow-hidden rounded-2xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
                 {peca === 'carta' ? (
                   <FolhaCarta
-                    paragrafos={carta.trim() ? carta : MODELOS_DE_CARTA[0].texto}
+                    paragrafos={cartaDaVez.trim() ? cartaDaVez : MODELOS_DE_CARTA[0].texto}
                     fromName={assinatura}
-                    starName={estrela.name}
+                    starName={(porPessoa ? folhaDaPrevia().estrela : estrela).name}
                     code="SG-XXXX-XXXX"
                     light={versaoClara}
                   />
@@ -900,11 +991,11 @@ export default function Produto({ slug }) {
                   <Folha {...folhaDaPrevia()} dedicationDate={dataEmPortugues(data)} code="SG-XXXX-XXXX" light={versaoClara} />
                 )}
               </div>
-              {peca === 'carta' && !carta.trim() && (
+              {peca === 'carta' && !cartaDaVez.trim() && (
                 <p className="mt-2 text-center text-xs text-ivory/50">Exemplo — a sua carta aparece aqui enquanto você escreve.</p>
               )}
 
-              {peca === 'certificado' && comEstrela.length > 0 && (
+              {(peca === 'certificado' || porPessoa) && comEstrela.length > 0 && (
                 <div role="group" aria-label="Qual folha mostrar" className="mt-3 flex flex-wrap justify-center gap-2 text-xs">
                   {[[0, paraQuem], ...outras.map((o, i) => [i + 1, o.nome, o])]
                     .filter(([n, , o]) => n === 0 || o?.estrela)

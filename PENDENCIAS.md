@@ -150,7 +150,8 @@ a permissão é a linha em `public.admins`). Mudar texto não precisa de deploy.
   mostra). Cupom vale sobre o total já com desconto de grupo, nunca deixa uma
   estrela abaixo de R$ 1, e o uso só conta na compra paga.
 - **Carta**: opcional na compra (até 2.000 caracteres, 12 parágrafos, mesma
-  moderação), grátis. Vira a carta da página e um PDF próprio, gerado no
+  moderação), grátis. Em grupo, quem compra escolhe: uma carta para todos ou
+  uma para cada pessoa (`cartaPorPessoa`). Vira a carta da página e um PDF próprio, gerado no
   navegador como o do certificado (sem arquivo no Storage). Texto pessoal: só
   na página da estrela; o painel mostra apenas se o pedido tem carta.
 - **Medição sem rastreador**: funil por contadores diários e erros sem dado

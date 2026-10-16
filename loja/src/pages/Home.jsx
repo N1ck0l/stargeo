@@ -129,7 +129,7 @@ const FAQ = [
     grupo: 'entrega',
     pergunta: 'O que é a carta que vem junto?',
     resposta:
-      'Uma segunda peça do presente: o certificado representa a estrela, e a carta, o que você sente. Na compra você escreve o que quiser (até 2.000 caracteres, ou comece por um modelo) e vê a prévia ao lado; ela sai num PDF A4 próprio, na mesma identidade do certificado, e vira a carta da página da estrela. É opcional e não custa nada a mais. É texto pessoal: só quem tem o link da página lê, e ele nunca é usado em divulgação.',
+      'Uma segunda peça do presente: o certificado representa a estrela, e a carta, o que você sente. Na compra você escreve o que quiser (até 2.000 caracteres, ou comece por um modelo) e vê a prévia ao lado; ela sai num PDF A4 próprio, na mesma identidade do certificado, e vira a carta da página da estrela. Comprando mais de uma estrela, você escolhe: a mesma carta para todos ou uma para cada pessoa. É opcional e não custa nada a mais. É texto pessoal: só quem tem o link da página lê, e ele nunca é usado em divulgação.',
   },
   {
     grupo: 'entrega',

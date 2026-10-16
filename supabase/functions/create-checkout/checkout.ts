@@ -41,6 +41,8 @@ interface Pessoa {
   starSlug?: string
   honoreeName?: string
   starNickname?: string
+  /** A carta DESTA pessoa, quando `cartaPorPessoa` (0023). */
+  letter?: string
 }
 
 interface Entrada {
@@ -54,6 +56,12 @@ interface Entrada {
   message?: string
   /** A carta que acompanha o certificado (0023), opcional. */
   letter?: string
+  /**
+   * Compra de várias estrelas: `true` = uma carta para cada pessoa (`letter`
+   * é a da primeira, `outras[i].letter` a das outras); senão, `letter` vale
+   * para todas. Quem decide é quem compra.
+   */
+  cartaPorPessoa?: boolean
   customerEmail?: string
   customerName?: string
   customerDoc?: string
@@ -75,6 +83,9 @@ type Db = ReturnType<typeof admin>
  * É também por isso que o boleto (dias para compensar) sai do checkout.
  */
 const PRAZO_PAGAMENTO_MIN = 30
+
+/** Carta limpa, ou nula quando não há. */
+const cartaDe = (texto?: string) => (texto ? limpar(texto) || null : null)
 
 const ESTRELA_INDISPONIVEL = 'Essa estrela acabou de ser escolhida por outra pessoa. Escolha outra — são milhares esperando.'
 
@@ -125,6 +136,7 @@ export const checkout = comHandler(async (request) => {
         validarPedido({
           honoreeName: o.honoreeName,
           starNickname: o.starNickname,
+          letter: corpo.cartaPorPessoa ? o.letter : undefined,
           customerName: corpo.customerName,
           customerEmail: corpo.customerEmail,
         }).erros,
@@ -215,8 +227,6 @@ export const checkout = comHandler(async (request) => {
     customer_doc: corpo.customerDoc ? String(corpo.customerDoc).replace(/\D/g, '') : null,
     from_name: corpo.fromName ? limpar(corpo.fromName) : null,
     message: corpo.message ? limpar(corpo.message) : null,
-    // A carta vale para todas as estrelas da compra, como a mensagem.
-    letter: corpo.letter ? limpar(corpo.letter) || null : null,
     dedication_date: normalizarData(corpo.dedicationDate),
     reveal_on: revelacao.data,
     group_id: groupId,
@@ -231,6 +241,8 @@ export const checkout = comHandler(async (request) => {
     star_slug: estrelas[i].slug,
     honoree_name: limpar(p.honoreeName),
     star_nickname: p.starNickname ? limpar(p.starNickname) || null : null,
+    // A carta: a mesma para todas, ou uma por pessoa — escolha de quem compra.
+    letter: cartaDe(corpo.cartaPorPessoa && i > 0 ? p.letter : corpo.letter),
   }))
 
   const pedidos: Array<{ id: string; code: string; amount_cents: number }> = []

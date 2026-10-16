@@ -299,6 +299,49 @@ describe('compra de ponta a ponta', () => {
     expect(grupo.estrelas.map((e) => `${e.para}:${e.estrela}`)).toEqual(['Helena:Vega', 'Pedro:Altair', 'Lia:HD 224700'])
   })
 
+  it('carta: a mesma para todos, ou uma para cada pessoa — quem compra escolhe', async () => {
+    const cartasDasPaginas = () =>
+      Object.fromEntries(estado.banco.tabelas.pages.map((pg) => [pg.honoree_name, pg.carta.join(' | ')]))
+
+    // A mesma carta para todos.
+    let pedido = await (
+      await comprar({ starSlug: 'vega', honoreeName: 'Helena', letter: 'Família,\nVocês são o meu céu.', outras: [{ starSlug: 'altair', honoreeName: 'Pedro' }] })
+    ).json()
+    await aprovar(pedido.orderId, 448)
+    expect(cartasDasPaginas()).toEqual({ Helena: 'Família, | Vocês são o meu céu.', Pedro: 'Família, | Vocês são o meu céu.' })
+
+    // Uma para cada; quem fica sem carta recebe a página com o modelo neutro.
+    estado.banco = criarBanco()
+    pedido = await (
+      await comprar({
+        starSlug: 'vega',
+        honoreeName: 'Helena',
+        letter: 'Helena,\nObrigado por tudo.',
+        cartaPorPessoa: true,
+        outras: [
+          { starSlug: 'altair', honoreeName: 'Pedro', letter: 'Pedro,\nSempre perto.' },
+          { starSlug: 'hip-1', honoreeName: 'Lia' },
+        ],
+      })
+    ).json()
+    await aprovar(pedido.orderId, 464)
+    const cartas = cartasDasPaginas()
+    expect(cartas.Helena).toBe('Helena, | Obrigado por tudo.')
+    expect(cartas.Pedro).toBe('Pedro, | Sempre perto.')
+    expect(cartas.Lia).toMatch(/^Lia\./)
+    expect(estado.banco.tabelas.pages.find((pg) => pg.honoree_name === 'Lia').titulo_carta).toBe('Para ser lida sob as estrelas')
+  })
+
+  it('carta de uma das pessoas com contato é recusada antes de pagar', async () => {
+    const r = await comprar({
+      starSlug: 'vega',
+      honoreeName: 'Helena',
+      cartaPorPessoa: true,
+      outras: [{ starSlug: 'altair', honoreeName: 'Pedro', letter: 'Me chama no @perfil.secreto' }],
+    })
+    expect(r.status).toBe(422)
+  })
+
   it('grupo: mais de seis estrelas é recusado, e estrela repetida também', async () => {
     const sete = Array.from({ length: 6 }, (_, i) => ({ starSlug: `x-${i}`, honoreeName: 'Ana Lima' }))
     expect((await comprar({ starSlug: 'vega', honoreeName: 'Helena', outras: sete })).status).toBe(422)
