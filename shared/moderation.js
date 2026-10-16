@@ -41,6 +41,8 @@ export const LIMITES = {
   // Nome do grupo de estrelas (0021): vai numa linha do certificado de 3+.
   groupName: { min: 2, max: 40 },
   message: { min: 1, max: 600 },
+  // A carta que acompanha o certificado: uma folha A4 de leitura confortável.
+  letter: { min: 1, max: 2000 },
   customerName: { min: 2, max: 120 },
   customerEmail: { min: 5, max: 254 },
 }
@@ -103,6 +105,22 @@ const PADROES_CONTATO = [
   // aleatória, 8-4-4-4-12 em hex).
   { nome: 'chave pix', re: /\b(?:pix)\b.*\b[a-f0-9]{8,}\b|\b[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\b/i },
 ]
+
+/** A carta aceita até tantos parágrafos — o mesmo teto da carta da página. */
+export const MAX_PARAGRAFOS_CARTA = 12
+
+/**
+ * A carta em parágrafos: cada linha com texto é um parágrafo (quem escreve
+ * num celular dá UM Enter entre os blocos, não dois). Aceita a lista pronta
+ * (a carta da página) ou o texto do formulário.
+ *
+ * @param {string | string[] | null | undefined} carta
+ * @returns {string[]}
+ */
+export function paragrafosDaCarta(carta) {
+  const linhas = Array.isArray(carta) ? carta.flatMap((p) => String(p ?? '').split('\n')) : String(carta ?? '').split('\n')
+  return linhas.map((l) => l.replace(/[ \t]+/g, ' ').trim()).filter(Boolean)
+}
 
 /** Remove acentos e caixa, para comparar texto de forma estável. */
 export function normalizar(texto) {
@@ -192,16 +210,20 @@ export function validarPedido(pedido) {
 
   const checar = (campo, valor) => {
     // Campos opcionais são pulados quando vazios.
-    const opcional = campo === 'fromName' || campo === 'message' || campo === 'starNickname'
+    const opcional = campo === 'fromName' || campo === 'message' || campo === 'starNickname' || campo === 'letter'
     if (opcional && !limpar(valor)) return
     const erro = validarTexto(campo, valor)
     if (erro) erros.push({ campo, motivo: erro })
+    else if (campo === 'letter' && paragrafosDaCarta(valor).length > MAX_PARAGRAFOS_CARTA) {
+      erros.push({ campo, motivo: `a carta aceita no máximo ${MAX_PARAGRAFOS_CARTA} parágrafos` })
+    }
   }
 
   checar('honoreeName', pedido.honoreeName)
   checar('fromName', pedido.fromName)
   checar('starNickname', pedido.starNickname)
   checar('message', pedido.message)
+  checar('letter', pedido.letter)
 
   if (!pedido.customerEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(pedido.customerEmail).trim())) {
     erros.push({ campo: 'customerEmail', motivo: 'endereço de e-mail inválido' })
@@ -227,6 +249,7 @@ export function explicarErros(erros) {
     starNickname: 'o nome da estrela',
     groupName: 'o nome do grupo',
     message: 'a mensagem',
+    letter: 'a carta',
     customerName: 'o nome do comprador',
     customerEmail: 'o e-mail',
   }

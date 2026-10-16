@@ -1,4 +1,5 @@
 import { memo, useId, useMemo } from 'react'
+import { desenharCarta } from '../../../shared/carta/desenho.js'
 import { desenharCertificado, MM_POR_PT } from '../../../shared/certificado/desenho.js'
 import { dadosDaFolha } from '../lib/certificado.js'
 
@@ -15,6 +16,8 @@ import { dadosDaFolha } from '../lib/certificado.js'
  * para qualquer caixa, sem medir a tela.
  *
  * Usada em `pages/Home.jsx`, `pages/Produto.jsx` e `pagina/ModalCertificado.jsx`.
+ * A carta que acompanha o certificado (`CartaPreview`, abaixo) usa o mesmo
+ * tradutor — e mora no mesmo arquivo para vir no mesmo pedaço do bundle.
  */
 
 /** Fonte do desenho → família, estilo e peso no CSS (as mesmas do PDF). */
@@ -64,12 +67,37 @@ export const CertificadoPreview = memo(function CertificadoPreview({
   )
 
   return (
+    <FolhaSvg
+      folha={folha}
+      id={id}
+      className={`certificado ${className}`}
+      rotulo={`Certificado de ${estrela.name} dedicado a ${honoreeName?.trim() || 'quem recebe'}`}
+      light={light}
+    />
+  )
+})
+
+/**
+ * Prévia da carta que acompanha o certificado (`shared/carta/desenho.js`) —
+ * a mesma folha do PDF da carta.
+ */
+export const CartaPreview = memo(function CartaPreview({ paragrafos, titulo, fromName, starName, code, light = false, className = '' }) {
+  const id = useId().replace(/:/g, '')
+  const folha = useMemo(
+    () => desenharCarta({ paragrafos, titulo, fromName, starName, code }, { claro: light }),
+    [paragrafos, titulo, fromName, starName, code, light],
+  )
+  return <FolhaSvg folha={folha} id={id} className={`carta ${className}`} rotulo="Carta que acompanha o certificado" light={light} />
+})
+
+function FolhaSvg({ folha, id, className, rotulo, light }) {
+  return (
     <svg
       viewBox={`0 0 ${folha.largura} ${folha.altura}`}
       width="100%"
-      className={`certificado block ${className}`}
+      className={`block ${className}`}
       role="img"
-      aria-label={`Certificado de ${estrela.name} dedicado a ${honoreeName?.trim() || 'quem recebe'}`}
+      aria-label={rotulo}
       data-tema={light ? 'claro' : 'escuro'}
     >
       {folha.itens.map((item, i) => (
@@ -77,7 +105,7 @@ export const CertificadoPreview = memo(function CertificadoPreview({
       ))}
     </svg>
   )
-})
+}
 
 function Item({ item, id }) {
   switch (item.tipo) {

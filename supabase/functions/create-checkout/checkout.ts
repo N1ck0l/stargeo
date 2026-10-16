@@ -52,6 +52,8 @@ interface Entrada {
   starNickname?: string
   revealOn?: string
   message?: string
+  /** A carta que acompanha o certificado (0023), opcional. */
+  letter?: string
   customerEmail?: string
   customerName?: string
   customerDoc?: string
@@ -114,6 +116,7 @@ export const checkout = comHandler(async (request) => {
       fromName: corpo.fromName,
       starNickname: corpo.starNickname,
       message: corpo.message,
+      letter: corpo.letter,
       customerName: corpo.customerName,
       customerEmail: corpo.customerEmail,
     }).erros,
@@ -212,6 +215,8 @@ export const checkout = comHandler(async (request) => {
     customer_doc: corpo.customerDoc ? String(corpo.customerDoc).replace(/\D/g, '') : null,
     from_name: corpo.fromName ? limpar(corpo.fromName) : null,
     message: corpo.message ? limpar(corpo.message) : null,
+    // A carta vale para todas as estrelas da compra, como a mensagem.
+    letter: corpo.letter ? limpar(corpo.letter) || null : null,
     dedication_date: normalizarData(corpo.dedicationDate),
     reveal_on: revelacao.data,
     group_id: groupId,

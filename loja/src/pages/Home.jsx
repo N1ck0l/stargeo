@@ -52,6 +52,7 @@ const PRODUTO = {
   resumo: 'O essencial, na hora',
   inclui: [
     'Certificado em PDF, A4 — versão escura e versão clara para imprimir',
+    'Uma carta sua, na mesma identidade, em PDF próprio para guardar',
     'Nome de quem recebe, sua dedicatória, a data e a sua assinatura',
     'O mapa do céu real em volta da estrela',
     'Uma página da estrela para compartilhar, com o mapa e a Mira celeste',
@@ -121,8 +122,14 @@ const FAQ = [
     grupo: 'entrega',
     pergunta: 'Como recebo?',
     resposta:
-      'Assim que o pagamento é confirmado (com Pix, costuma ser na hora), a página da sua estrela fica pronta: lá você vê o certificado, baixa o PDF nas versões escura e clara e pega o link para enviar a quem vai receber.' +
+      'Assim que o pagamento é confirmado (com Pix, costuma ser na hora), a página da sua estrela fica pronta: lá você vê o certificado, baixa o PDF nas versões escura e clara (e o da carta, se escreveu uma) e pega o link para enviar a quem vai receber.' +
       (EMAIL_ATIVO ? ' O link também vai para o e-mail da compra.' : ''),
+  },
+  {
+    grupo: 'entrega',
+    pergunta: 'O que é a carta que vem junto?',
+    resposta:
+      'Uma segunda peça do presente: o certificado representa a estrela, e a carta, o que você sente. Na compra você escreve o que quiser (até 2.000 caracteres, ou comece por um modelo) e vê a prévia ao lado; ela sai num PDF A4 próprio, na mesma identidade do certificado, e vira a carta da página da estrela. É opcional e não custa nada a mais. É texto pessoal: só quem tem o link da página lê, e ele nunca é usado em divulgação.',
   },
   {
     grupo: 'entrega',

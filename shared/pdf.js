@@ -1,5 +1,5 @@
 /**
- * Gera o PDF do certificado.
+ * Gera os PDFs: o certificado e a carta que o acompanha.
  *
  * Roda na Edge Function, depois que o pagamento é confirmado. Vive em
  * `shared/` porque a mesma função gera o comprovante de teste e o PDF que o
@@ -24,6 +24,7 @@
  */
 import { LineCapStyle, PDFDocument, rgb } from 'npm:pdf-lib'
 import fontkit from 'npm:@pdf-lib/fontkit'
+import { desenharCarta } from './carta/desenho.js'
 import { desenharCertificado, PAGINA } from './certificado/desenho.js'
 import { METRICAS } from './certificado/metricas.js'
 
@@ -83,15 +84,8 @@ function misturar(a, b, t) {
   return `#${ca.map((v, i) => Math.round(v + (cb[i] - v) * t).toString(16).padStart(2, '0')).join('')}`
 }
 
-/**
- * Gera o PDF.
- *
- * @param {import('./certificado/desenho.js').DadosCertificado} data
- * @param {{ light?: boolean, fontBaseUrl?: string, formatoFonte?: 'woff2' | 'ttf' }} [opts]
- *   `formatoFonte: 'ttf'` é o do navegador (sem o descompressor WASM).
- * @returns {Promise<Uint8Array>}
- */
-export async function buildCertificatePdf(data, opts = {}) {
+/** Embute as fontes da marca num documento novo. */
+async function documentoComFontes(opts) {
   const base = opts.fontBaseUrl ?? ''
   const pdf = await PDFDocument.create()
   pdf.registerFontkit(fontkit)
@@ -105,20 +99,60 @@ export async function buildCertificatePdf(data, opts = {}) {
   for (let i = 0; i < chaves.length; i += 1) {
     fontes[chaves[i]] = await pdf.embedFont(ttfs[i], { subset: true })
   }
+  return { pdf, fontes }
+}
 
-  const folha = desenharCertificado(data, { claro: opts.light === true })
+/** Uma folha (lista de itens) numa página A4, com os metadados do arquivo. */
+async function folhaEmPdf(folha, meta, opts) {
+  const { pdf, fontes } = await documentoComFontes(opts)
   const page = pdf.addPage([PAGINA.largura * MM_TO_PT, PAGINA.altura * MM_TO_PT])
   desenhar(page, folha, fontes)
 
-  pdf.setTitle(`Certificado de ${data.starName} para ${data.honoreeName}`)
+  pdf.setTitle(meta.titulo)
   pdf.setAuthor('Stellara')
-  pdf.setSubject('Certificado de dedicação de estrela')
-  pdf.setKeywords(['certificado', 'estrela', data.starName, data.bayer])
+  pdf.setSubject(meta.assunto)
+  if (meta.palavras) pdf.setKeywords(meta.palavras)
   pdf.setProducer('Stellara')
   pdf.setCreator('Stellara')
   pdf.setCreationDate(new Date())
 
   return pdf.save()
+}
+
+/**
+ * Gera o PDF do certificado.
+ *
+ * @param {import('./certificado/desenho.js').DadosCertificado} data
+ * @param {{ light?: boolean, fontBaseUrl?: string, formatoFonte?: 'woff2' | 'ttf' }} [opts]
+ *   `formatoFonte: 'ttf'` é o do navegador (sem o descompressor WASM).
+ * @returns {Promise<Uint8Array>}
+ */
+export async function buildCertificatePdf(data, opts = {}) {
+  return folhaEmPdf(
+    desenharCertificado(data, { claro: opts.light === true }),
+    {
+      titulo: `Certificado de ${data.starName} para ${data.honoreeName}`,
+      assunto: 'Certificado de dedicação de estrela',
+      palavras: ['certificado', 'estrela', data.starName, data.bayer],
+    },
+    opts,
+  )
+}
+
+/**
+ * Gera o PDF da carta que acompanha o certificado (`shared/carta/desenho.js`).
+ *
+ * @param {import('./carta/desenho.js').DadosCarta} data
+ * @param {{ light?: boolean, fontBaseUrl?: string, formatoFonte?: 'woff2' | 'ttf' }} [opts]
+ * @returns {Promise<Uint8Array>}
+ */
+export async function buildLetterPdf(data, opts = {}) {
+  const para = String(data.honoreeName ?? '').trim()
+  return folhaEmPdf(
+    desenharCarta(data, { claro: opts.light === true }),
+    { titulo: para ? `Uma carta para ${para}` : 'Uma carta', assunto: 'Carta que acompanha o certificado da estrela' },
+    opts,
+  )
 }
 
 /** Traduz a lista de itens para o pdf-lib. */

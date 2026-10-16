@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { getStar } from '../../../shared/stars.js'
 import { validarPedido, validarTexto, explicarErros } from '../../../shared/moderation.js'
-import { Folha } from '../components/Folha.jsx'
+import { Folha, FolhaCarta } from '../components/Folha.jsx'
 import { ExploradorDeEstrelas } from '../components/ExploradorDeEstrelas.jsx'
 import { MiniCeuSobDemanda } from '../components/MiniCeuSobDemanda.jsx'
 import { Reveal } from '../components/Reveal.jsx'
@@ -17,12 +17,16 @@ import { aplicarCupom, precoDoGrupo } from '../../../shared/preco.js'
 import { linhaDoGrupo } from '../../../shared/grupo.js'
 import { MaisEstrelas } from '../components/MaisEstrelas.jsx'
 import { EMAIL_ATIVO } from '../lib/config.js'
+import { MODELOS_DE_CARTA } from '../lib/carta.js'
 
 
 const MESES = [
   'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
   'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
 ]
+
+/** "Helena Martins" → "Helena" (o rótulo do campo da carta). */
+const primeiroNomeDe = (nome) => String(nome ?? '').trim().split(/\s+/)[0] ?? ''
 
 /** Hoje, no fuso de quem está comprando, no formato que o `<input type="date">` entende (`YYYY-MM-DD`). */
 function dataDeHoje() {
@@ -185,6 +189,9 @@ export default function Produto({ slug }) {
   const [guardar, setGuardar] = useState(false)
   const [revelarEm, setRevelarEm] = useState('')
   const [mensagem, setMensagem] = useState('')
+  // A carta que acompanha o certificado (opcional) e qual peça a prévia mostra.
+  const [carta, setCarta] = useState('')
+  const [peca, setPeca] = useState('certificado')
   const [data, setData] = useState(dataDeHoje())
   const [versaoClara, setVersaoClara] = useState(false)
 
@@ -215,6 +222,7 @@ export default function Produto({ slug }) {
     fromName: assinatura,
     starNickname: apelido,
     message: mensagem,
+    letter: carta,
     customerName: nome,
     customerEmail: email,
   })
@@ -306,7 +314,7 @@ export default function Produto({ slug }) {
       return
     }
     if (!validacao.ok) {
-      setTocou({ honoreeName: true, starNickname: true, fromName: true, message: true, customerName: true, customerEmail: true })
+      setTocou({ honoreeName: true, starNickname: true, fromName: true, message: true, letter: true, customerName: true, customerEmail: true })
       setErro(explicarErros(validacao.erros))
       // Foco no primeiro campo inválido: sem isso, quem navega por teclado
       // ou leitor de tela continua no botão sem saber o que corrigir.
@@ -330,6 +338,7 @@ export default function Produto({ slug }) {
         nomeGrupo: outras.length >= 2 && nomeGrupo.trim() ? nomeGrupo.trim() : undefined,
         cupom: cupom?.codigo,
         message: mensagem || undefined,
+        letter: carta.trim() || undefined,
         dedicationDate: data || undefined,
         customerEmail: email,
         customerName: nome,
@@ -611,7 +620,67 @@ export default function Produto({ slug }) {
               </div>
             </Secao>
 
-            <Secao id="etapa-dados" numero="4" titulo="Seus dados">
+            <Secao id="etapa-carta" numero="4" titulo="A carta (opcional)">
+              {/* A segunda peça do presente: o certificado é a estrela; a
+                  carta, o que você sente. Sai num PDF próprio e é a carta da
+                  página da estrela. */}
+              <p className="text-sm leading-relaxed text-ivory/70">
+                Junto com o certificado vai uma carta, na mesma identidade, para guardar e reler. Escreva o que
+                quiser — uma lembrança, um agradecimento, o que nem sempre dá para dizer em voz alta. Curta ou
+                longa, ela sai bonita.
+              </p>
+              <div className="mt-4">
+                <Campo
+                  rotulo={`Carta para ${primeiroNomeDe(paraQuem) || 'quem recebe'}`}
+                  value={carta}
+                  onChange={setCarta}
+                  onFocus={() => setPeca('carta')}
+                  onBlur={() => marcarTocado('letter')}
+                  erro={erroDe('letter')}
+                  placeholder={'Meu amor,\nEscolhi esta estrela porque…'}
+                  maxLength={2000}
+                  multiline
+                  rows={8}
+                  contador={{ atual: carta.length, max: 2000 }}
+                  dica="Cada linha vira um parágrafo; uma primeira linha curta (“Meu amor,”) vira a saudação. A assinatura é a do passo anterior."
+                />
+              </div>
+              <div className="mt-3">
+                <p className="text-xs text-ivory/50">Sem saber por onde começar? Use um modelo e mude o que quiser:</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {MODELOS_DE_CARTA.map((modelo) => (
+                    <button
+                      key={modelo.rotulo}
+                      type="button"
+                      onClick={() => {
+                        setCarta(modelo.texto)
+                        setPeca('carta')
+                      }}
+                      className="rounded-full border border-white/12 px-3 py-1.5 text-xs text-ivory/75 transition hover:border-gold/50 hover:text-ivory"
+                    >
+                      {modelo.rotulo}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* No celular a prévia fica no alto da página, longe do campo. */}
+              <button
+                type="button"
+                onClick={() => {
+                  setPeca('carta')
+                  document.getElementById('previa')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }}
+                className="mt-4 text-sm text-gold underline-offset-4 hover:underline lg:hidden"
+              >
+                Ver como fica a carta ↑
+              </button>
+              <p className="mt-4 text-xs leading-relaxed text-ivory/45">
+                A carta é pessoal: aparece só para quem tem o link da página (e só na data, se você guardar a
+                surpresa). Nunca é usada em divulgação.
+              </p>
+            </Secao>
+
+            <Secao id="etapa-dados" numero="5" titulo="Seus dados">
               <Campo
                 rotulo="Seu nome"
                 obrigatorio
@@ -666,7 +735,12 @@ export default function Produto({ slug }) {
                     `${o.estrela ? `${o.estrela.name} · ` : ''}${o.nome.trim() || '—'}`,
                   ]),
                   ...(guardar && revelarEm ? [['Página revelada em', dataEmPortugues(revelarEm)]] : []),
-                  ['Formato', 'Certificado digital em PDF A4 (versões escura e clara) + página da estrela'],
+                  [
+                    'Formato',
+                    carta.trim()
+                      ? 'Certificado e carta em PDF A4 (versões escura e clara) + página da estrela'
+                      : 'Certificado digital em PDF A4 (versões escura e clara) + página da estrela',
+                  ],
                   [
                     'Entrega',
                     EMAIL_ATIVO
@@ -760,10 +834,27 @@ export default function Produto({ slug }) {
           </div>
 
           {/* --- Prévia ------------------------------------------------------ */}
-          <div className="order-1 lg:order-2">
+          <div id="previa" className="order-1 scroll-mt-36 lg:order-2">
             <div className="lg:sticky lg:top-24">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <h2 className="font-display text-sm tracking-[0.2em] text-gold uppercase">Prévia</h2>
+                <div className="flex rounded-full border border-white/15 p-0.5 text-xs" role="group" aria-label="Peça da prévia">
+                  {[
+                    ['certificado', 'Certificado'],
+                    ['carta', 'Carta'],
+                  ].map(([valor, rotulo]) => (
+                    <button
+                      key={valor}
+                      type="button"
+                      onClick={() => setPeca(valor)}
+                      aria-pressed={peca === valor}
+                      className={`rounded-full px-3 py-1.5 transition ${
+                        peca === valor ? 'bg-gold text-night' : 'text-ivory/70 hover:text-ivory'
+                      }`}
+                    >
+                      {rotulo}
+                    </button>
+                  ))}
+                </div>
                 {/* Duas opções fixas com `aria-pressed`: é um rádio estilizado,
                     e a versão clara existe porque o PDF sai nas duas — a
                     clara gasta menos tinta de impressora. */}
@@ -797,10 +888,23 @@ export default function Produto({ slug }) {
                 ela fique mais alta que a tela no desktop.
               */}
               <div className="shimmer-border mx-auto max-w-[30rem] overflow-hidden rounded-2xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
-                <Folha {...folhaDaPrevia()} dedicationDate={dataEmPortugues(data)} code="SG-XXXX-XXXX" light={versaoClara} />
+                {peca === 'carta' ? (
+                  <FolhaCarta
+                    paragrafos={carta.trim() ? carta : MODELOS_DE_CARTA[0].texto}
+                    fromName={assinatura}
+                    starName={estrela.name}
+                    code="SG-XXXX-XXXX"
+                    light={versaoClara}
+                  />
+                ) : (
+                  <Folha {...folhaDaPrevia()} dedicationDate={dataEmPortugues(data)} code="SG-XXXX-XXXX" light={versaoClara} />
+                )}
               </div>
+              {peca === 'carta' && !carta.trim() && (
+                <p className="mt-2 text-center text-xs text-ivory/50">Exemplo — a sua carta aparece aqui enquanto você escreve.</p>
+              )}
 
-              {comEstrela.length > 0 && (
+              {peca === 'certificado' && comEstrela.length > 0 && (
                 <div role="group" aria-label="Qual folha mostrar" className="mt-3 flex flex-wrap justify-center gap-2 text-xs">
                   {[[0, paraQuem], ...outras.map((o, i) => [i + 1, o.nome, o])]
                     .filter(([n, , o]) => n === 0 || o?.estrela)
@@ -858,13 +962,14 @@ function Secao({ id, numero, titulo, children }) {
 
 /**
  * As etapas da compra, fixas no topo do formulário: 1 Estrela · 2 Para quem ·
- * 3 Mensagem · 4 Seus dados · Pagamento. Um toque leva à etapa; a etapa em
+ * 3 Mensagem · 4 Carta · 5 Seus dados · Pagamento. Um toque leva à etapa; a etapa em
  * que a pessoa está fica marcada (a seção que ocupa o alto da tela).
  */
 const ETAPAS = [
   ['etapa-estrela', 'Estrela'],
   ['etapa-para-quem', 'Para quem'],
   ['etapa-mensagem', 'Mensagem'],
+  ['etapa-carta', 'Carta'],
   ['etapa-dados', 'Seus dados'],
   ['etapa-pagamento', 'Pagamento'],
 ]

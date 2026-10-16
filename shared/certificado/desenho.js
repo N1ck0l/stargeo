@@ -32,10 +32,10 @@ export const MAPA = { cx: 150, cy: 229, r: 25 }
 /** 25,4 mm ÷ 72 pt: corpo de fonte (pt) para milímetros. */
 export const MM_POR_PT = 25.4 / 72
 
-const CENTRO_X = PAGINA.largura / 2
+export const CENTRO_X = PAGINA.largura / 2
 
 /** Altura das maiúsculas de um corpo, em mm (~0,72 do corpo nas fontes da marca). */
-const caixaAlta = (pt) => pt * MM_POR_PT * 0.72
+export const caixaAlta = (pt) => pt * MM_POR_PT * 0.72
 
 // ---------------------------------------------------------------------------
 // Texto: medida e quebra (as mesmas na tela e no PDF)
@@ -93,7 +93,7 @@ export function quebrar(texto, fonte, pt, largura) {
  * `escuro` é a Edição Midnight (a original, para tela e para guardar);
  * `claro` é a versão papel — fundo marfim, quase sem tinta, para a impressora.
  */
-const PALETAS = {
+export const PALETAS = {
   escuro: {
     fundoTopo: '#161b47',
     fundoBase: '#090b20',
@@ -125,7 +125,7 @@ const PALETAS = {
 }
 
 /** Cor do degradê de fundo na altura `y` — para "recortes" que imitam a folga. */
-function fundoEm(p, y) {
+export function fundoEm(p, y) {
   return misturar(p.fundoTopo, p.fundoBase, y / PAGINA.altura)
 }
 
@@ -272,7 +272,7 @@ function moldura(add, p) {
 }
 
 /** A estrela da marca, só o contorno, com `altura` mm. */
-function estrelaPequena(add, cx, cy, altura, cor, opacidade = 1) {
+export function estrelaPequena(add, cx, cy, altura, cor, opacidade = 1) {
   // A estrela sem a órbita vai de -96 a 104 no eixo vertical: o centro
   // visual fica 4 unidades abaixo da origem.
   const escala = altura / 200
@@ -286,7 +286,7 @@ function estrelaPequena(add, cx, cy, altura, cor, opacidade = 1) {
  * cor do fundo naquela altura, antes do traço dourado: o pdf-lib não tem
  * máscara, e a imitação é invisível sobre o degradê suave.
  */
-function simboloOficial(add, p, { cx, cy, altura }) {
+export function simboloOficial(add, p, { cx, cy, altura }) {
   const c = caixaSimbolo()
   const escala = altura / c.altura
   const x = cx - (c.minX + c.largura / 2) * escala
@@ -312,7 +312,7 @@ function marcaEmCurvas(add, curvas, { cx, base, caixaAlta: alturaMm, cor, opacid
 }
 
 /** Fio com uma estrelinha no meio. */
-function divisor(add, p, y, meia) {
+export function divisor(add, p, y, meia) {
   const vao = 4.5
   add({ tipo: 'linha', x1: CENTRO_X - meia, y1: y, x2: CENTRO_X - vao, y2: y, cor: p.moldura, espessura: 0.2, opacidade: 0.55 })
   add({ tipo: 'linha', x1: CENTRO_X + vao, y1: y, x2: CENTRO_X + meia, y2: y, cor: p.moldura, espessura: 0.2, opacidade: 0.55 })

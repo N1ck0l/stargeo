@@ -2,8 +2,8 @@
 
 Estado em 15 de outubro de 2026. A loja está completa e no ar em
 <https://stellara-loja.netlify.app>: catálogo de ~118 mil estrelas, compra de
-1 a 6 estrelas com desconto de grupo, cupons, certificado em PDF, página da
-estrela, página do grupo, revelação na data, edição do cliente, depoimentos e
+1 a 6 estrelas com desconto de grupo, cupons, certificado e carta em PDF,
+página da estrela, página do grupo, revelação na data, edição do cliente, depoimentos e
 painel `/admin` com pedidos, relatórios, cupons e erros do site. O que falta é
 quase todo do dono — está aqui na ordem em que destrava a venda.
 
@@ -149,6 +149,10 @@ a permissão é a linha em `public.admins`). Mudar texto não precisa de deploy.
   calculados no `create-checkout` (a mesma conta de `shared/preco.js` que o site
   mostra). Cupom vale sobre o total já com desconto de grupo, nunca deixa uma
   estrela abaixo de R$ 1, e o uso só conta na compra paga.
+- **Carta**: opcional na compra (até 2.000 caracteres, 12 parágrafos, mesma
+  moderação), grátis. Vira a carta da página e um PDF próprio, gerado no
+  navegador como o do certificado (sem arquivo no Storage). Texto pessoal: só
+  na página da estrela; o painel mostra apenas se o pedido tem carta.
 - **Medição sem rastreador**: funil por contadores diários e erros sem dado
   pessoal, no próprio banco; quem pede "não rastrear" não entra no funil.
 - **Velocidade**: home e produto chegam PRONTOS no HTML (gerados no build por
@@ -173,7 +177,7 @@ a permissão é a linha em `public.admins`). Mudar texto não precisa de deploy.
 - `loja/src/pages/` — home, produto, catálogo, estrela, políticas, obrigado, rastreio
 - `loja/src/pagina/` — página dedicada, do grupo, cartão com QR, edição do cliente
 - `loja/src/admin/` — o painel
-- `shared/` — preço (`preco.js`), moderação, certificado (`certificado/`), céu e marca
+- `shared/` — preço (`preco.js`), moderação, certificado (`certificado/`), carta (`carta/`), céu e marca
 - `supabase/functions/` — checkout, webhook, páginas, grupo, depoimento, painel
-- `supabase/migrations/` — o banco (0001–0022)
+- `supabase/migrations/` — o banco (0001–0023)
 - `netlify/edge-functions/` — prévia social, sitemap e robots

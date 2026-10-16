@@ -58,7 +58,7 @@ const ALFABETO = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 
 const CAMPOS_PEDIDO = [
   'id', 'code', 'status', 'product_name', 'star_slug', 'honoree_name', 'star_nickname',
-  'from_name', 'message',
+  'from_name', 'message', 'letter',
   'customer_email', 'customer_name', 'amount_cents', 'dedication_date',
   'created_at', 'delivered_at', 'email_error',
 ].join(',')
@@ -363,6 +363,8 @@ async function listarPedidos(db: ReturnType<typeof admin>, corpo: Record<string,
         from_name: linha.from_name ?? '',
         message: linha.message ?? '',
       },
+      // Só a existência: o texto é pessoal e se lê (e corrige) na página.
+      temCarta: Boolean(linha.letter),
       comprador: linha.customer_name,
       email: linha.customer_email,
       valorCentavos: linha.amount_cents,

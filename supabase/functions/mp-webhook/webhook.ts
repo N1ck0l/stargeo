@@ -49,7 +49,7 @@ import { validarPedido } from '../../../shared/moderation.js'
  *  traz dado de pagamento que não tem por que sair daqui. */
 const CAMPOS_PEDIDO = [
   'id', 'code', 'status', 'customer_email', 'customer_name', 'honoree_name',
-  'from_name', 'star_nickname', 'message', 'dedication_date', 'reveal_on', 'star_slug', 'product_name',
+  'from_name', 'star_nickname', 'message', 'letter', 'dedication_date', 'reveal_on', 'star_slug', 'product_name',
   'amount_cents', 'delivered_at', 'group_id', 'cupom',
 ]
 
@@ -309,6 +309,7 @@ async function entregar(
     fromName: pedido.from_name,
     starNickname: pedido.star_nickname,
     message: pedido.message,
+    letter: pedido.letter,
     customerName: pedido.customer_name,
     customerEmail: pedido.customer_email,
   })

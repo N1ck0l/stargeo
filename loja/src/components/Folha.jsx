@@ -15,18 +15,32 @@ const CertificadoPreview = lazy(() =>
   import('./CertificadoPreview.jsx').then((m) => ({ default: m.CertificadoPreview })),
 )
 
+const CartaPreview = lazy(() => import('./CertificadoPreview.jsx').then((m) => ({ default: m.CartaPreview })))
+
+/** O lugar reservado enquanto a folha carrega: a proporção exata da A4. */
+function Reserva({ light }) {
+  return (
+    <div
+      aria-hidden="true"
+      className="w-full animate-pulse"
+      style={{ aspectRatio: '210 / 297', background: light ? '#f6f1e7' : '#0f1230' }}
+    />
+  )
+}
+
 export function Folha(props) {
   return (
-    <Suspense
-      fallback={
-        <div
-          aria-hidden="true"
-          className="w-full animate-pulse"
-          style={{ aspectRatio: '210 / 297', background: props.light ? '#f6f1e7' : '#0f1230' }}
-        />
-      }
-    >
+    <Suspense fallback={<Reserva light={props.light} />}>
       <CertificadoPreview {...props} />
+    </Suspense>
+  )
+}
+
+/** A carta que acompanha o certificado, sob demanda. Mesmas props da `CartaPreview`. */
+export function FolhaCarta(props) {
+  return (
+    <Suspense fallback={<Reserva light={props.light} />}>
+      <CartaPreview {...props} />
     </Suspense>
   )
 }

@@ -9,7 +9,7 @@
  */
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import { formatDec, formatRa } from '../../../shared/stars.js'
-import { limpar, validarTextoLivre } from '../../../shared/moderation.js'
+import { MAX_PARAGRAFOS_CARTA, limpar, paragrafosDaCarta, validarTextoLivre } from '../../../shared/moderation.js'
 import { dataEmPortugues } from './datas.ts'
 
 /** O que o visitante vê. Nomes iguais aos de `src/data/defaults.js`. */
@@ -48,7 +48,8 @@ export const LIMITES_PAGINA: Record<string, number> = {
   tituloEstrela: 160,
   descricaoEstrela: 1600,
   tituloCarta: 160,
-  paragrafo: 1600,
+  // Um parágrafo pode ser a carta inteira da compra (`LIMITES.letter`).
+  paragrafo: 2000,
   mensagemPessoal: 4000,
 }
 
@@ -251,10 +252,11 @@ export function estrelaParaPagina(estrela: Record<string, unknown>): Record<stri
 /**
  * Conteúdo inicial de uma página nascida de um pedido.
  *
- * A carta é um TEMPLATE NEUTRO: o pedido não traz carta — traz a mensagem
- * pessoal (que vira `mensagemPessoal`) e a assinatura. O que está abaixo é o
- * ponto de partida que o admin e o cliente reescrevem pela edição, não um
- * texto que alguém teria de escrever antes de comprar.
+ * A carta: se quem comprou escreveu uma (0023), é ELA — um parágrafo por
+ * linha, como no PDF da carta. Senão, um TEMPLATE NEUTRO, ponto de partida
+ * que o admin e o cliente reescrevem pela edição — não um texto que alguém
+ * teria de escrever antes de comprar. A mensagem do certificado vira
+ * `mensagemPessoal`.
  */
 export function conteudoDoPedido(
   pedido: Record<string, unknown>,
@@ -267,6 +269,7 @@ export function conteudoDoPedido(
   const constelacao = String(estrela.constellation ?? '')
   const mensagem = limpar(pedido.message ?? '')
   const apelido = limpar(pedido.star_nickname ?? '')
+  const cartaEscrita = paragrafosDaCarta(limpar(pedido.letter ?? '')).slice(0, MAX_PARAGRAFOS_CARTA)
 
   return {
     nome,
@@ -283,8 +286,8 @@ export function conteudoDoPedido(
       ? `${nomeEstrela}, agora também “${apelido}”`
       : `${nomeEstrela}, agora também de ${curto}`,
     descricaoEstrela: String(estrela.story ?? ''),
-    tituloCarta: 'Para ser lida sob as estrelas',
-    carta: [
+    tituloCarta: cartaEscrita.length ? 'Uma carta para você' : 'Para ser lida sob as estrelas',
+    carta: cartaEscrita.length ? cartaEscrita : [
       `${nome}.`,
       `Existe um pedaço do céu que se recusa a ser comum. Em ${constelacao}, ` +
         `${nomeEstrela} — ${bayer} nos catálogos — ` +
