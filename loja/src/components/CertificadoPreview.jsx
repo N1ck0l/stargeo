@@ -52,6 +52,7 @@ export const CertificadoPreview = memo(function CertificadoPreview({
   starNickname,
   par,
   grupoLinha,
+  campanha = null,
   light = false,
   className = '',
 }) {
@@ -61,9 +62,9 @@ export const CertificadoPreview = memo(function CertificadoPreview({
     () =>
       desenharCertificado(
         dadosDaFolha({ estrela, honoreeName, message, fromName, dedicationDate, code, starNickname, par, grupoLinha }),
-        { claro: light },
+        { claro: light, campanha },
       ),
-    [estrela, honoreeName, message, fromName, dedicationDate, code, starNickname, par, grupoLinha, light],
+    [estrela, honoreeName, message, fromName, dedicationDate, code, starNickname, par, grupoLinha, campanha, light],
   )
 
   return (
@@ -81,11 +82,11 @@ export const CertificadoPreview = memo(function CertificadoPreview({
  * Prévia da carta que acompanha o certificado (`shared/carta/desenho.js`) —
  * a mesma folha do PDF da carta.
  */
-export const CartaPreview = memo(function CartaPreview({ paragrafos, titulo, fromName, starName, code, light = false, className = '' }) {
+export const CartaPreview = memo(function CartaPreview({ paragrafos, titulo, fromName, starName, code, qrUrl, campanha = null, light = false, className = '' }) {
   const id = useId().replace(/:/g, '')
   const folha = useMemo(
-    () => desenharCarta({ paragrafos, titulo, fromName, starName, code }, { claro: light }),
-    [paragrafos, titulo, fromName, starName, code, light],
+    () => desenharCarta({ paragrafos, titulo, fromName, starName, code, qrUrl }, { claro: light, campanha }),
+    [paragrafos, titulo, fromName, starName, code, qrUrl, campanha, light],
   )
   return <FolhaSvg folha={folha} id={id} className={`carta ${className}`} rotulo="Carta que acompanha o certificado" light={light} />
 })
@@ -140,12 +141,18 @@ function Item({ item, id }) {
           y={item.y}
           width={item.largura}
           height={item.altura}
-          fill="none"
+          fill={item.preenchimento ?? 'none'}
+          fillOpacity={item.preenchimento ? item.opacidade : undefined}
           stroke={item.traco}
-          strokeWidth={item.espessura}
-          strokeOpacity={item.opacidade}
+          strokeWidth={item.traco ? item.espessura : undefined}
+          strokeOpacity={item.traco ? item.opacidade : undefined}
+          // Módulos do QR lado a lado: sem antialias na borda, para não
+          // aparecer a "costura" clara entre dois quadrados vizinhos.
+          shapeRendering={item.preenchimento ? 'crispEdges' : undefined}
         />
       )
+    case 'imagem':
+      return <image href={item.src} x={item.x} y={item.y} width={item.largura} height={item.altura} preserveAspectRatio="xMidYMid meet" />
     case 'circulo':
       return (
         <circle

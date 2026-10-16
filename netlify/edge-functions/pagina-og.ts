@@ -24,13 +24,25 @@ interface Contexto {
 
 const RE_CODIGO = /^\/p\/(SG-[A-Z0-9]{4}-[A-Z0-9]{4})\/?$/i
 
+/** Página de presente fora do índice dos buscadores, em qualquer resposta. */
+function semIndice(resposta: Response, corpo?: string): Response {
+  const cabecalhos = new Headers(resposta.headers)
+  cabecalhos.set('X-Robots-Tag', 'noindex, nofollow, noarchive')
+  if (corpo !== undefined) cabecalhos.delete('content-length')
+  return new Response(corpo ?? resposta.body, { status: resposta.status, headers: cabecalhos })
+}
+
 export default async function paginaOg(request: Request, contexto: Contexto): Promise<Response> {
+  return semIndice(...(await previa(request, contexto)))
+}
+
+async function previa(request: Request, contexto: Contexto): Promise<[Response, string?]> {
   const resposta = await contexto.next()
 
   const codigo = new URL(request.url).pathname.match(RE_CODIGO)?.[1]?.toUpperCase()
   const base = Netlify.env.get('VITE_FUNCTIONS_URL')
   if (!codigo || !base || !resposta.headers.get('content-type')?.includes('text/html')) {
-    return resposta
+    return [resposta]
   }
 
   let titulo: string
@@ -42,7 +54,7 @@ export default async function paginaOg(request: Request, contexto: Contexto): Pr
       body: JSON.stringify({ code: codigo }),
       signal: AbortSignal.timeout(1500),
     })
-    if (!consulta.ok) return resposta
+    if (!consulta.ok) return [resposta]
 
     const dados = await consulta.json()
     // Página guardada até a data (0019): a prévia não entrega a surpresa.
@@ -51,10 +63,11 @@ export default async function paginaOg(request: Request, contexto: Contexto): Pr
       titulo = `Uma surpresa nas estrelas para ${guardada.para}`
       descricao = 'Esta estrela se revela em breve. Guarde este link.'
     } else {
-      const nome = String(dados?.pagina?.conteudo?.nome ?? '').trim()
+      // Homenagem de campanha: só o nome preferido na prévia do link.
+      const nome = String((dados?.campanha ? dados?.pagina?.conteudo?.nomeCurto : dados?.pagina?.conteudo?.nome) ?? '').trim()
       const estrela = String(dados?.estrela?.commonName ?? '').trim()
       const constelacao = String(dados?.estrela?.constellation ?? '').trim()
-      if (!nome) return resposta
+      if (!nome) return [resposta]
 
       titulo = estrela ? `Uma estrela para ${nome} · ${estrela}` : `Uma estrela para ${nome}`
       descricao = estrela && constelacao
@@ -62,7 +75,7 @@ export default async function paginaOg(request: Request, contexto: Contexto): Pr
         : `Uma estrela no céu agora tem o nome de ${nome}. Veja onde ela está.`
     }
   } catch {
-    return resposta
+    return [resposta]
   }
 
   const html = (await resposta.text())
@@ -72,9 +85,7 @@ export default async function paginaOg(request: Request, contexto: Contexto): Pr
     .replace(/(<meta\s+name="description"\s+content=")[^"]*(")/, `$1${escapar(descricao)}$2`)
     .replace(/(<meta\s+property="og:url"\s+content=")[^"]*(")/, `$1${escapar(request.url)}$2`)
 
-  const cabecalhos = new Headers(resposta.headers)
-  cabecalhos.delete('content-length')
-  return new Response(html, { status: resposta.status, headers: cabecalhos })
+  return [resposta, html]
 }
 
 /** Nome vem do cliente: escapado antes de entrar em atributo e em `<title>`. */

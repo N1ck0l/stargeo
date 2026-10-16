@@ -81,6 +81,8 @@ export interface LinhaPagina {
   star_nickname: string | null
   dedication_date: string | null
   reveal_on: string | null
+  campanha_id?: string | null
+  nomePreferido?: string | null
   titulo_hero: string
   frase_hero: string
   titulo_estrela: string
@@ -102,7 +104,8 @@ export function primeiroNome(nomeCompleto: string): string {
 export function conteudoDaLinha(linha: LinhaPagina): ConteudoPagina {
   return {
     nome: linha.honoree_name,
-    nomeCurto: primeiroNome(linha.honoree_name),
+    // Campanha: o nome preferido ("Duda"), se o painel informou.
+    nomeCurto: linha.nomePreferido || primeiroNome(linha.honoree_name),
     assinatura: linha.from_name ?? '',
     apelidoEstrela: linha.star_nickname ?? '',
     data: dataEmPortugues(linha.dedication_date) ?? '',
@@ -208,6 +211,9 @@ export const SELECAO_PAGINA = [
   'titulo_hero', 'frase_hero', 'titulo_estrela', 'descricao_estrela',
   'titulo_carta', 'carta', 'mensagem_pessoal', 'mostrar_mensagem',
   'mostrar_mira', 'created_at',
+  // Campanha (0024): só o vínculo e o nome preferido saem daqui — as
+  // anotações para a carta e o consentimento ficam no painel.
+  'campanha_id', 'campanha_notas->>nomePreferido',
 ].join(',')
 
 /**

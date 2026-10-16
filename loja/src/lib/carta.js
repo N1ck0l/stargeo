@@ -51,10 +51,10 @@ export const MODELOS_DE_CARTA = [
  * certificado (`baixarPdf`): o gerador de `shared/pdf.js`, carregado só no
  * clique, com as fontes em TTF.
  *
- * @param {{ paragrafos: string[] | string, titulo?: string, fromName?: string, honoreeName?: string, estrela?: { name?: string }, code?: string }} carta
- * @param {{ claro?: boolean }} [opcoes]
+ * @param {{ paragrafos: string[] | string, titulo?: string, fromName?: string, honoreeName?: string, estrela?: { name?: string }, code?: string, qrUrl?: string }} carta
+ * @param {{ claro?: boolean, campanha?: object | null }} [opcoes]
  */
-export async function baixarCarta(carta, { claro = false } = {}) {
+export async function baixarCarta(carta, { claro = false, campanha = null } = {}) {
   const { buildLetterPdf } = await import('../../../shared/pdf.js')
   const bytes = await buildLetterPdf(
     {
@@ -64,8 +64,9 @@ export async function baixarCarta(carta, { claro = false } = {}) {
       honoreeName: carta.honoreeName,
       starName: carta.estrela?.name,
       code: carta.code,
+      qrUrl: carta.qrUrl,
     },
-    { light: claro, fontBaseUrl: '', formatoFonte: 'ttf' },
+    { light: claro, fontBaseUrl: '', formatoFonte: 'ttf', campanha },
   )
 
   const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }))

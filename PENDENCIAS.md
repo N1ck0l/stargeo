@@ -92,7 +92,20 @@ variáveis e o deploy assim que o domínio existir.
 - [ ] Pedir a um advogado a revisão de `/politicas` (entrega digital, pagamento,
       arrependimento, LGPD, registro anônimo de erros e de visitas).
 
-### 1.7 Pequenos
+### 1.7 Campanha PROIMAGEM (homenagens às colaboradoras)
+
+Pronta no painel → **Campanha PROIMAGEM**. Cada homenagem é uma página
+`/p/SG-…` com certificado, carta com QR e a seção "Sobre esta homenagem".
+
+- [ ] Definir a assinatura padrão (painel → Campanha → Configuração).
+- [ ] Cadastrar as homenageadas (estrelas sugeridas pelo Claude), revisar as
+      cartas e só então marcar "Página no ar".
+- [ ] Imprimir um teste em papel fotográfico (certificado e carta) e ler o QR
+      impresso com dois celulares diferentes.
+- [ ] A Geovanna: a página atual (`SG-GEOV-ANNA`) é da loja; para entrar na
+      campanha, o Claude converte (pedir antes — mexe numa página existente).
+
+### 1.8 Pequenos
 
 - [ ] Revisar a mensagem pessoal da página da Geovanna (rascunho já escrito,
       ESCONDIDO): painel → Páginas → `SG-GEOV-ANNA` → Mensagem pessoal; ajuste e
@@ -157,6 +170,12 @@ Supabase (Authentication → Users) + linha em `admins`.
   calculados no `create-checkout` (a mesma conta de `shared/preco.js` que o site
   mostra). Cupom vale sobre o total já com desconto de grupo, nunca deixa uma
   estrela abaixo de R$ 1, e o uso só conta na compra paga.
+- **Campanhas** (0024): homenagens são páginas manuais com `campanha_id`;
+  anotações para a carta e consentimento ficam em colunas que a `get-page`
+  não lê. Estrela de página manual sai da vitrine (`dedicar_estrela_manual`).
+  O QR usa `VITE_URL_PUBLICA` (padrão: o endereço da Netlify) — trocar junto
+  com o domínio próprio, ANTES de imprimir. Páginas `/p/` e `/g/` levam
+  `X-Robots-Tag: noindex`; acesso é por link (não é sigilo).
 - **Carta**: opcional na compra (até 2.000 caracteres, 12 parágrafos, mesma
   moderação), grátis. Em grupo, quem compra escolhe: uma carta para todos ou
   uma para cada pessoa (`cartaPorPessoa`). Vira a carta da página e um PDF próprio, gerado no
@@ -188,5 +207,5 @@ Supabase (Authentication → Users) + linha em `admins`.
 - `loja/src/admin/` — o painel
 - `shared/` — preço (`preco.js`), moderação, certificado (`certificado/`), carta (`carta/`), céu e marca
 - `supabase/functions/` — checkout, webhook, páginas, grupo, depoimento, painel
-- `supabase/migrations/` — o banco (0001–0023)
+- `supabase/migrations/` — o banco (0001–0024)
 - `netlify/edge-functions/` — prévia social, sitemap e robots

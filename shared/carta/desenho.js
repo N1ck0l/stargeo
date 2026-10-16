@@ -28,15 +28,17 @@ import {
   simboloOficial,
 } from '../certificado/desenho.js'
 import { paragrafosDaCarta } from '../moderation.js'
+import { qrDaUrl, seloDoParceiro } from '../campanha.js'
 
 /** Margens da coluna de texto, em mm. */
 const ESQUERDA = 32
 const LARGURA = 146
 const DIREITA = ESQUERDA + LARGURA
 
-/** Faixa do texto: da saudação até antes do rodapé. */
+/** Faixa do texto: da saudação até antes do rodapé (a de campanha tem o QR embaixo). */
 const TOPO = 76
-const BASE = 256
+const BASE_SIMPLES = 256
+const BASE_CAMPANHA = 222
 
 /** Primeiro parágrafo com até isto de caracteres vira saudação. */
 const SAUDACAO_MAX = 80
@@ -49,14 +51,21 @@ const SAUDACAO_MAX = 80
  * @property {string} [honoreeName]   para quem (só no título do PDF)
  * @property {string} [starName]      a estrela (rodapé)
  * @property {string} [code]          registro (rodapé)
+ * @property {string} [qrUrl]         campanha: o endereço DEFINITIVO da página (vira o QR)
  */
 
 /**
+ * Campanha (`opcoes.campanha`): o parceiro no cabeçalho ("uma homenagem
+ * PROIMAGEM"), a frase final opcional e, no pé, o QR da página com "Acesse
+ * sua homenagem" e o endereço legível, ao lado do selo do parceiro.
+ *
  * @param {DadosCarta} dados
- * @param {{ claro?: boolean }} [opcoes]
+ * @param {{ claro?: boolean, campanha?: import('../campanha.js').Campanha }} [opcoes]
  */
 export function desenharCarta(dados, opcoes = {}) {
   const p = PALETAS[opcoes.claro ? 'claro' : 'escuro']
+  const campanha = opcoes.campanha ?? null
+  const base = campanha ? BASE_CAMPANHA : BASE_SIMPLES
   const itens = []
   const add = (item) => itens.push(item)
   const texto = (conteudo, { x = CENTRO_X, y, fonte, pt, cor, alinhar = 'centro', espaco = 0, opacidade = 1 }) => {
@@ -75,7 +84,8 @@ export function desenharCarta(dados, opcoes = {}) {
 
   // --- Cabeçalho -------------------------------------------------------------
   simboloOficial(add, p, { cx: CENTRO_X, cy: 28, altura: 11 })
-  texto('STELLARA · UMA HOMENAGEM ESPECIAL', { y: 42.5, fonte: 'sansMedio', pt: 6, cor: p.rotulo, espaco: 2.4, opacidade: 0.85 })
+  const chamada = campanha ? `STELLARA · UMA HOMENAGEM ${campanha.parceiro}`.toLocaleUpperCase('pt-BR') : 'STELLARA · UMA HOMENAGEM ESPECIAL'
+  texto(chamada, { y: 42.5, fonte: 'sansMedio', pt: 6, cor: p.rotulo, espaco: 2.4, opacidade: 0.85 })
   const titulo = String(dados.titulo ?? '').trim() || 'Uma carta para você'
   let tituloPt = 20
   while (tituloPt > 12 && medir('serif', titulo, tituloPt) > LARGURA) tituloPt -= 0.5
@@ -83,11 +93,17 @@ export function desenharCarta(dados, opcoes = {}) {
   divisor(add, p, 63.5, 22)
 
   // --- O texto ---------------------------------------------------------------
-  corpo(add, texto, dados, p)
+  corpo(add, texto, dados, p, base)
 
-  // --- Rodapé: a ponte com o certificado ---------------------------------------
   const estrela = String(dados.starName ?? '').trim()
   const codigo = String(dados.code ?? '').trim()
+
+  if (campanha) {
+    rodapeDeCampanha(add, texto, dados, p, campanha, { estrela, codigo, claro: Boolean(opcoes.claro) })
+    return { largura: PAGINA.largura, altura: PAGINA.altura, itens }
+  }
+
+  // --- Rodapé: a ponte com o certificado ---------------------------------------
   if (estrela || codigo) {
     add({ tipo: 'linha', x1: CENTRO_X - 16, y1: 264, x2: CENTRO_X + 16, y2: 264, cor: p.moldura, espessura: 0.18, opacidade: 0.5 })
     const linha = [estrela && `Acompanha o certificado da estrela ${estrela}`, codigo && `registro ${codigo}`].filter(Boolean).join(' · ')
@@ -104,7 +120,7 @@ export function desenharCarta(dados, opcoes = {}) {
  * cima para baixo); carta curta desce um pouco, para não deixar o pé vazio.
  * Se não couber, o corpo encolhe (até 8,5 pt) e depois os vãos apertam.
  */
-function corpo(add, texto, dados, p) {
+function corpo(add, texto, dados, p, BASE) {
   const todos = paragrafosDaCarta(dados.paragrafos)
   const lista = todos.length ? todos : ['Escreva aqui a sua carta.']
   const saudacao = lista.length > 1 && lista[0].length <= SAUDACAO_MAX ? lista[0] : ''
@@ -198,3 +214,41 @@ function partirPalavras(texto, fonte, pt) {
     })
     .join(' ')
 }
+
+/**
+ * Pé da carta de campanha: frase final (opcional), o QR da página com "Acesse
+ * sua homenagem" e o endereço legível (para quem não usa a câmera), e o selo
+ * do parceiro à direita. O QR só sai com endereço — nunca um QR decorativo.
+ */
+function rodapeDeCampanha(add, texto, dados, p, campanha, { estrela, codigo, claro }) {
+  const frase = String(campanha.fraseFinal ?? '').trim()
+  if (frase) {
+    let pt = 10.5
+    while (pt > 8 && medir('serifItalico', frase, pt) > LARGURA) pt -= 0.25
+    texto(frase, { y: 232, fonte: 'serifItalico', pt, cor: p.destaque, opacidade: 0.95 })
+  }
+  add({ tipo: 'linha', x1: ESQUERDA, y1: 238.5, x2: DIREITA, y2: 238.5, cor: p.moldura, espessura: 0.18, opacidade: 0.45 })
+
+  const url = String(dados.qrUrl ?? '').trim()
+  if (url) {
+    qrDaUrl(add, { x: ESQUERDA - 2, y: 243, tamanho: 30, url })
+    const x = ESQUERDA + 33
+    texto('ACESSE SUA HOMENAGEM', { x, y: 252, fonte: 'sansMedio', pt: 6.6, cor: p.rotulo, alinhar: 'esquerda', espaco: 1.4 })
+    const legivel = url.replace(/^https?:\/\//, '')
+    let pt = 8
+    while (pt > 6 && medir('sans', legivel, pt) > 76) pt -= 0.25
+    texto(legivel, { x, y: 258, fonte: 'sans', pt, cor: p.texto, alinhar: 'esquerda' })
+    texto('Aponte a câmera do celular para o código ao lado.', {
+      x, y: 263.5, fonte: 'sansItalico', pt: 6.2, cor: p.suave, alinhar: 'esquerda', opacidade: p.suaveOpacidade,
+    })
+    const ponte = [estrela && `Acompanha o certificado da estrela ${estrela}`, codigo && `registro ${codigo}`].filter(Boolean).join(' · ')
+    if (ponte) {
+      let ptPonte = 6.2
+      while (ptPonte > 5 && medir('sansItalico', ponte, ptPonte) > 76) ptPonte -= 0.25
+      texto(ponte, { x, y: 269.5, fonte: 'sansItalico', pt: ptPonte, cor: p.suave, alinhar: 'esquerda', opacidade: p.suaveOpacidade * 0.85 })
+    }
+  }
+
+  seloDoParceiro(add, p, { x: DIREITA - 32, y: 245, largura: 32, campanha, claro })
+}
+

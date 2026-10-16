@@ -22,6 +22,7 @@ import { METRICAS } from './metricas.js'
 import { COR, arco, caixaSimbolo, contornoEstrela, facetas, naOrbita, ORBITA, PONTO } from '../marca.js'
 import { NOME_EM_CURVAS, SLOGAN_EM_CURVAS } from '../marcaTexto.js'
 import { projetarCeu, raioDaEstrela } from './mapa.js'
+import { seloDoParceiro } from '../campanha.js'
 
 /** A4 retrato, em milímetros. */
 export const PAGINA = { largura: 210, altura: 297 }
@@ -169,8 +170,13 @@ function misturar(a, b, t) {
  * Monta a folha. Devolve `{ largura, altura, itens }`, itens na ordem de
  * desenho (o de trás primeiro).
  *
+ * Campanha (`opcoes.campanha`, `shared/campanha.js`): o selo do parceiro,
+ * discreto, no centro do rodapé — "uma iniciativa com". O resto da folha não
+ * muda: a homenagem continua sendo o centro, e o aviso de que é simbólica
+ * continua no pé.
+ *
  * @param {DadosCertificado} dados
- * @param {{ claro?: boolean }} [opcoes]
+ * @param {{ claro?: boolean, campanha?: import('../campanha.js').Campanha }} [opcoes]
  */
 export function desenharCertificado(dados, opcoes = {}) {
   const p = PALETAS[opcoes.claro ? 'claro' : 'escuro']
@@ -220,6 +226,12 @@ export function desenharCertificado(dados, opcoes = {}) {
 
   // --- Rodapé ----------------------------------------------------------------
   rodape(add, texto, dados, p)
+
+  // --- Campanha: o parceiro, entre o registro e a assinatura -----------------
+  if (opcoes.campanha?.logo) {
+    texto('UMA INICIATIVA COM', { x: 103, y: 258.6, fonte: 'sansMedio', pt: 4.6, cor: p.rotulo, espaco: 1, opacidade: 0.85 })
+    seloDoParceiro(add, p, { x: 92, y: 260, largura: 22, campanha: opcoes.campanha, claro: opcoes.claro })
+  }
 
   return { largura: PAGINA.largura, altura: PAGINA.altura, itens }
 }

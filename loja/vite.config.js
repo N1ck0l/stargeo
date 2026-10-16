@@ -121,6 +121,7 @@ export default defineConfig({
       'npm:pdf-lib': 'pdf-lib',
       'npm:@pdf-lib/fontkit': '@pdf-lib/fontkit',
       'npm:wawoff2': resolve(loja, 'src/lib/semWawoff2.js'),
+      'npm:qrcode-generator@1.4.4': 'qrcode-generator',
     },
   },
 

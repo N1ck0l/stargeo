@@ -40,8 +40,14 @@ function itemEmSvg(item, id) {
       )
     case 'linha':
       return `<line x1="${num(item.x1)}" y1="${num(item.y1)}" x2="${num(item.x2)}" y2="${num(item.y2)}" stroke="${item.cor}" stroke-width="${num(item.espessura)}" stroke-opacity="${num(item.opacidade)}"/>`
-    case 'retangulo':
-      return `<rect x="${num(item.x)}" y="${num(item.y)}" width="${num(item.largura)}" height="${num(item.altura)}" fill="none" stroke="${item.traco}" stroke-width="${num(item.espessura)}" stroke-opacity="${num(item.opacidade)}"/>`
+    case 'retangulo': {
+      // Contorno (moldura) ou preenchido (módulos do QR, fundo branco dele).
+      const preenche = item.preenchimento ? `fill="${item.preenchimento}" fill-opacity="${num(item.opacidade)}"` : 'fill="none"'
+      const traco = item.traco ? ` stroke="${item.traco}" stroke-width="${num(item.espessura)}" stroke-opacity="${num(item.opacidade)}"` : ''
+      return `<rect x="${num(item.x)}" y="${num(item.y)}" width="${num(item.largura)}" height="${num(item.altura)}" ${preenche}${traco}/>`
+    }
+    case 'imagem':
+      return `<image href="${escapar(item.src)}" x="${num(item.x)}" y="${num(item.y)}" width="${num(item.largura)}" height="${num(item.altura)}" preserveAspectRatio="xMidYMid meet"/>`
     case 'circulo': {
       const preenche = item.preenchimento ? `fill="${item.preenchimento}" fill-opacity="${num(item.opacidade)}"` : 'fill="none"'
       const traco = item.traco ? ` stroke="${item.traco}" stroke-width="${num(item.espessura)}" stroke-opacity="${num(item.opacidade)}"` : ''

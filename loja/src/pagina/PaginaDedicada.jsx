@@ -5,6 +5,7 @@ import { StarDetails } from './secoes/StarDetails.jsx'
 import { SkyMap } from './secoes/SkyMap.jsx'
 import { LoveLetter } from './secoes/LoveLetter.jsx'
 import { PersonalMessage } from './secoes/PersonalMessage.jsx'
+import { SobreHomenagem } from './secoes/SobreHomenagem.jsx'
 import { ErroApi } from '../lib/api.js'
 import { buscarPagina, tokenGuardado } from '../lib/pagina.js'
 import { PaginaGuardada } from './PaginaGuardada.jsx'
@@ -66,10 +67,29 @@ export function PaginaDedicada({ codigo }) {
   const conteudo = useMemo(
     () =>
       estado.fase === 'pronta' && !estado.dados.guardada
-        ? { ...montarConteudo(estado.dados.pagina, estado.dados.estrela, estado.ceu), grupo: estado.dados.grupo ?? null }
+        ? {
+            ...montarConteudo(estado.dados.pagina, estado.dados.estrela, estado.ceu),
+            grupo: estado.dados.grupo ?? null,
+            // Homenagem de campanha (0024): parceiro, logo autorizada e frase final.
+            campanha: estado.dados.campanha ?? null,
+            codigo,
+          }
         : null,
-    [estado],
+    [estado, codigo],
   )
+
+  /*
+   * Página de presente fora dos buscadores (o cabeçalho `X-Robots-Tag` da
+   * Netlify já diz isso; a meta cobre quem lê só o HTML). Não é sigilo: quem
+   * tem o link vê a página.
+   */
+  useEffect(() => {
+    const meta = document.createElement('meta')
+    meta.name = 'robots'
+    meta.content = 'noindex, nofollow, noarchive'
+    document.head.appendChild(meta)
+    return () => meta.remove()
+  }, [])
 
   if (estado.fase === 'carregando') return <Esqueleto />
 
@@ -138,6 +158,7 @@ export function PaginaDedicada({ codigo }) {
       <SkyMap onOpenCertificate={abrirCertificado} />
       <LoveLetter />
       <PersonalMessage />
+      {conteudo.campanha && <SobreHomenagem codigo={codigo} />}
 
       {/* Grupo de estrelas (0020/0021): o caminho até as outras e o céu de todas. */}
       {conteudo.grupo && <OutrasDoGrupo grupo={conteudo.grupo} />}
@@ -145,7 +166,7 @@ export function PaginaDedicada({ codigo }) {
       {/* Porta de entrada do cliente: daqui ele vai para o login de edição
           (código + e-mail). Discreto — quem só lê a carta passa reto. */}
       <div className="mx-auto max-w-3xl px-5 pb-14 text-center">
-        {dona ? (
+        {conteudo.campanha ? null : dona ? (
           <>
           <CompartilharPagina
             codigo={codigo}

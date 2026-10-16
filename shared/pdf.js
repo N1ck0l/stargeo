@@ -102,11 +102,28 @@ async function documentoComFontes(opts) {
   return { pdf, fontes }
 }
 
+/**
+ * As imagens da folha (logomarca de parceiro), embutidas uma vez cada. Vêm
+ * do mesmo lugar das fontes (`fontBaseUrl` + caminho em `loja/public`): PNG
+ * com transparência, sem reamostrar — o PDF guarda o arquivo como ele é.
+ */
+async function embutirImagens(pdf, folha, base) {
+  const imagens = new Map()
+  for (const src of new Set(folha.itens.filter((i) => i.tipo === 'imagem').map((i) => i.src))) {
+    const resposta = await fetch(`${base}${src}`)
+    if (!resposta.ok) throw new Error(`Imagem não encontrada: ${src} (${resposta.status})`)
+    const bytes = new Uint8Array(await resposta.arrayBuffer())
+    imagens.set(src, /\.png$/i.test(src) ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes))
+  }
+  return imagens
+}
+
 /** Uma folha (lista de itens) numa página A4, com os metadados do arquivo. */
 async function folhaEmPdf(folha, meta, opts) {
   const { pdf, fontes } = await documentoComFontes(opts)
+  const imagens = await embutirImagens(pdf, folha, opts.fontBaseUrl ?? '')
   const page = pdf.addPage([PAGINA.largura * MM_TO_PT, PAGINA.altura * MM_TO_PT])
-  desenhar(page, folha, fontes)
+  desenhar(page, folha, fontes, imagens)
 
   pdf.setTitle(meta.titulo)
   pdf.setAuthor('Stellara')
@@ -129,7 +146,7 @@ async function folhaEmPdf(folha, meta, opts) {
  */
 export async function buildCertificatePdf(data, opts = {}) {
   return folhaEmPdf(
-    desenharCertificado(data, { claro: opts.light === true }),
+    desenharCertificado(data, { claro: opts.light === true, campanha: opts.campanha }),
     {
       titulo: `Certificado de ${data.starName} para ${data.honoreeName}`,
       assunto: 'Certificado de dedicação de estrela',
@@ -149,14 +166,14 @@ export async function buildCertificatePdf(data, opts = {}) {
 export async function buildLetterPdf(data, opts = {}) {
   const para = String(data.honoreeName ?? '').trim()
   return folhaEmPdf(
-    desenharCarta(data, { claro: opts.light === true }),
+    desenharCarta(data, { claro: opts.light === true, campanha: opts.campanha }),
     { titulo: para ? `Uma carta para ${para}` : 'Uma carta', assunto: 'Carta que acompanha o certificado da estrela' },
     opts,
   )
 }
 
 /** Traduz a lista de itens para o pdf-lib. */
-function desenhar(page, folha, fontes) {
+function desenhar(page, folha, fontes, imagens = new Map()) {
   const pt = (mm) => mm * MM_TO_PT
   const yPdf = (y) => pt(folha.altura - y)
 
@@ -196,11 +213,26 @@ function desenhar(page, folha, fontes) {
           y: yPdf(item.y + item.altura),
           width: pt(item.largura),
           height: pt(item.altura),
-          borderColor: cor(item.traco),
-          borderWidth: pt(item.espessura),
-          borderOpacity: item.opacidade,
+          ...(item.preenchimento ? { color: cor(item.preenchimento), opacity: item.opacidade } : {}),
+          ...(item.traco
+            ? { borderColor: cor(item.traco), borderWidth: pt(item.espessura), borderOpacity: item.opacidade }
+            : {}),
         })
         break
+      case 'imagem': {
+        // Encaixa sem deformar, centrada na caixa (como o `meet` do SVG).
+        const img = imagens.get(item.src)
+        const escala = Math.min(item.largura / img.width, item.altura / img.height)
+        const w = img.width * escala
+        const h = img.height * escala
+        page.drawImage(img, {
+          x: pt(item.x + (item.largura - w) / 2),
+          y: yPdf(item.y + (item.altura + h) / 2),
+          width: pt(w),
+          height: pt(h),
+        })
+        break
+      }
       case 'circulo':
         page.drawCircle({
           x: pt(item.cx),

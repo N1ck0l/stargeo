@@ -60,6 +60,20 @@
   [headers.values]
     Cache-Control = "public, max-age=604800"
 
+# Páginas de presente (/p/ das estrelas e homenagens, /g/ dos grupos): nunca
+# no índice dos buscadores. O `robots.txt` já pede para não rastrear; este
+# cabeçalho cobre o caso de alguém publicar o link (o buscador chega por fora).
+# Não é sigilo: quem tem o link vê a página.
+[[headers]]
+  for = "/p/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow, noarchive"
+
+[[headers]]
+  for = "/g/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow, noarchive"
+
 [[headers]]
   for = "/*"
   [headers.values]

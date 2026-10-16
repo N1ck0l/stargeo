@@ -64,12 +64,13 @@ export function nomeDoArquivo({ honoreeName, estrela }, sufixo, extensao) {
  * fontes vão em TTF (`/fonts/pdf/*.ttf`), sem descompressor de woff2.
  *
  * @param {Parameters<typeof dadosDaFolha>[0]} props
- * @param {{ claro?: boolean }} [opcoes]
+ * @param {{ claro?: boolean, campanha?: object | null }} [opcoes]
  */
-export async function baixarPdf(props, { claro = false } = {}) {
+export async function baixarPdf(props, { claro = false, campanha = null } = {}) {
   const { buildCertificatePdf } = await import('../../../shared/pdf.js')
   const bytes = await buildCertificatePdf(dadosDaFolha(props), {
     light: claro,
+    campanha,
     fontBaseUrl: '',
     formatoFonte: 'ttf',
   })

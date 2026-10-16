@@ -44,6 +44,7 @@ import { explicarErros, limpar, validarPedido, validarTextoLivre } from '../../.
 import { enviarEmail, gerarEGuardar } from '../_shared/certificado.ts'
 import { entregasTravadas, type PedidoPago } from './entregas.ts'
 import { errosRecentes, listarCupons, relatorio, salvarCupom } from './negocio.ts'
+import { configurarCampanha, listarCampanha, salvarHomenagem } from './campanha.ts'
 import { dadosDoGrupo, linhaParaCertificado } from '../_shared/par.ts'
 import { linhaDoGrupo } from '../../../shared/grupo.js'
 
@@ -126,6 +127,16 @@ Deno.serve(
 
       case 'depoimentoDecidir':
         return json(request, await decidirDepoimento(db, corpo))
+
+      // Campanhas de homenagem (0024).
+      case 'campanha':
+        return json(request, await listarCampanha(db, corpo))
+
+      case 'homenagemSalvar':
+        return json(request, await salvarHomenagem(db, corpo, gerarCodigo))
+
+      case 'campanhaConfigurar':
+        return json(request, await configurarCampanha(db, corpo))
 
       default:
         throw new ErroApp('acao_desconhecida', 'Ação não reconhecida.', 422)
@@ -567,7 +578,8 @@ async function refazerEntrega(db: ReturnType<typeof admin>, corpo: Record<string
  * `active` nem de status: o painel cria páginas manuais e precisa ver tudo.
  */
 async function listarEstrelas(db: ReturnType<typeof admin>, corpo: Record<string, unknown> = {}) {
-  const campos = 'slug, name, bayer, constellation, magnitude, distance_ly'
+  // `status`: a aba Campanha só oferece estrela livre.
+  const campos = 'slug, name, bayer, constellation, magnitude, distance_ly, status'
   const { data, error } = await db
     .from('stars')
     .select(campos)

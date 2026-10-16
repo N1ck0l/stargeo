@@ -3,6 +3,7 @@ import { Reveal } from '../../components/Reveal'
 import { baixarCarta } from '../../lib/carta.js'
 import { useContent } from '../../lib/contentContext'
 import { estrelaDaFolha } from '../../lib/conteudoPagina.js'
+import { urlDaPagina } from '../../lib/config.js'
 
 /** Primeiro parágrafo com até isto vira saudação — a mesma regra do PDF da carta. */
 const SAUDACAO_MAX = 80
@@ -46,8 +47,10 @@ export function LoveLetter() {
           honoreeName: content.nome,
           estrela: estrelaDaFolha(content.estrela),
           code: content.registro,
+          // Campanha: o QR impresso leva de volta a esta página (endereço definitivo).
+          qrUrl: content.campanha && content.codigo ? urlDaPagina(content.codigo) : undefined,
         },
-        { claro },
+        { claro, campanha: content.campanha ?? null },
       )
     } catch {
       setFalha('Não foi possível gerar o PDF agora. Confira a conexão e tente de novo.')

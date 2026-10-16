@@ -17,6 +17,7 @@ import { EditorAdmin } from './EditorAdmin.jsx'
 import { Depoimentos } from './Depoimentos.jsx'
 import { Cupons } from './Cupons.jsx'
 import { Relatorios } from './Relatorios.jsx'
+import { Campanha } from './Campanha.jsx'
 
 /**
  * `/admin` — o painel da plataforma.
@@ -164,6 +165,7 @@ export function AdminPagina() {
               ['relatorios', 'Relatórios'],
               ['cupons', 'Cupons'],
               ['depoimentos', 'Depoimentos'],
+              ['campanha', 'Campanha PROIMAGEM'],
             ].map(([id, rotulo]) => (
               <button
                 key={id}
@@ -203,6 +205,8 @@ export function AdminPagina() {
             <Cupons aoExpirar={aoExpirar} />
           ) : aba === 'depoimentos' ? (
             <Depoimentos aoExpirar={aoExpirar} />
+          ) : aba === 'campanha' ? (
+            <Campanha aoExpirar={aoExpirar} />
           ) : (
             <Paginas aoExpirar={aoExpirar} aoAbrirPagina={setCodigoAberto} />
           )}

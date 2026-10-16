@@ -79,7 +79,7 @@ export function Hero({ onOpenCertificate, onOpenFinder }) {
       </div>
 
       <Reveal as="p" delay={120} className="mb-4 font-display text-[11px] tracking-[0.22em] text-gold/80 uppercase sm:tracking-[0.42em]">
-        Uma estrela, um nome, um céu
+        {content.campanha ? `Uma homenagem ${content.campanha.parceiro}` : 'Uma estrela, um nome, um céu'}
       </Reveal>
 
       <div ref={textoRef} className="flex flex-col items-center will-change-transform">

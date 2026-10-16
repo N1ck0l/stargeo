@@ -134,8 +134,27 @@ export const paginaPublica = comHandler(async (request) => {
       }
     }
 
+    // Campanha (0024): o mínimo para a página — parceiro, logo (só se
+    // autorizada) e frase final. Nada das anotações nem do consentimento.
+    let campanha: { parceiro: string; logo: { src: string; proporcao: number } | null; fraseFinal: string } | null = null
+    if (linha.campanha_id) {
+      const { data: c } = await db
+        .from('campanhas')
+        .select('parceiro, logo_url, logo_proporcao, logo_autorizada, frase_final')
+        .eq('id', linha.campanha_id)
+        .maybeSingle()
+      if (c) {
+        campanha = {
+          parceiro: c.parceiro,
+          logo: c.logo_autorizada && c.logo_url ? { src: c.logo_url, proporcao: Number(c.logo_proporcao) } : null,
+          fraseFinal: c.frase_final ?? '',
+        }
+      }
+    }
+
     return json(request, {
       grupo,
+      campanha,
       pagina: {
         code: linha.code,
         // O conteúdo no formato do `conteudo.json` do site pessoal: os

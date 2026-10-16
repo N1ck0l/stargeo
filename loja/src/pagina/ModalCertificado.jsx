@@ -49,6 +49,8 @@ export function ModalCertificado({ open, onClose }) {
       : undefined,
     dedicationDate: content.data,
     code: content.registro,
+    // Homenagem de campanha (0024): o selo do parceiro no rodapé.
+    campanha: content.campanha ?? null,
   }
 
   /**
@@ -62,7 +64,7 @@ export function ModalCertificado({ open, onClose }) {
     setFalha('')
     try {
       if (tipo === 'pdf') {
-        await baixarPdf(folha, { claro })
+        await baixarPdf(folha, { claro, campanha: folha.campanha })
       } else {
         if (!folhaRef.current) return
         const { toPng } = await import('html-to-image')
